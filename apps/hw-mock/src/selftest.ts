@@ -206,6 +206,17 @@ const frame = encodeFrame({ id: 1, m: 'info' });
 const reader = new FrameReader();
 const parsed = [...reader.push(new Uint8Array([0x41, 0x42, ...frame.slice(0, 5)])), ...reader.push(frame.slice(5))];
 check(parsed.length === 1 && (parsed[0] as { m: string }).m === 'info', 'frame codec: skips noise, reassembles split frames');
+{
+  // Log lines and a corrupted frame around a good one, as on the shared USB port.
+  const enc = new TextEncoder();
+  const good = encodeFrame({ id: 7, r: { ok: true } });
+  const broken = encodeFrame({ id: 6, r: { ok: false } });
+  broken[broken.length - 1] ^= 0xff;
+  const r2 = new FrameReader();
+  const stream = new Uint8Array([...enc.encode('I (1234) wallet: boot\n@@ ok\n'), ...broken, ...enc.encode('W (1240) ble: adv\n'), ...good]);
+  const got = [...r2.push(stream.slice(0, 40)), ...r2.push(stream.slice(40))];
+  check(got.length === 1 && (got[0] as { id: number }).id === 7, 'frame codec: skips log lines, drops a bad CRC, keeps the next frame');
+}
 
 if (WRITE) {
   mkdirSync(OUT, { recursive: true });
