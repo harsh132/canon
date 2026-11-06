@@ -5,12 +5,46 @@
 import type { WcProposalView, WcRequestView } from '../shared/protocol';
 import { DAPP_PORT_NAME } from '../shared/protocol';
 import { decode, encode } from '../shared/codec';
-import { accounts, bind, bindingFor, bindings, createAccount, isSiteAccount, previewAccount, revokeBrowser, signerFor } from './book';
-import { CHAIN_ID, getProvider } from './config';
+import { accounts, bind, bindingFor, bindings, createAccount, isSiteAccount, previewAccount, revokeBrowser, saveSiteChain, signerFor, siteChains } from './book';
+import { SEPOLIA_ID, hexChain, netOf, providerFor, sepolia } from './config';
 import { dappKeyFor } from './dapp-origin';
 import { RpcError, SIGN_METHODS, execute, isDelegation, summarize } from './sign';
 
-const CHAIN_HEX = `0x${CHAIN_ID.toString(16)}`;
+const SEPOLIA_HEX = hexChain(SEPOLIA_ID);
+
+// --- Per-site network ---------------------------------------------------------
+// Each site has its own network. A dapp's switch (or add) request for a network
+// Pangolin supports is accepted without a prompt. Saved in the encrypted book;
+// while locked, the session's memory only. New sites start on Sepolia.
+const chains = new Map<string, number>();
+export const chainOf = (origin: string): number => chains.get(origin) ?? siteChains()[origin] ?? SEPOLIA_ID;
+/** Every site the core knows a network for, for the UI. */
+export const knownChains = (): Record<string, number> => {
+  const out: Record<string, number> = { ...siteChains() };
+  for (const [o, c] of chains) out[o] = c;
+  return out;
+};
+const sentChain = new Map<chrome.runtime.Port, number>();
+const syncChain = (port: chrome.runtime.Port, origin: string): void => {
+  const c = chainOf(origin);
+  if (sentChain.get(port) === c) return;
+  const first = !sentChain.has(port);
+  sentChain.set(port, c);
+  if (!first || c !== SEPOLIA_ID) send(port, { event: 'chainChanged', data: hexChain(c) });
+};
+export const setSiteChain = async (origin: string, chainId: number): Promise<void> => {
+  if (!netOf(chainId)) throw new RpcError(4902, 'Pangolin does not support this network');
+  chains.set(origin, chainId);
+  await saveSiteChain(origin, chainId).catch(() => {});
+  for (const [port, o] of ports) if (o === origin) syncChain(port, o);
+  changed();
+};
+const chainParam = (params: unknown[]): number => {
+  const raw = String((params?.[0] as { chainId?: string })?.chainId ?? '');
+  const n = Number.parseInt(raw, raw.startsWith('0x') ? 16 : 10);
+  if (!Number.isFinite(n)) throw new RpcError(-32602, 'Bad chainId');
+  return n;
+};
 
 // Answered from the chain, through the transport (so through Nox).
 const READ_METHODS = new Set([
@@ -24,6 +58,8 @@ type Item = {
   kind: 'connect' | 'request';
   port: chrome.runtime.Port;
   origin: string;
+  /** The site's network when it asked; a later switch does not move the request. */
+  chainId: number;
   method: string;
   params: unknown[];
   resolve: (v: unknown) => void;
@@ -67,12 +103,13 @@ const send = (port: chrome.runtime.Port, msg: unknown): void => {
 
 /** Tells every open tab which account it now sees. On lock that is none. */
 export const broadcastAccounts = (): void => {
+  for (const [port, origin] of ports) syncChain(port, origin);
   for (const [port, origin] of ports) send(port, { event: 'accountsChanged', data: accountsFor(origin) });
 };
 
-const enqueue = (item: Omit<Item, 'id' | 'resolve' | 'reject'>): Promise<unknown> =>
+const enqueue = (item: Omit<Item, 'id' | 'resolve' | 'reject' | 'chainId'>): Promise<unknown> =>
   new Promise((resolve, reject) => {
-    queue.push({ ...item, id: nextItemId++, resolve, reject });
+    queue.push({ ...item, chainId: chainOf(item.origin), id: nextItemId++, resolve, reject });
     if (item.kind === 'connect') chosen = null;
     changed();
     prompt(item.port.sender?.tab?.windowId);
@@ -81,9 +118,9 @@ const enqueue = (item: Omit<Item, 'id' | 'resolve' | 'reject'>): Promise<unknown
 const handle = async (port: chrome.runtime.Port, origin: string, method: string, params: unknown[]): Promise<unknown> => {
   switch (method) {
     case 'eth_chainId':
-      return CHAIN_HEX;
+      return hexChain(chainOf(origin));
     case 'net_version':
-      return String(CHAIN_ID);
+      return String(chainOf(origin));
     case 'eth_accounts':
       return accountsFor(origin);
     case 'eth_requestAccounts':
@@ -100,29 +137,36 @@ const handle = async (port: chrome.runtime.Port, origin: string, method: string,
       broadcastAccounts();
       return null;
     case 'wallet_switchEthereumChain': {
-      const want = String((params?.[0] as { chainId?: string })?.chainId ?? '').toLowerCase();
-      if (want === CHAIN_HEX) return null;
-      throw new RpcError(4902, 'Pangolin runs on Sepolia only');
+      const want = chainParam(params);
+      if (!netOf(want)) throw new RpcError(4902, 'Pangolin does not support this network');
+      await setSiteChain(origin, want);
+      return null;
     }
-    case 'wallet_addEthereumChain':
-      throw new RpcError(4200, 'Pangolin runs on Sepolia only');
+    case 'wallet_addEthereumChain': {
+      // Only networks Pangolin already knows; the dapp's RPC URL is never used.
+      const want = chainParam(params);
+      if (!netOf(want)) throw new RpcError(4200, 'Pangolin does not support this network');
+      await setSiteChain(origin, want);
+      return null;
+    }
     // EIP-5792. Site addresses run Calibur through EIP-7702: batches are atomic and
     // gas is sponsored. auxiliaryFunds (ERC-7682): the private balance can fund them.
     case 'wallet_getCapabilities': {
+      // Batches and gas sponsorship (Calibur via our sponsor) are on Sepolia only.
       const [address] = (params ?? []) as [string?];
       const b = bindingFor(origin);
       const mine = accountsFor(origin)[0];
       if (!mine || (address && address.toLowerCase() !== mine) || !b || !isSiteAccount(b.index)) return {};
-      return { [CHAIN_HEX]: { atomic: { status: 'supported' }, auxiliaryFunds: { supported: true } } };
+      return { [SEPOLIA_HEX]: { atomic: { status: 'supported' }, auxiliaryFunds: { supported: true } } };
     }
     case 'wallet_getCallsStatus': {
       const id = String((params ?? [])[0] ?? '');
-      const r = await getProvider().getTransactionReceipt(id);
+      const r = await sepolia().getTransactionReceipt(id);
       const hex = (n: bigint | number) => `0x${BigInt(n).toString(16)}`;
       return {
         version: '2.0.0',
         id,
-        chainId: CHAIN_HEX,
+        chainId: SEPOLIA_HEX,
         atomic: true,
         status: !r ? 100 : r.status === 1 ? 200 : 500,
         receipts: r
@@ -145,7 +189,7 @@ const handle = async (port: chrome.runtime.Port, origin: string, method: string,
     if (isDelegation(method, params)) throw new RpcError(4001, 'Pangolin does not sign account delegations');
     return enqueue({ kind: 'request', port, origin, method, params });
   }
-  if (READ_METHODS.has(method)) return getProvider().send(method, params ?? []);
+  if (READ_METHODS.has(method)) return providerFor(chainOf(origin)).send(method, params ?? []);
   throw new RpcError(4200, `${method} is not supported`);
 };
 
@@ -157,6 +201,7 @@ export const attachDappPort = (port: chrome.runtime.Port): void => {
     return;
   }
   ports.set(port, origin);
+  syncChain(port, origin);
   changed();
   port.onMessage.addListener(async (raw: string) => {
     let req: { id: number; method: string; params?: unknown[] };
@@ -174,6 +219,7 @@ export const attachDappPort = (port: chrome.runtime.Port): void => {
   });
   port.onDisconnect.addListener(() => {
     ports.delete(port);
+    sentChain.delete(port);
     for (let i = queue.length - 1; i >= 0; i -= 1) if (queue[i].port === port) queue.splice(i, 1);
     changed();
   });
@@ -226,6 +272,7 @@ export const requestView = (): WcRequestView | null => {
     dapp: hostOf(item.origin),
     method: item.method,
     ...summarize(item.method, item.params),
+    network: netOf(item.chainId)?.name ?? String(item.chainId),
     account: rec ? { index: rec.index, address: signerFor(rec.index).address, label: rec.label } : null,
   };
 };
@@ -274,7 +321,7 @@ export const approveRequest = async (): Promise<void> => {
   if (!view?.account) throw new Error('Unlock first');
   const item = take('request');
   try {
-    item.resolve(await execute(view.account.index, item.method, item.params, view.dapp));
+    item.resolve(await execute(view.account.index, item.method, item.params, view.dapp, item.chainId));
   } catch (e) {
     item.reject(e instanceof RpcError ? e : new RpcError(-32603, (e as Error).message));
   }

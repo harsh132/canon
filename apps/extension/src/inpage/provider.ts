@@ -10,7 +10,8 @@ type Reply = { target: string; id?: number; result?: unknown; error?: { code: nu
 
 const TO_BRIDGE = 'pangolin:bridge';
 const FROM_BRIDGE = 'pangolin:inpage';
-const CHAIN_ID = '0xaa36a7';
+// Each site has its own network in Pangolin; this starts at Sepolia and follows chainChanged.
+const START_CHAIN = '0xaa36a7';
 
 class ProviderRpcError extends Error {
   constructor(public code: number, message: string) {
@@ -20,8 +21,8 @@ class ProviderRpcError extends Error {
 
 class PangolinProvider {
   readonly isPangolin = true;
-  chainId = CHAIN_ID;
-  networkVersion = '11155111';
+  chainId = START_CHAIN;
+  networkVersion = String(Number.parseInt(START_CHAIN, 16));
   selectedAddress: string | null = null;
   #listeners = new Map<string, Set<Listener>>();
   #pending = new Map<number, { resolve: (v: unknown) => void; reject: (e: Error) => void }>();
@@ -32,6 +33,11 @@ class PangolinProvider {
       if (e.source !== window || e.data?.target !== FROM_BRIDGE) return;
       const msg = e.data;
       if (msg.event) {
+        if (msg.event === 'chainChanged') {
+          if (msg.data === this.chainId) return;
+          this.chainId = String(msg.data);
+          this.networkVersion = String(Number.parseInt(this.chainId, 16));
+        }
         if (msg.event === 'accountsChanged') {
           const list = (msg.data as string[]) ?? [];
           if ((list[0] ?? null) === this.selectedAddress) return;
@@ -46,7 +52,7 @@ class PangolinProvider {
       if (msg.error) w.reject(new ProviderRpcError(msg.error.code, msg.error.message));
       else w.resolve(msg.result);
     });
-    queueMicrotask(() => this.#emit('connect', { chainId: CHAIN_ID }));
+    queueMicrotask(() => this.#emit('connect', { chainId: this.chainId }));
   }
 
   request = (args: { method: string; params?: unknown[] | Record<string, unknown> }): Promise<unknown> => {
@@ -56,6 +62,10 @@ class PangolinProvider {
       this.#pending.set(id, { resolve, reject });
       window.postMessage({ target: TO_BRIDGE, id, method: args.method, params: args.params ?? [] }, window.location.origin);
     }).then((result) => {
+      if (args.method === 'eth_chainId' && typeof result === 'string' && result !== this.chainId) {
+        this.chainId = result;
+        this.networkVersion = String(Number.parseInt(result, 16));
+      }
       if ((args.method === 'eth_requestAccounts' || args.method === 'eth_accounts') && Array.isArray(result)) {
         const next = (result[0] as string | undefined) ?? null;
         if (next !== this.selectedAddress) {

@@ -4,7 +4,11 @@ import { buildApprovedNamespaces, getSdkError } from '@walletconnect/utils';
 import type { Verification, WcProposalView, WcRequestView } from '../shared/protocol';
 import { bind, bindingFor, createAccount, indexOfAddress, previewAccount, signerFor, accounts } from './book';
 import { SIGN_METHODS, execute, isDelegation, summarize } from './sign';
-import { CAIP_CHAIN, DEV, WC_PROJECT_ID } from './config';
+import { DEV, NETS, SEPOLIA_ID, WC_PROJECT_ID, netOf } from './config';
+
+// Every network Pangolin supports; each request names the one it runs on.
+const SUPPORTED = NETS.map((n) => `eip155:${n.chainId}`);
+const chainIdOf = (caip?: string): number => Number((caip ?? '').split(':')[1] ?? SEPOLIA_ID) || SEPOLIA_ID;
 import { dappKeyFor } from './dapp-origin';
 import * as browser from './dapp';
 import { iconFor } from './icons';
@@ -55,14 +59,14 @@ const proposalView = (): WcProposalView | null => {
   const id = identify(proposal);
   const required = chainsOf(proposal.params.requiredNamespaces);
   const optional = chainsOf(proposal.params.optionalNamespaces);
-  const ours = [...required, ...optional].includes(CAIP_CHAIN) || (required.length === 0 && optional.length === 0);
-  const missing = required.filter((c) => c !== CAIP_CHAIN);
+  const ours = [...required, ...optional].some((c) => SUPPORTED.includes(c)) || (required.length === 0 && optional.length === 0);
+  const missing = required.filter((c) => !SUPPORTED.includes(c));
   const problem = id.verification === 'SCAM'
     ? 'Flagged as a scam'
     : missing.length
       ? `Needs ${missing.join(', ')}`
       : !ours
-        ? 'No Sepolia in request'
+        ? 'No supported network in request'
         : undefined;
 
   let account: WcProposalView['account'] = null;
@@ -113,6 +117,7 @@ const requestView = (): WcRequestView | null => {
     detail,
     isTransaction,
     account: index != null && address ? { index, address, label } : null,
+    network: netOf(chainIdOf(r.params.chainId))?.name ?? r.params.chainId,
   };
 };
 
@@ -206,7 +211,7 @@ export const approveProposal = async (): Promise<void> => {
   const namespaces = buildApprovedNamespaces({
     proposal: proposal.params,
     supportedNamespaces: {
-      eip155: { chains: [CAIP_CHAIN], methods: METHODS, events: EVENTS, accounts: [`${CAIP_CHAIN}:${view.account.address}`] },
+      eip155: { chains: SUPPORTED, methods: METHODS, events: EVENTS, accounts: SUPPORTED.map((c) => `${c}:${view.account!.address}`) },
     },
   });
   // Mint before approving: a live session must never sign as an address the book lacks.
@@ -241,7 +246,7 @@ export const approveRequest = async (): Promise<void> => {
   if (!r || !view) throw new Error('Nothing to approve');
   if (!view.account) throw new Error('Unlock first');
   const { method, params } = r.params.request as { method: string; params: unknown[] };
-  const result = await execute(view.account.index, method, params, view.dapp);
+  const result = await execute(view.account.index, method, params, view.dapp, chainIdOf(r.params.chainId));
   await k.respondSessionRequest({ topic: r.topic, response: { id: r.id, jsonrpc: '2.0', result } });
   requests.shift();
   refreshWc();

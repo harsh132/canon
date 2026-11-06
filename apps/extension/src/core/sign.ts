@@ -3,7 +3,7 @@
 import { getBytes, isHexString, toUtf8String, type TransactionRequest } from 'ethers';
 import { isSiteAccount, recordActivity, signerFor } from './book';
 import { sponsoredExecute } from './smart';
-import { CHAIN_ID, getProvider } from './config';
+import { SEPOLIA_ID, providerFor } from './config';
 
 export const SIGN_METHODS = ['personal_sign', 'eth_signTypedData', 'eth_signTypedData_v3', 'eth_signTypedData_v4', 'eth_sendTransaction', 'wallet_sendCalls'];
 
@@ -74,7 +74,7 @@ export const summarize = (method: string, params: unknown[]): { title: string; d
   return { title: method, detail: '', isTransaction: false };
 };
 
-export const execute = async (index: number, method: string, params: unknown[], dapp: string): Promise<unknown> => {
+export const execute = async (index: number, method: string, params: unknown[], dapp: string, chainId: number = SEPOLIA_ID): Promise<unknown> => {
   if (isDelegation(method, params)) throw new RpcError(4001, 'Pangolin does not sign account delegations');
   const signer = signerFor(index);
   if (method === 'personal_sign') {
@@ -87,25 +87,28 @@ export const execute = async (index: number, method: string, params: unknown[], 
     delete types.EIP712Domain;
     return signer.signTypedData(d.domain as never, types as never, d.message as never);
   }
-  // Site addresses: gas sponsored through EIP-7702 + Calibur (smart.ts).
-  if (method === 'eth_sendTransaction' && isSiteAccount(index)) {
+  const done = (hash: string) =>
+    recordActivity({ id: hash, kind: 'dapp', label: dapp, hash, at: Date.now(), status: 'pending', chainId }).catch(() => {});
+  // Site addresses on Sepolia: gas sponsored through EIP-7702 + Calibur (smart.ts).
+  // On other networks the site's address pays its own gas.
+  if (method === 'eth_sendTransaction' && isSiteAccount(index) && chainId === SEPOLIA_ID) {
     const p = params[0] as { to?: string; value?: string; data?: string };
     if (!p.to) throw new RpcError(4200, 'Contract creation is not supported from a site address');
     const hash = await sponsoredExecute(signer, [{ to: p.to, value: BigInt(p.value ?? 0), data: p.data ?? '0x' }]);
-    await recordActivity({ id: hash, kind: 'dapp', label: dapp, hash, at: Date.now(), status: 'pending' }).catch(() => {});
+    await done(hash);
     return hash;
   }
   // EIP-5792: a batch runs atomically as one Calibur call. The batch id is the transaction hash.
   if (method === 'wallet_sendCalls') {
     if (!isSiteAccount(index)) throw new RpcError(5700, 'Batched calls need a site address');
     const req = (params[0] ?? {}) as { chainId?: string; calls?: { to?: string; value?: string; data?: string }[] };
-    if (req.chainId && BigInt(req.chainId) !== BigInt(CHAIN_ID)) throw new RpcError(5710, 'Sepolia only');
+    if (chainId !== SEPOLIA_ID || (req.chainId && BigInt(req.chainId) !== BigInt(SEPOLIA_ID))) throw new RpcError(5710, 'Batched calls are on Sepolia only');
     const calls = (req.calls ?? []).map((c) => {
       if (!c.to) throw new RpcError(4200, 'Contract creation is not supported');
       return { to: c.to, value: BigInt(c.value ?? 0), data: c.data ?? '0x' };
     });
     const hash = await sponsoredExecute(signer, calls);
-    await recordActivity({ id: hash, kind: 'dapp', label: dapp, hash, at: Date.now(), status: 'pending' }).catch(() => {});
+    await done(hash);
     return { id: hash };
   }
   if (method === 'eth_sendTransaction') {
@@ -114,8 +117,10 @@ export const execute = async (index: number, method: string, params: unknown[], 
     delete (tx as Record<string, unknown>).gas;
     delete (tx as Record<string, unknown>).from;
     if (p.gas) tx.gasLimit = BigInt(p.gas);
-    const sent = await signer.connect(getProvider()).sendTransaction(tx);
-    await recordActivity({ id: sent.hash, kind: 'dapp', label: dapp, hash: sent.hash, at: Date.now(), status: 'pending' }).catch(() => {});
+    if (p.chainId != null && BigInt(p.chainId as string) !== BigInt(chainId)) throw new RpcError(-32602, 'Transaction is for another network');
+    delete (tx as Record<string, unknown>).chainId;
+    const sent = await signer.connect(providerFor(chainId)).sendTransaction(tx);
+    await done(sent.hash);
     return sent.hash;
   }
   throw new RpcError(4200, `${method} is not supported`);
