@@ -46,3 +46,7 @@ Locking sends `accountsChanged` with `[]` to every open tab; unlocking sends eac
 ## Permissions
 
 Content scripts on all http and https pages show Chrome's "read and change all your data on all websites" warning, as MetaMask does.
+
+## Icons
+
+Browser dapps show their favicon from Chrome's own favicon cache (`_favicon`, `favicon` permission). The browser serves it locally, so Pangolin makes no network request for it.

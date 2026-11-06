@@ -17,6 +17,7 @@
 | Circuit artifact host (IPFS) | The IP of someone about to prove | Public data, fetched directly |
 | WalletConnect relay | The IP of the wallet and the dapps it pairs with | WebSocket, not RPC; not routable through Nox |
 | Each dapp | Only the address it was given | A fresh address per dapp ([walletconnect.md](walletconnect.md)) |
+| A WalletConnect dapp's icon host | That someone fetched the icon, not who | Fetched by the core through Nox. Browser-dapp favicons come from Chrome's cache, with no request |
 | WalletConnect analytics | Nothing | Requests to `pulse.walletconnect.org` are blocked in the core |
 
 ## What the Privacy screen counts

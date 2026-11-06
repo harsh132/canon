@@ -11,6 +11,7 @@ End-to-end scripts in `apps/extension/scripts`. Each launches Chromium with `dis
 | `e2e-sepolia.mjs` | Real Sepolia through Nox in a persistent profile: `setup`, `shield`, `status`, `spend` | Sepolia ETH in the test wallet's Main |
 | `check-focus.mjs` | Every field on every screen shows one focus border and no outline (dark mode) | A build |
 | `check-panel.mjs` | Side panel behaviour and layout at several widths | A build |
+| `check-icons.mjs` | Favicon on browser connect/sign prompts and lists; WalletConnect metadata icon fetched and shown inline | A build; port 8794; WalletConnect project id |
 | `check-prompt.mjs` | With no UI open, a dapp connect opens the toolbar popup, not a window; the icon still opens the panel | A build; serves its own page on port 8793 |
 | `e2e-wc.mjs` | Two dapps get two addresses; personal_sign recovers to the right one; a reconnect keeps its address | A WalletConnect project id that allows the extension origin |
 

@@ -37,3 +37,9 @@ A project whose allowlist lacks the origin never connects; after 20 s the Apps s
 ## Analytics
 
 WalletKit posts events to `pulse.walletconnect.org` even with `telemetryEnabled: false`. The core's fetch patch answers those requests itself with an empty 204.
+
+## Dapp icons
+
+Prompts and the Apps list show the dapp's icon, with the origin as the leading line beside it and the app's self-declared name underneath. The icon URL comes from the dapp's metadata, so the core fetches it through the transport (Nox when on), keeps only `https:` and `data:` images up to 256 KB, and hands the UI an inline `data:` URL (`core/icons.ts`). No icon falls back to the site's initials.
+
+A phishing site can show any logo it likes; the origin line is what to check.

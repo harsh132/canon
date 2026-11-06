@@ -36,3 +36,4 @@ Newest last. Each entry: what, why, and what would change it.
 | 2026-11-06 | Side panel on icon click | User request. Stays open across tabs and shows dapp prompts in place |
 | 2026-11-06 | Dapp requests open the toolbar popup, not a window | A separate window tiled full-size on the user's desktop. Chrome only opens the side panel on a click, but `openPopup` works without one. An open panel shows requests itself |
 | 2026-11-06 | Swap on the v4 native ETH/USDC pool, not WETH/USDC | Sepolia's v4 WETH/USDC pools are empty; Relay Adapt unwraps, swaps, and re-wraps any leftover so a failed swap returns funds |
+| 2026-11-06 | Show dapp icons on prompts, not only in lists | User's choice over Ender's lists-only rule. The origin stays the leading line; WalletConnect icons are fetched through Nox |
