@@ -2,6 +2,7 @@
 // and sends one of the whitelisted Commands below. Nothing else is accepted.
 
 export const PORT_NAME = 'pangolin-popup';
+export const DAPP_PORT_NAME = 'pangolin-dapp';
 
 export type VaultStatus = 'none' | 'locked' | 'unlocked';
 
@@ -48,10 +49,12 @@ export type WcSessionView = {
   address: string;
 };
 
-export type Verification = 'VALID' | 'UNKNOWN' | 'INVALID' | 'SCAM';
+/** BROWSER: the origin came from Chrome itself (injected provider), so it cannot be forged by the page. */
+export type Verification = 'VALID' | 'UNKNOWN' | 'INVALID' | 'SCAM' | 'BROWSER';
 
 export type WcProposalView = {
   id: number;
+  source: 'wc' | 'browser';
   name: string;
   origin: string | null;
   attested: boolean;
@@ -65,6 +68,7 @@ export type WcProposalView = {
 
 export type WcRequestView = {
   id: number;
+  source: 'wc' | 'browser';
   topic: string;
   dapp: string;
   method: string;
@@ -95,6 +99,8 @@ export type CoreState = {
   activity: Activity[];
   proof: { label: string; progress: number } | null;
   rpc: RpcState;
+  /** Sites connected through the injected provider. */
+  sites: { origin: string; address: string; label: string }[];
   wc: {
     configured: boolean;
     ready: boolean;
@@ -139,6 +145,7 @@ export type Commands = {
   'send.plan': { params: SendIntent; result: SendPlan };
   'send.execute': { params: SendIntent; result: { hash: string } };
   'rpc.setMode': { params: { mode: 'nox' | 'direct' }; result: null };
+  'dapp.disconnect': { params: { origin: string }; result: null };
   'wc.pair': { params: { uri: string }; result: null };
   'wc.chooseAccount': { params: { index: number | 'new' }; result: null };
   'wc.approve': { params: null; result: null };

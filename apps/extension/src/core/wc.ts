@@ -6,6 +6,7 @@ import { bind, bindingFor, createAccount, indexOfAddress, nextIndex, signerFor, 
 import { SIGN_METHODS, execute, isDelegation, summarize } from './sign';
 import { CAIP_CHAIN, DEV, WC_PROJECT_ID } from './config';
 import { dappKeyFor } from './dapp-origin';
+import * as browser from './dapp';
 import { emit, state } from './state';
 
 // Every dapp gets its own public address. A first contact gets a fresh HD
@@ -77,6 +78,7 @@ const proposalView = (): WcProposalView | null => {
   }
   return {
     id: proposal.id,
+    source: 'wc',
     name: id.name,
     origin: id.key,
     attested: id.attested,
@@ -99,6 +101,7 @@ const requestView = (): WcRequestView | null => {
   const { title, detail, isTransaction } = summarize(method, params);
   return {
     id: r.id,
+    source: 'wc',
     topic: r.topic,
     dapp,
     method,
@@ -110,7 +113,12 @@ const requestView = (): WcRequestView | null => {
 };
 
 export const refreshWc = (): void => {
-  if (!kit) return;
+  if (!kit) {
+    state.wc.proposal = browser.proposalView();
+    state.wc.request = browser.requestView();
+    emit();
+    return;
+  }
   state.wc.sessions = Object.values(kit.getActiveSessions()).map((s) => ({
     topic: s.topic,
     name: s.peer.metadata.name,
@@ -118,8 +126,9 @@ export const refreshWc = (): void => {
     icon: s.peer.metadata.icons?.[0] ?? null,
     address: s.namespaces.eip155?.accounts?.[0]?.split(':')[2] ?? '',
   }));
-  state.wc.proposal = proposalView();
-  state.wc.request = requestView();
+  // Browser-tab prompts come first: the user is looking at that tab.
+  state.wc.proposal = browser.proposalView() ?? proposalView();
+  state.wc.request = browser.requestView() ?? requestView();
   emit();
 };
 
@@ -241,4 +250,4 @@ export const disconnect = async (topic: string): Promise<void> => {
   refreshWc();
 };
 
-export const hasPending = (): boolean => Boolean(proposal || requests.length);
+export const hasPending = (): boolean => Boolean(proposal || requests.length || browser.hasPending());

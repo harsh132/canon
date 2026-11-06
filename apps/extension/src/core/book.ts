@@ -13,6 +13,8 @@ export type Binding = {
   name: string | null;
   icon: string | null;
   verification: Verification;
+  /** The site may read this address through the injected provider. */
+  browser?: boolean;
   firstSeen: number;
   lastSeen: number;
 };
@@ -98,8 +100,16 @@ export const bind = async (origin: string, b: Omit<Binding, 'firstSeen' | 'lastS
   const now = Date.now();
   const prev = book.bindings[origin];
   book.bindings[origin] = prev
-    ? { ...prev, name: b.name, icon: b.icon, verification: b.verification, lastSeen: now }
+    ? { ...prev, name: b.name, icon: b.icon, verification: b.verification, browser: b.browser ?? prev.browser, lastSeen: now }
     : { ...b, firstSeen: now, lastSeen: now };
+  await persist();
+};
+
+/** Withdraws a site's injected-provider access. The binding, and so its address, stays. */
+export const revokeBrowser = async (origin: string): Promise<void> => {
+  const b = need().bindings[origin];
+  if (!b) return;
+  b.browser = false;
   await persist();
 };
 

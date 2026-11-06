@@ -10,6 +10,7 @@ import { executeSend, planSend } from './send';
 import { emit, onState, state } from './state';
 import { createVault, newMnemonic, normaliseMnemonic, unlockVault, vaultExists, wipeVault, type Unlocked } from './vault';
 import * as wc from './wc';
+import * as browser from './dapp';
 import { installTransport, setRpcMode } from './transport';
 
 let session: Unlocked | null = null;
@@ -29,6 +30,7 @@ const rebuildAccounts = (): void => {
     balance: balances.get(a.index) ?? null,
   }));
   state.activity = activity();
+  state.sites = browser.connectedSites();
   emit();
 };
 
@@ -45,6 +47,8 @@ const lock = (): void => {
   state.vault = 'locked';
   state.accounts = [];
   state.activity = [];
+  state.sites = [];
+  browser.broadcastAccounts();
   wc.refreshWc();
   emit();
 };
@@ -55,6 +59,7 @@ const afterUnlock = async (u: Unlocked, imported: boolean): Promise<void> => {
   state.vault = 'unlocked';
   rebuildAccounts();
   wc.refreshWc();
+  browser.broadcastAccounts();
   touch();
   // The engine can take a while on first boot; the vault is usable before it is.
   void openRailgunWallet(u, imported)
@@ -136,35 +141,46 @@ const handlers: Handlers = {
     await setRpcMode(mode);
     return null;
   },
+  'dapp.disconnect': async ({ origin }) => {
+    need();
+    await browser.disconnectSite(origin);
+    rebuildAccounts();
+    return null;
+  },
   'wc.pair': async ({ uri }) => {
     await wc.pair(uri);
     return null;
   },
   'wc.chooseAccount': async ({ index }) => {
-    wc.chooseAccount(index);
+    if (browser.hasProposal()) browser.chooseAccount(index);
+    else wc.chooseAccount(index);
     return null;
   },
   'wc.approve': async () => {
     need();
-    await wc.approveProposal();
+    if (browser.hasProposal()) await browser.approveConnect();
+    else await wc.approveProposal();
     rebuildAccounts();
     if (!wc.hasPending()) void sw({ type: 'prompt-clear' });
     return null;
   },
   'wc.reject': async () => {
-    await wc.rejectProposal();
+    if (browser.hasProposal()) browser.rejectConnect();
+    else await wc.rejectProposal();
     if (!wc.hasPending()) void sw({ type: 'prompt-clear' });
     return null;
   },
   'wc.approveRequest': async () => {
     need();
-    await wc.approveRequest();
+    if (browser.hasRequest()) await browser.approveRequest();
+    else await wc.approveRequest();
     rebuildAccounts();
     if (!wc.hasPending()) void sw({ type: 'prompt-clear' });
     return null;
   },
   'wc.rejectRequest': async () => {
-    await wc.rejectRequest();
+    if (browser.hasRequest()) browser.rejectRequest();
+    else await wc.rejectRequest();
     if (!wc.hasPending()) void sw({ type: 'prompt-clear' });
     return null;
   },
@@ -173,6 +189,8 @@ const handlers: Handlers = {
     return null;
   },
 };
+
+chrome.runtime.onConnect.addListener(browser.attachDappPort);
 
 chrome.runtime.onConnect.addListener((port) => {
   if (port.name !== PORT_NAME) return;
@@ -208,6 +226,15 @@ chrome.runtime.onConnect.addListener((port) => {
 });
 
 wc.configureWc({ isUnlocked: () => session != null, prompt: () => void sw({ type: 'prompt' }) });
+browser.configureDapp({
+  isUnlocked: () => session != null,
+  prompt: () => void sw({ type: 'prompt' }),
+  changed: () => {
+    wc.refreshWc();
+    if (session) rebuildAccounts();
+    if (!wc.hasPending()) void sw({ type: 'prompt-clear' });
+  },
+});
 
 void (async () => {
   // Before anything touches the network.
