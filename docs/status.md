@@ -23,6 +23,9 @@ Updated 2026-11-06.
 
 ## Built, not yet verified
 
+- **Private swap on Uniswap v4** (`core/swap.ts`, Swap screen). Calldata verified by a simulated swap on Sepolia (`scripts/v4-probe.mjs`); not yet run as a private transaction.
+- **Per-output proof-of-innocence submission** after sponsored sends. The first version cleared only the first output; a test of the per-output version is running.
+
 - **Typed-data signing over WalletConnect.** Added to `e2e-wc.mjs`; a re-run stalled once at the personal_sign step after passing it the run before, so treat the script as flaky until it passes twice.
 - **eth_sendTransaction from a dapp.** Needs a funded address.
 - **A private send through a broadcaster on real Sepolia.** Discovery finds up to 4 broadcasters, the proof builds and the request reaches one, but it answers "Could not validate Proof of Innocence". Twice, minutes apart, with an input note that had cleared. Sepolia broadcasters may not be validating; unresolved.

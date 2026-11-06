@@ -1,4 +1,4 @@
-# Uniswap private swap (planned)
+# Uniswap private swap
 
 Swap private WETH for a token without it ever touching a public address of the user's: one RAILGUN cross-contract call unshields into the Relay Adapt contract, swaps there on Uniswap, and re-shields the output.
 
@@ -17,7 +17,18 @@ Swap private WETH for a token without it ever touching a public address of the u
 
 WETH/USDC v3 pools all have liquidity. The 1% pool holds about 1,627 WETH and 33.7M USDC; the 0.05% pool about 128 WETH and 3.2M USDC. QuoterV2 prices 0.001 WETH at about 26.6 USDC (0.05% pool). The v4 PoolManager holds about 722 WETH and 19M USDC.
 
-## Plan
+## Design (built in `apps/extension/src/core/swap.ts`)
+
+The pool is the v4 native **ETH/USDC 0.3%** pool (the WETH/USDC v4 pools on Sepolia are empty). The adapter therefore unwraps first:
+
+1. `RelayAdapt.unwrapBase(0)`: all unshielded WETH to ETH.
+2. `UniversalRouter.execute(V4_SWAP)`: `SWAP_EXACT_IN_SINGLE`, `SETTLE_ALL`, `TAKE_ALL`; output paid to the adapter.
+3. `RelayAdapt.wrapBase(0)`: wraps any ETH left. In broadcaster mode a failed inner call does not revert, so this is what returns the input if the swap fails.
+4. Re-shield USDC and WETH to the wallet.
+
+Sent through the sponsored relay with the 1-wei self fee note, so the wallet can submit the swap's proof-of-innocence proofs. Quote from the v4 Quoter through Nox, 3% slippage floor, 30-minute deadline.
+
+## Original plan
 
 One `generateCrossContractCallsProof` with:
 

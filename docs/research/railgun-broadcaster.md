@@ -14,7 +14,9 @@ Source: [Railgun-Community/ppoi-safe-broadcaster-example](https://github.com/Rai
 6. Signs and sends from its own address.
 7. **Queues the POIs** (`transactions/poi-assurance.ts`). Every 2 minutes, once `getRailgunTransactionsForTxid` returns the transaction, it calls `POINodeRequest.submitSingleCommitmentProof` with the first output's commitment and note public key and the full pre-transaction POIs. It stops once the fee note is spendable.
 
-Step 7 is why broadcaster sends clear quickly: the PPOI node gets the transaction's proofs at once, instead of the sender waiting for RAILGUN's TXID tree to index the send and then generating proofs itself.
+Step 7 clears the broadcaster's own fee note quickly. A single commitment proof clears only the commitment it names: our first sponsored test cleared the 1-wei first output and left the payment and change Missing. Pangolin therefore submits one per output it owns.
+
+Step 7's purpose: the PPOI node gets the transaction's proofs at once, instead of the sender waiting for RAILGUN's TXID tree to index the send and then generating proofs itself.
 
 ## What Pangolin takes from it
 
