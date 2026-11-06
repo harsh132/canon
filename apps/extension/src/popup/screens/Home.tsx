@@ -31,9 +31,18 @@ export const Home = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
       <Header
         title="Pangolin"
         right={
-          <Button variant="link" className="text-muted" onClick={() => void call('vault.lock', null)}>
-            Lock
-          </Button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => go('name')}
+              className="inline-flex items-center gap-2 rounded-sm border border-rule bg-sheet px-2.5 py-1.5 font-mono text-[11px] text-ink"
+            >
+              <span className={`inline-block h-1.5 w-1.5 rounded-full ${s.name ? 'bg-accent' : 'bg-rule-strong'}`} />
+              {s.name ?? 'Get a name'}
+            </button>
+            <Button variant="link" className="text-muted" onClick={() => void call('vault.lock', null)}>
+              Lock
+            </Button>
+          </div>
         }
       />
       <div className="mx-[18px] flex items-baseline justify-between rule-dash pt-1.5 pb-2.5">

@@ -71,7 +71,7 @@ export const Send = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
             ))}
           </select>
         </Field>
-        <Field label="To" hint="0x or 0zk">
+        <Field label="To" hint="name, 0x or 0zk">
           <Input
             value={to}
             spellCheck={false}
@@ -120,6 +120,8 @@ export const Send = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
           <Slug>This will</Slug>
           <div className="mt-1 text-[17px] font-semibold">{VERB[plan.kind]}</div>
           <div className="mt-3 border-t border-dashed border-rule">
+            {plan.name && <Row label="Pays">{short(plan.to, 10, 6)}</Row>}
+            {plan.name && <Row label="Via">{plan.resolvedVia === 'org.railgun' ? 'org.railgun record' : 'ETH address record'}</Row>}
             <Row label="Seen">{SEEN[plan.kind]}</Row>
             {plan.broadcasterFee != null ? (
               <Row label="Fee">{amount(plan.broadcasterFee, 18, 6)} WETH · broadcaster</Row>
@@ -143,7 +145,7 @@ export const Send = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
       <div className="flex flex-col gap-2 px-[18px] pt-4 pb-[18px]">
         <ErrorLine>{a.error}</ErrorLine>
         {plan ? (
-          <Button busy={a.busy} onClick={() => a.run(async () => setHash((await call('send.execute', intent)).hash))}>
+          <Button busy={a.busy} onClick={() => a.run(async () => setHash((await call('send.execute', { ...intent, to: plan.to })).hash))}>
             {VERB[plan.kind]}
           </Button>
         ) : (

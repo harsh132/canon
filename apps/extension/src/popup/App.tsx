@@ -8,9 +8,10 @@ import { Receive } from './screens/Receive';
 import { Apps } from './screens/Apps';
 import { Accounts } from './screens/Accounts';
 import { Privacy } from './screens/Privacy';
+import { Name } from './screens/Name';
 import { ConnectPrompt, RequestPrompt } from './screens/Prompts';
 
-export type Tab = 'home' | 'send' | 'receive' | 'apps' | 'accounts' | 'privacy';
+export type Tab = 'home' | 'send' | 'receive' | 'apps' | 'accounts' | 'privacy' | 'name';
 
 const NAV: { tab: Tab; label: string }[] = [
   { tab: 'home', label: 'Home' },
@@ -42,6 +43,7 @@ export const App = () => {
         {tab === 'apps' && <Apps s={s} />}
         {tab === 'accounts' && <Accounts s={s} />}
         {tab === 'privacy' && <Privacy s={s} go={go} />}
+        {tab === 'name' && <Name s={s} go={go} />}
       </div>
       <nav aria-label="Main" className="flex justify-between border-t border-rule px-[18px] pt-3 pb-3.5 font-mono text-[10px] tracking-[0.18em] uppercase">
         {NAV.map((n) => (
