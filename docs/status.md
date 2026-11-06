@@ -13,6 +13,7 @@ Updated 2026-11-06.
 | Make private on real Sepolia, through Nox | `e2e-sepolia.mjs shield`: spendable after about 12 min |
 | Send privately on real Sepolia, Main paying gas | Landed; its new notes still await proof of innocence |
 | Make public on real Sepolia, Main paying gas | Landed; proof and submit 38 s |
+| ENS: claim `<label>.pangolin.eth`, pay a name privately | `e2e-sepolia.mjs name` on Sepolia |
 | Broadcaster discovery over Waku in the extension | `e2e-sepolia.mjs broadcasters`: connected, 1 Sepolia broadcaster |
 | Public accounts, balances on demand | Manual |
 | Privacy screen with read counts and a Nox/direct switch | `e2e-create.mjs` output |
@@ -35,5 +36,4 @@ Updated 2026-11-06.
 
 1. Finish the broadcaster test on real Sepolia (built; discovery works).
 2. Private swap on Uniswap through RAILGUN cross-contract calls.
-3. ENS v2 subnames: register `pangolin.eth` on Sepolia, switch the record key to `org.railgun`.
 4. Submission write-up for the Anon-RPC track, and FEEDBACK.md for Uniswap.

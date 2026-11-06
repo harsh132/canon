@@ -14,6 +14,7 @@ Built at ETHGlobal Mumbai, November 2026. Working name; may be renamed.
 | path | what |
 |---|---|
 | `apps/extension` | the Chrome extension (MV3, Vite, React, Tailwind) |
+| `apps/sponsor` | ENS name sponsor (Bun server) |
 | `packages/` | shared libraries as they split out of the extension |
 | `docs/` | architecture, privacy, decisions, testing, status ([index](docs/README.md)) |
 

@@ -30,3 +30,5 @@ Newest last. Each entry: what, why, and what would change it.
 | 2026-11-06 | Broadcaster by default for private sends; Main only by choice | Closes the gas link from Main. Waku exposes IP to its peers, which is the smaller leak |
 | 2026-11-06 | Generate proof-of-innocence proofs on every sync | Self-paid private sends stayed pending; the wallet must build those proofs while open |
 | 2026-11-06 | Default private-send gas back to Main | Sepolia broadcasters rejected every send on proof of innocence. Broadcaster stays one tap away |
+| 2026-11-06 | Names owned by an unfunded app-path address, not Main | Main is the visible sender of shields; owning the name from it would link the two |
+| 2026-11-06 | Parent registered for 1 year | The 10 test USDC covered one year (8 USDC). Anyone can renew |

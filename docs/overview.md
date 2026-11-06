@@ -19,7 +19,7 @@ ETHGlobal Mumbai, started 2026-11-06.
 | Ethereum Foundation: Anon-RPC | Lead. Every RPC read through Nox in an MV3 extension, counted on a Privacy screen | Working on Sepolia |
 | Ethereum Foundation: CROPS | Alternative EF entry; one EF prize per project | Not targeted separately |
 | Uniswap | Private swap through RAILGUN cross-contract calls | Not started |
-| ENS v2 | Sponsored `<label>.pangolin.eth` subnames whose `org.railgun` record pays privately | On hold by decision; POC proven |
+| ENS v2 | Sponsored `<label>.pangolin.eth` subnames whose `org.railgun` record pays privately | Working on Sepolia |
 
 ## Repo
 
@@ -28,6 +28,7 @@ ETHGlobal Mumbai, started 2026-11-06.
 | Path | What |
 |---|---|
 | `apps/extension` | The MV3 extension |
+| `apps/sponsor` | Issues ENS names; holds the sponsor key |
 | `packages/` | Shared code, empty for now |
 | `docs/` | This folder |
 

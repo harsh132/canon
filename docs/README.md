@@ -8,6 +8,7 @@
 | [anon-rpc.md](anon-rpc.md) | How every RPC read goes through Nox |
 | [railgun.md](railgun.md) | The RAILGUN engine inside an MV3 extension: shims, quirks, the one-Send model |
 | [walletconnect.md](walletconnect.md) | A public address per dapp, and the project-id setup |
+| [ens.md](ens.md) | Free `<label>.pangolin.eth` names that pay privately |
 | [injected-provider.md](injected-provider.md) | `window.ethereum` and EIP-6963, MetaMask-style |
 | [testing.md](testing.md) | The end-to-end scripts and what they last proved |
 | [decisions.md](decisions.md) | Decisions with dates and reasons |
