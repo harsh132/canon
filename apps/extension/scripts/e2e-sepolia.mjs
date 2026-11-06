@@ -17,8 +17,8 @@ const walletFile = `${dir}wallet.json`;
 const PASSWORD = 'pangolin sepolia test';
 const phase = process.argv[2] ?? 'status';
 const AMOUNT = process.env.AMOUNT ?? '0.01';
-// Gas for private sends: 'self' (Main pays, default) or 'broadcaster'.
-const VIA = process.env.VIA ?? 'self';
+// Gas for private sends: 'sponsor' (default), 'broadcaster' or 'self' (Main pays).
+const VIA = process.env.VIA ?? 'sponsor';
 
 const { browser, popup } = await launch();
 setTimeout(() => {
@@ -101,6 +101,7 @@ const send = async ({ from, to, amount, expect }) => {
   await popup.waitForSelector('select');
   await popup.select('select', String(from));
   if (from === 'private' && VIA === 'broadcaster') await click('^broadcaster$');
+  if (from === 'private' && VIA === 'self') await click('^main$');
   const [toInput] = await popup.$$('input:not([inputmode])');
   await toInput.click({ clickCount: 3 });
   await toInput.type(to);
