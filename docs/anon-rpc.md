@@ -33,6 +33,8 @@ The build copies `dist/static/anon-rpc/<version>-<hash>/` from the installed pac
 
 `axios.defaults.adapter = 'fetch'` makes the PPOI client use `fetch` instead of XHR, which the patch could not see.
 
+The QuickSync GraphQL client captures `fetch` when its module loads, before the core runs. So `src/shims/inject.js`, which esbuild places at the top of the bundle, replaces `fetch` with a forwarder first; the transport later sets what it forwards to. Without it QuickSync bypassed the counter entirely.
+
 ethers must be a single module instance in the bundle. RAILGUN `require`s it and our code `import`s it; esbuild would otherwise include both builds, each with its own `registerGetUrl`. The build aliases `ethers` to `lib.esm`.
 
 Do not forward ethers' cancel signal to `worker.fetch`. It is not an `AbortSignal`.
@@ -45,6 +47,7 @@ Do not forward ethers' cancel signal to `worker.fetch`. It is not an `AbortSigna
 | New wallet, first full sync | 50 s |
 | Requests during that | 18 via Nox (15 RPC, 3 PPOI lookups, all 200), 0 clear |
 | Bootstrap | 2 specifier reads, 1 bundle download |
+| Bulk sync, direct | 5 QuickSync requests |
 
 The same sync with direct RPC took about 36 s.
 

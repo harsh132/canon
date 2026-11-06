@@ -36,3 +36,4 @@ PANGOLIN_PROFILE=$PWD/.cache/<new> bun scripts/e2e-fork.mjs
 - A second private send reused notes the first had spent.
 - An incomplete engine scan was shown as Synced.
 - WalletKit init never resolves when the relay refuses the origin.
+- QuickSync captured `fetch` before the transport patch and went uncounted.
