@@ -37,7 +37,7 @@ PANGOLIN_PROFILE=$PWD/.cache/<new> bun scripts/e2e-fork.mjs
 | Date | Script | Network | Result |
 |---|---|---|---|
 | 2026-11-06 | `e2e-onboard.mjs` | Chromium, virtual authenticator | All 13 checks pass. `check-focus`, `e2e-injected`, `check-prompt`, `check-site-panel` and `check-panel` pass on the new onboarding |
-| 2026-11-06 | `e2e-sepolia.mjs dapp`, Fund step | Sepolia | Not passing. After Fund is clicked in the panel, the panel freezes and no fund reaches the sponsor; the core logs nothing for it. Under investigation |
+| 2026-11-06 | `e2e-sepolia.mjs dapp`, Fund step | Sepolia | ETH funding refused by the sponsor: "Only RAILGUN contracts". The SDK's base-token unshield is a type-4 transaction to a RelayAdapt7702 ephemeral, which `/relay` does not accept. Earlier runs looked like a frozen panel: the test clicked the Fund screen's back button, also labelled Fund |
 | 2026-11-06 | `e2e-sepolia.mjs dapp` | Sepolia, Nox, sponsor | Empty site address: capabilities returned atomic + auxiliaryFunds; `eth_sendTransaction` delegated it to Calibur in a type-4 transaction from the sponsor ([tx](https://sepolia.etherscan.io/tx/0x09607fddca656b2b339db82df7fd1d9edf2de4c7b20cfe52aa3447bbb0a212b5)), 12 s; a two-call `wallet_sendCalls` landed with both events, status 200 ([tx](https://sepolia.etherscan.io/tx/0x4a67b7d4abb0fd2bba2b5c21749bae2794f5f0307f3d235170ac0425cdaa9cc7)). Re-run on the delegated address: type 2, 8 s |
 | 2026-11-06 | `execute-probe.ts` | Sepolia | Fresh address with 0 ETH: delegate and call, then a two-call batch; both status 1, sponsor as sender, allowances set |
 | 2026-11-06 | `e2e-create.mjs` | Sepolia, Nox | Synced in 50 s; 18 RPC via Nox, 0 clear |

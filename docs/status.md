@@ -30,7 +30,7 @@ Updated 2026-11-06.
 
 ## Built, not yet verified
 
-- **Fund from the panel.** The Fund screen opens and fills, but after Fund is pressed the panel freezes and nothing reaches the sponsor. Unsolved.
+- **Fund with ETH, and sponsored Make public.** On Sepolia the SDK unwraps WETH to ETH through RelayAdapt7702 (`0x05ae73c5925d843864ae6F261f3175De2ebCd963`): a type-4 transaction to a one-off ephemeral address. The sponsor's `/relay` accepts only plain calls to the RAILGUN proxy and the old Relay Adapt, so it answers "Only RAILGUN contracts". ERC-20 funding and private sends are unaffected.
 - **Passkeys on real authenticators.** Google Password Manager, iCloud Keychain and security keys need a manual try; headless tests use a virtual one.
 
 - **Typed-data signing over WalletConnect.** Added to `e2e-wc.mjs`; a re-run stalled once at the personal_sign step after passing it the run before, so treat the script as flaky until it passes twice.

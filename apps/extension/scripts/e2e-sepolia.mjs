@@ -288,7 +288,8 @@ if (phase === 'dapp') {
     await panel.goto(`chrome-extension://${extId}/panel.html?tab=${tabId}`);
     await panel.bringToFront();
     const ptext = async () => (await panel.evaluate(() => document.body.innerText)).replace(/\s+/g, ' ');
-    const pclick = (re) => panel.evaluate((src) => [...document.querySelectorAll('button')].find((b) => new RegExp(src, 'i').test(b.textContent.trim())).click(), re);
+    // A header back button carries its screen's title ("Fund"), so the submit button is the last match.
+    const pclick = (re) => panel.evaluate((src) => [...document.querySelectorAll('button')].filter((b) => new RegExp(src, 'i').test(b.textContent.trim())).pop().click(), re);
     await panel.waitForFunction(() => [...document.querySelectorAll('button')].some((b) => /^fund$/i.test(b.textContent.trim())), { timeout: 60000, polling: 500 });
     await pclick('^fund$');
     await new Promise((r) => setTimeout(r, 1000));
@@ -305,7 +306,7 @@ if (phase === 'dapp') {
     }, process.env.AMOUNT ?? '0.0005');
     log('amount set:', (await ptext()).slice(0, 300));
     const t2 = Date.now();
-    await panel.waitForFunction(() => [...document.querySelectorAll('button')].some((b) => /^fund$/i.test(b.textContent.trim()) && !b.disabled), { timeout: 30000, polling: 500 });
+    await panel.waitForFunction(() => [...document.querySelectorAll('button')].filter((b) => /^fund$/i.test(b.textContent.trim())).pop()?.disabled === false, { timeout: 30000, polling: 500 });
     await pclick('^fund$');
     log('fund clicked');
     await panel.waitForFunction(() => /submitted|error|failed|more than/i.test(document.body.innerText), { timeout: 900000, polling: 1000 });
