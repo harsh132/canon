@@ -17,7 +17,7 @@ Fund on the site card moves private balance to the site's address in one unshiel
 
 | Token | Arrives as | Path |
 |---|---|---|
-| WETH | ETH | The Make public path, sponsor paying gas |
+| WETH | ETH | The Make public path, sponsor paying gas. On Sepolia the SDK unwraps through RelayAdapt7702: a type-4 transaction to a one-off ephemeral address that delegates to it, which the sponsor's `/relay` accepts only with that exact authorization |
 | Any other | Itself | ERC-20 unshield, sponsor relaying, with the 1-wei self fee note so the wallet submits its proof-of-innocence proofs |
 
 The chain sees that a RAILGUN user sent this amount of this token to this address. It does not see which private balance, or the user's other addresses.
@@ -73,4 +73,4 @@ On the injected provider, for a connected site address:
 
 ## Verified
 
-See [testing.md](testing.md#last-results).
+See [testing.md](testing.md#last-results). Funding with ETH on Sepolia: [tx](https://sepolia.etherscan.io/tx/0x7b724b9287d6e875e5a870a82e41386e38c03644681f0e44761e2ede911a0c8e), then a gasless `wallet_sendCalls` that wrapped 0.0001 ETH from the site address ([tx](https://sepolia.etherscan.io/tx/0x978c42646b1aacf773ea48cc58c7124d7a4c5f07ddd308e062fd7e340d64752f)).

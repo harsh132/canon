@@ -25,12 +25,14 @@ Updated 2026-11-06.
 | Gasless dapp transactions from a site address (EIP-7702 to Calibur, sponsor pays) | `e2e-sepolia.mjs dapp`, `execute-probe.ts` |
 | EIP-5792: `wallet_getCapabilities`, `wallet_sendCalls`, `wallet_getCallsStatus` | `e2e-sepolia.mjs dapp` |
 | Onboarding: new wallet with word check, restore grid, passkey (PRF) wallets | `e2e-onboard.mjs` with a virtual authenticator |
+| Fund a site address from private WETH, arriving as ETH (sponsor relays RAILGUN's type-4 unshield) | `e2e-sepolia.mjs dapp` with `RPC_DIRECT=1` |
 | Per-tab side panel showing each tab's dapp and address | `check-site-panel.mjs` |
 | Per-dapp WalletConnect addresses: two dapps get two fresh addresses, personal_sign recovers to the right one, a reconnect keeps its address | `e2e-wc.mjs`, Pangolin project id |
 
 ## Built, not yet verified
 
-- **Fund with ETH, and sponsored Make public.** On Sepolia the SDK unwraps WETH to ETH through RelayAdapt7702 (`0x05ae73c5925d843864ae6F261f3175De2ebCd963`): a type-4 transaction to a one-off ephemeral address. The sponsor's `/relay` accepts only plain calls to the RAILGUN proxy and the old Relay Adapt, so it answers "Only RAILGUN contracts". ERC-20 funding and private sends are unaffected.
+- **The 7702 unshield through Nox.** The SDK reads the ephemeral address's nonce over a route that needs a Nox TLS exit. On 2026-11-06 no exit offered TLS tunnels, so Fund with ETH and Make public failed with "No exit offers TLS tunnels" in Nox mode. They passed with direct reads.
+- **Sponsored Make public from Home.** Same relay path as Fund with ETH, not run separately.
 - **Passkeys on real authenticators.** Google Password Manager, iCloud Keychain and security keys need a manual try; headless tests use a virtual one.
 
 - **Typed-data signing over WalletConnect.** Added to `e2e-wc.mjs`; a re-run stalled once at the personal_sign step after passing it the run before, so treat the script as flaky until it passes twice.

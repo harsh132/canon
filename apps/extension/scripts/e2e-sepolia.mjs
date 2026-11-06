@@ -222,6 +222,19 @@ if (phase === 'setup') {
   log('after make public:', await balances());
 }
 
+// RPC_DIRECT=1: reads go direct for this run (when Nox has no TLS exits), then back to Nox.
+const setRpc = async (mode) => {
+  await nav('home');
+  await popup.evaluate(() => [...document.querySelectorAll('button')].find((b) => /clear ·/.test(b.textContent)).click());
+  await waitText('use direct rpc|route through nox');
+  const want = mode === 'direct' ? 'use direct rpc' : 'route through nox';
+  if (new RegExp(want, 'i').test(await text())) await click(`^${want}$`);
+  await waitText(mode === 'direct' ? 'route through nox' : 'use direct rpc');
+  log('reads now', mode);
+  await nav('home');
+};
+if (process.env.RPC_DIRECT) await setRpc('direct');
+
 if (phase === 'dapp') {
   // A dapp on a fresh site address (no ETH): EIP-5792 capabilities, a sponsored
   // eth_sendTransaction (delegates to Calibur), a batch via wallet_sendCalls, then
@@ -319,6 +332,7 @@ if (phase === 'dapp') {
   } catch (e) {
     log('panel step failed:', e.message, '| panel:', (await panel.evaluate(() => document.body.innerText)).replace(/\s+/g, ' ').slice(0, 400));
     await panel.screenshot({ path: `${dir}dapp-fund-fail.png` });
+    if (process.env.RPC_DIRECT) await setRpc('nox').catch(() => {});
     throw e;
   }
 
@@ -331,6 +345,7 @@ if (phase === 'dapp') {
   log('value batch', id2, 'status', r3.status, 'site ETH after', await rpc.getBalance(addr));
   server.stop();
 }
+if (process.env.RPC_DIRECT) await setRpc('nox');
 await popup.screenshot({ path: `${dir}${phase}.png` });
 await browser.close();
 process.exit(0);
