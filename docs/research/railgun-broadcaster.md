@@ -24,6 +24,10 @@ Step 7's purpose: the PPOI node gets the transaction's proofs at once, instead o
 - **The sponsor's relay** mirrors steps 2 and 4: simulate at the real gas price, enforce `minGasPrice`.
 - Running our own Waku broadcaster from this code is possible but heavy for a hackathon (Docker, nwaku, a funded wallet per chain). The sponsored relay over HTTPS through Nox gives the same sender privacy for Pangolin users.
 
+## Result on Sepolia
+
+With one submission per owned output, a sponsored private send's payment and change were spendable 7 minutes after sending: about 4 minutes for RAILGUN's index to list the transaction, then about 2 minutes after the submissions. Without them, notes from self-paid sends stayed pending for 40+ minutes and had not cleared when last checked.
+
 ## Why Sepolia broadcasters rejected us
 
 Not resolved. Their step 5 failed on our transaction. Candidates: their required POI list differs from ours, or their PPOI view of our input notes lags. Ask the RAILGUN team.

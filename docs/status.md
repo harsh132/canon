@@ -15,6 +15,7 @@ Updated 2026-11-06.
 | Make public on real Sepolia, Main paying gas | Landed; proof and submit 38 s |
 | ENS: claim `<label>.pangolin.eth`, pay a name privately | `e2e-sepolia.mjs name` on Sepolia |
 | Sponsored private send (sponsor pays gas, Main not involved) | `e2e-sepolia.mjs private` on Sepolia |
+| Fast proof of innocence after a sponsored send: the wallet submits a proof per output it owns | `e2e-sepolia.mjs private`: spendable again 7 min after sending |
 | Broadcaster discovery over Waku in the extension | `e2e-sepolia.mjs broadcasters`: connected, 1 Sepolia broadcaster |
 | Public accounts, balances on demand | Manual |
 | Privacy screen with read counts and a Nox/direct switch | `e2e-create.mjs` output |
@@ -24,7 +25,6 @@ Updated 2026-11-06.
 ## Built, not yet verified
 
 - **Private swap on Uniswap v4** (`core/swap.ts`, Swap screen). Calldata verified by a simulated swap on Sepolia (`scripts/v4-probe.mjs`); not yet run as a private transaction.
-- **Per-output proof-of-innocence submission** after sponsored sends. The first version cleared only the first output; a test of the per-output version is running.
 
 - **Typed-data signing over WalletConnect.** Added to `e2e-wc.mjs`; a re-run stalled once at the personal_sign step after passing it the run before, so treat the script as flaky until it passes twice.
 - **eth_sendTransaction from a dapp.** Needs a funded address.
