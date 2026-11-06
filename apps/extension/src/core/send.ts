@@ -120,7 +120,8 @@ const prepare = async (intent: SendIntent, u: Unlocked): Promise<Prepared> => {
     }
   };
 
-  const viaBroadcaster = intent.from === 'private' && intent.via !== 'self';
+  // Main pays by default: Sepolia broadcasters currently reject on proof of innocence.
+  const viaBroadcaster = intent.from === 'private' && intent.via === 'broadcaster';
   const base = { kind, from: intent.from, to, amount, symbol: 'ETH', gasFrom: intent.from === 'private' && !viaBroadcaster ? gasFrom : null, broadcasterFee: null };
 
   switch (kind) {

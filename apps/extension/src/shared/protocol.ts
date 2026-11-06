@@ -121,7 +121,7 @@ export type SendIntent = {
   from: 'private' | number;
   to: string;
   amount: string;
-  /** Who pays gas when sending from private: a broadcaster (default) or a public account. */
+  /** Who pays gas when sending from private: a public account (default) or a broadcaster. */
   via?: 'broadcaster' | 'self';
   /** Public account that pays gas when via is 'self'. */
   gasFrom?: number;

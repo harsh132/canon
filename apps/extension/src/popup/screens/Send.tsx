@@ -26,7 +26,7 @@ export const Send = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
   const [value, setValue] = useState('');
   const [plan, setPlan] = useState<SendPlan | null>(null);
   const [hash, setHash] = useState<string | null>(null);
-  const [via, setVia] = useState<'broadcaster' | 'self'>(process.env.PANGOLIN_FORK === '1' ? 'self' : 'broadcaster');
+  const [via, setVia] = useState<'broadcaster' | 'self'>('self');
   const a = useAction();
 
   const intent: SendIntent = { from, to, amount: value, gasFrom: 0, via };
