@@ -51,9 +51,11 @@ chrome.action.onClicked.addListener((tab) => {
   void chrome.sidePanel.open({ tabId: tab.id }).catch((e) => console.warn('[sw] side panel', e));
 });
 
-chrome.runtime.onInstalled.addListener(() => {
+chrome.runtime.onInstalled.addListener(({ reason }) => {
   void perTabPanels();
   void ensureCore();
+  // First install: onboarding in its own tab, where a passkey dialog cannot close it.
+  if (reason === 'install') void chrome.tabs.create({ url: 'onboard.html' });
 });
 chrome.runtime.onStartup.addListener(() => void ensureCore());
 

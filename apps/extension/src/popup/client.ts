@@ -10,7 +10,9 @@ let port: chrome.runtime.Port | null = null;
 /** Which surface this page is: the side panel, the toolbar popup, or a prompt window. */
 export const uiKind: UiKind = location.pathname.endsWith('panel.html')
   ? 'panel'
-  : new URLSearchParams(location.search).has('window')
+  : location.pathname.endsWith('onboard.html')
+    ? 'tab'
+    : new URLSearchParams(location.search).has('window')
     ? 'window'
     : 'popup';
 /** The tab a side panel belongs to (panel.html?tab=N). */

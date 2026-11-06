@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { uiKind, useCore } from './client';
-import { Backup, Onboard } from './screens/Onboard';
+import { Backup, Onboard, Ready, type BackupView } from './screens/Onboard';
 import { Unlock } from './screens/Unlock';
 import { Home } from './screens/Home';
 import { Send } from './screens/Send';
@@ -25,15 +25,17 @@ export const App = () => {
   const s = useCore();
   const [tab, setTab] = useState<Tab>('home');
   // Held here, not in Onboard: the vault flips to unlocked before the phrase is acknowledged.
-  const [backup, setBackup] = useState<string | null>(null);
+  const [backup, setBackup] = useState<BackupView | null>(null);
   // Side panel: a waiting request shows as a bar until the user chooses to review it.
   const [reviewing, setReviewing] = useState(false);
 
   if (!s || s.vault === 'unknown') return <div className="grid h-[var(--app-h)] place-items-center"><span className="slug">Starting</span></div>;
-  if (backup) return <Backup phrase={backup} onDone={() => setBackup(null)} />;
+  if (backup) return <Backup {...backup} onDone={() => setBackup(null)} />;
   if (s.vault === 'none') return <Onboard onBackup={setBackup} />;
   // Locked: always the unlock screen first; it names any waiting request.
   if (s.vault === 'locked') return <Unlock s={s} />;
+  // The onboarding tab stops here; the wallet lives in the toolbar.
+  if (uiKind === 'tab') return <Ready />;
   const pending = s.wc.proposal ?? s.wc.request;
   if (!pending && reviewing) setReviewing(false);
   const showPrompt = uiKind !== 'panel' || reviewing;
