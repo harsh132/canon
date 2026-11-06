@@ -37,6 +37,12 @@ export const Home = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
         }
       />
       <div className="mx-[18px] flex items-baseline justify-between rule-dash pt-1.5 pb-2.5">
+        <Slug>{s.rpc.mode === 'nox' ? 'Reads via Nox' : 'Reads direct'}</Slug>
+        <button onClick={() => go('privacy')} className={`font-mono text-[11px] ${s.rpc.mode === 'nox' && s.rpc.counts.clear === 0 ? 'text-accent' : 'text-warn'}`}>
+          {s.rpc.status === 'error' ? 'Nox down' : `${s.rpc.counts.clear} clear · ${s.rpc.counts.mixed} mixed`}
+        </button>
+      </div>
+      <div className="mx-[18px] flex items-baseline justify-between rule-dash pt-2.5 pb-2.5">
         <Slug>Private · Sepolia{process.env.PANGOLIN_FORK === '1' ? ' fork' : ''}</Slug>
         <button
           title={s.sync.error ?? s.engine.error}
