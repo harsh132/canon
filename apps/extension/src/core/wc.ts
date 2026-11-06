@@ -4,7 +4,7 @@ import { buildApprovedNamespaces, getSdkError } from '@walletconnect/utils';
 import { getBytes, isHexString, toUtf8String, type TransactionRequest } from 'ethers';
 import type { Verification, WcProposalView, WcRequestView } from '../shared/protocol';
 import { bind, bindingFor, createAccount, indexOfAddress, nextIndex, recordActivity, signerFor, accounts } from './book';
-import { CAIP_CHAIN, WC_PROJECT_ID, getProvider } from './config';
+import { CAIP_CHAIN, DEV, WC_PROJECT_ID, getProvider } from './config';
 import { dappKeyFor } from './dapp-origin';
 import { emit, state } from './state';
 
@@ -172,20 +172,19 @@ export const startWc = async (): Promise<void> => {
   if (!WC_PROJECT_ID || kit) return;
   try {
     const core = new Core({ projectId: WC_PROJECT_ID, telemetryEnabled: false });
-    kit = await WalletKit.init({
-      core,
-      metadata: {
-        name: 'Pangolin',
-        description: 'Private wallet',
-        url: location.origin,
-        icons: [],
-      },
-    });
+    // A project id whose allowlist lacks this extension's origin never connects; say so.
+    kit = await Promise.race([
+      WalletKit.init({ core, metadata: { name: 'Pangolin', description: 'Private wallet', url: location.origin, icons: [] } }),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error(`Relay refused ${location.origin}. Allow it in the WalletConnect project.`)), 20_000),
+      ),
+    ]);
   } catch (e) {
     state.wc.error = (e as Error).message;
     emit();
     return;
   }
+  if (DEV) (globalThis as Record<string, unknown>).__wc = kit;
   kit.on('session_proposal', (p) => {
     proposal = p;
     chosen = null;
