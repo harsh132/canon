@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { CoreState } from '../../shared/protocol';
 import { short } from '../../shared/format';
 import { call, useAction } from '../client';
-import { Button, ErrorLine, Field, Header, Input, Slug } from '../ui';
+import { Button, ErrorLine, Field, Header, Input, Slug, AppIcon, faviconFor } from '../ui';
 
 export const Apps = ({ s }: { s: CoreState }) => {
   const [uri, setUri] = useState('');
@@ -39,7 +39,8 @@ export const Apps = ({ s }: { s: CoreState }) => {
           <Slug>Browser</Slug>
           {s.sites.map((x, i) => (
             <div key={x.origin} className={`flex items-center justify-between gap-3 py-2.5 ${i < s.sites.length - 1 ? 'rule-dash' : ''}`}>
-              <div className="min-w-0">
+              <AppIcon name={x.origin} src={faviconFor(x.origin)} />
+              <div className="min-w-0 flex-1">
                 <div className="truncate text-[13px] font-semibold">{x.origin}</div>
                 <div className="font-mono text-[11px] text-muted">as {label(x.address)}</div>
               </div>
@@ -55,7 +56,8 @@ export const Apps = ({ s }: { s: CoreState }) => {
         {s.wc.sessions.length === 0 && <p className="py-3 font-mono text-xs text-muted">None</p>}
         {s.wc.sessions.map((x, i) => (
           <div key={x.topic} className={`flex items-center justify-between gap-3 py-2.5 ${i < s.wc.sessions.length - 1 ? 'rule-dash' : ''}`}>
-            <div className="min-w-0">
+            <AppIcon name={x.name} src={x.icon} />
+            <div className="min-w-0 flex-1">
               <div className="truncate text-[13px] font-semibold">{x.name}</div>
               <div className="font-mono text-[11px] text-muted">as {label(x.address)}</div>
             </div>

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { CoreState } from '../../shared/protocol';
 import { amount, short } from '../../shared/format';
 import { call, useAction } from '../client';
-import { Button, Copy, Header, Input } from '../ui';
+import { Button, Copy, Header, Input, AppIcon, faviconFor } from '../ui';
 
 export const Accounts = ({ s }: { s: CoreState }) => {
   const [label, setLabel] = useState('');
@@ -16,7 +16,9 @@ export const Accounts = ({ s }: { s: CoreState }) => {
       />
       <div className="px-[18px]">
         {s.accounts.map((acc, i) => (
-          <div key={acc.index} className={`py-2.5 ${i < s.accounts.length - 1 ? 'rule-dash' : ''}`}>
+          <div key={acc.index} className={`flex items-center gap-3 py-2.5 ${i < s.accounts.length - 1 ? 'rule-dash' : ''}`}>
+            {acc.origins.length > 0 && <AppIcon name={acc.origins[0]} src={faviconFor(acc.origins[0])} size={24} />}
+            <div className="min-w-0 flex-1">
             <div className="flex items-baseline justify-between gap-3">
               <span className="truncate text-[13px] font-semibold">{acc.label}</span>
               <span className="font-mono text-xs tnum text-second">{acc.balance == null ? '' : `${amount(acc.balance)} ETH`}</span>
@@ -27,6 +29,7 @@ export const Accounts = ({ s }: { s: CoreState }) => {
                 {acc.origins.length > 0 && ` · ${acc.origins.join(', ')}`}
               </span>
               <Copy value={acc.address} />
+            </div>
             </div>
           </div>
         ))}

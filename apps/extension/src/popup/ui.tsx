@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from 'react';
+import { useEffect, useState, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode } from 'react';
 
 const cx = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).join(' ');
 
@@ -90,3 +90,40 @@ export const Copy = ({ value, label = 'Copy' }: { value: string; label?: string 
 );
 
 export const etherscan = (hash: string) => `https://sepolia.etherscan.io/tx/${hash}`;
+
+/**
+ * Chrome's cached favicon for a site the user has open or visited. Served by
+ * the browser from its own cache: no network request from Pangolin.
+ */
+export const faviconFor = (origin: string | null | undefined): string | null => {
+  if (!origin) return null;
+  const page = /^[a-z]+:\/\//.test(origin) ? origin : `https://${origin}`;
+  return chrome.runtime.getURL(`/_favicon/?pageUrl=${encodeURIComponent(page)}&size=64`);
+};
+
+/**
+ * A dapp's icon with an initials fallback that never leaves a hole. `src` is a
+ * data: URL from the core or a favicon URL from faviconFor; nothing else.
+ */
+export const AppIcon = ({ name, src, size = 28 }: { name: string; src: string | null; size?: number }) => {
+  const [failed, setFailed] = useState(false);
+  useEffect(() => setFailed(false), [src]);
+  const style = { width: size, height: size };
+  if (!src || failed) {
+    const initials =
+      name
+        .replace(/^[a-z]+:\/\//, '')
+        .split(/[\s.]+/)
+        .filter(Boolean)
+        .map((w) => w[0])
+        .join('')
+        .slice(0, 2)
+        .toUpperCase() || '?';
+    return (
+      <span style={style} aria-hidden="true" className="grid flex-none place-items-center rounded-sm border border-rule bg-sheet font-mono text-[10px] text-muted">
+        {initials}
+      </span>
+    );
+  }
+  return <img src={src} alt="" style={style} onError={() => setFailed(true)} className="flex-none rounded-sm border border-rule bg-sheet object-contain p-0.5" />;
+};

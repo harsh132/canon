@@ -1,7 +1,7 @@
 import type { CoreState, Verification } from '../../shared/protocol';
 import { short } from '../../shared/format';
 import { call, useAction } from '../client';
-import { Button, Card, ErrorLine, Header, Row, Slug } from '../ui';
+import { AppIcon, Button, Card, ErrorLine, Header, Row, Slug, faviconFor } from '../ui';
 
 const TRUST: Record<Verification, { text: string; cls: string }> = {
   VALID: { text: 'Verified', cls: 'text-accent' },
@@ -15,15 +15,22 @@ export const ConnectPrompt = ({ s }: { s: CoreState }) => {
   const p = s.wc.proposal!;
   const a = useAction();
   const trust = TRUST[p.verification];
+  // Hide the app name when it only repeats the origin (browser dapps).
+  const showName = p.name !== p.origin && p.name !== p.origin?.replace(/^[a-z]+:\/\//, '');
 
   return (
     <div className="flex min-h-[var(--app-h)] flex-col">
       <Header title="Connect" right={<Slug className={trust.cls}>{trust.text}</Slug>} />
-      <div className="px-[18px] pt-4">
-        <div className="text-[19px] font-semibold">{p.name}</div>
-        <div className="font-mono text-xs text-second">
-          {p.origin ?? 'no origin'}
-          {!p.attested && ' · self-declared'}
+      {/* The origin is the line a site cannot fake, so it leads; the icon and
+          the app's own name are secondary. */}
+      <div className="flex items-center gap-3 px-[18px] pt-4">
+        <AppIcon name={p.origin ?? p.name} src={p.source === 'browser' ? faviconFor(p.origin) : p.icon} size={36} />
+        <div className="min-w-0">
+          <div className="truncate font-mono text-[17px] font-bold">{p.origin ?? 'no origin'}</div>
+          <div className="truncate text-xs text-second">
+            {showName ? p.name : ''}
+            {!p.attested && `${showName ? ' · ' : ''}self-declared`}
+          </div>
         </div>
       </div>
       <Card edge className="mx-[18px] mt-5 px-[18px] pt-4">
@@ -76,10 +83,13 @@ export const RequestPrompt = ({ s }: { s: CoreState }) => {
   const a = useAction();
   return (
     <div className="flex min-h-[var(--app-h)] flex-col">
-      <Header title={r.dapp} right={<Slug>{r.account ? r.account.label : 'Unknown address'}</Slug>} />
-      <div className="px-[18px] pt-2">
-        <div className="text-[19px] font-semibold">{r.title}</div>
-        {r.account && <div className="font-mono text-xs text-second">{short(r.account.address, 8, 6)}</div>}
+      <Header title={r.title} right={<Slug>{r.account ? r.account.label : 'Unknown address'}</Slug>} />
+      <div className="flex items-center gap-3 px-[18px] pt-2">
+        <AppIcon name={r.origin ?? r.dapp} src={r.source === 'browser' ? faviconFor(r.origin) : r.icon} size={36} />
+        <div className="min-w-0">
+          <div className="truncate font-mono text-[17px] font-bold">{r.origin ?? r.dapp}</div>
+          {r.account && <div className="font-mono text-xs text-second">as {short(r.account.address, 8, 6)}</div>}
+        </div>
       </div>
       <Card className="mx-[18px] mt-4 max-h-[300px] overflow-auto px-4 py-3">
         <pre className="font-mono text-[11px] leading-relaxed whitespace-pre-wrap break-all">{r.detail}</pre>
