@@ -3,6 +3,7 @@
 //   bun scripts/e2e-sepolia.mjs shield    Make private AMOUNT (default 0.01) from Main
 //   bun scripts/e2e-sepolia.mjs status    sync and print private balance (spendable / pending)
 //   bun scripts/e2e-sepolia.mjs broadcasters  wait for Waku to find Sepolia broadcasters
+//   bun scripts/e2e-sepolia.mjs private   Send privately AMOUNT to TO (default alice.pangolin.eth) with VIA gas
 //   bun scripts/e2e-sepolia.mjs name      claim LABEL.pangolin.eth, then pay it from Main by name
 //   bun scripts/e2e-sepolia.mjs spend     Send privately 0.002 to self
 //   bun scripts/e2e-sepolia.mjs public    Make public 0.002 to Main (after the new notes clear POI)
@@ -161,6 +162,10 @@ if (phase === 'setup') {
   if (!name) throw new Error('no name on screen');
   await nav('home');
   await send({ from: 0, to: name, amount: process.env.AMOUNT ?? '0.001', expect: 'Make private' });
+} else if (phase === 'private') {
+  // Send privately (gas route from VIA, default sponsor) to TO, default a name.
+  const to = process.env.TO ?? 'alice.pangolin.eth';
+  await send({ from: 'private', to, amount: process.env.AMOUNT ?? '0.001', expect: 'Send privately' });
 } else if (phase === 'broadcasters') {
   // Waku discovery takes a while; read the Privacy screen until one shows up.
   await popup.evaluate(() => [...document.querySelectorAll('button')].find((b) => /clear ·/.test(b.textContent)).click());

@@ -91,8 +91,10 @@ const prepare = async (intent: SendIntent, u: Unlocked): Promise<Prepared> => {
     void recordActivity(entry).catch(() => {});
     state.activity = [entry, ...state.activity.filter((a) => a.id !== entry.id)];
     emit();
+    // Capped: a relayed transaction can be replaced under a new hash, and an
+    // unbounded wait here would block every later private send.
     const settled = getProvider()
-      .waitForTransaction(hash)
+      .waitForTransaction(hash, 1, 10 * 60_000)
       .then(
         async (r) => {
           const done = { ...entry, status: r?.status === 1 ? ('done' as const) : ('failed' as const) };
