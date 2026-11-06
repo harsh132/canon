@@ -26,7 +26,8 @@ Chrome stamps the port with the tab's origin. The core keys the site on that, so
 | `eth_accounts` | The site's address once connected and unlocked, else `[]` |
 | `eth_requestAccounts`, `wallet_requestPermissions` | Prompt on first contact. A new site gets a fresh address labelled with its host |
 | `wallet_getPermissions`, `wallet_revokePermissions` | Revoking keeps the address for next time |
-| `personal_sign`, `eth_signTypedData*`, `eth_sendTransaction` | Prompt. Error 4100 before connecting. EIP-7702 delegations refused with 4001 |
+| `personal_sign`, `eth_signTypedData*`, `eth_sendTransaction` | Prompt. Error 4100 before connecting. EIP-7702 delegations refused with 4001. Transactions from a site address are gasless ([site-accounts.md](site-accounts.md)) |
+| `wallet_getCapabilities`, `wallet_sendCalls`, `wallet_getCallsStatus`, `wallet_showCallsStatus` | EIP-5792 for site addresses ([site-accounts.md](site-accounts.md#eip-5792)) |
 | Reads (`eth_call`, `eth_getBalance`, `eth_blockNumber`, logs, receipts, gas) | Answered through the core's provider, so through Nox |
 | `wallet_switchEthereumChain` | Accepts Sepolia only; else 4902 |
 | Anything else | 4200 |

@@ -9,7 +9,8 @@
 | [railgun.md](railgun.md) | The RAILGUN engine inside an MV3 extension: shims, quirks, the one-Send model |
 | [walletconnect.md](walletconnect.md) | A public address per dapp, and the project-id setup |
 | [ens.md](ens.md) | Free `<label>.pangolin.eth` names that pay privately |
-| [uniswap.md](uniswap.md) | Planned private swap: Sepolia pools and the cross-contract-call design |
+| [uniswap.md](uniswap.md) | Private swap on Uniswap v4 through Relay Adapt |
+| [site-accounts.md](site-accounts.md) | Per-tab panel, Fund, and gasless dapp calls via EIP-7702, Calibur and EIP-5792 |
 | [injected-provider.md](injected-provider.md) | `window.ethereum` and EIP-6963, MetaMask-style |
 | [testing.md](testing.md) | The end-to-end scripts and what they last proved |
 | [decisions.md](decisions.md) | Decisions with dates and reasons |

@@ -79,6 +79,8 @@ The extension id is pinned by the manifest `key` to `nigpkikilgbfgmgcmeiidiinika
 
 ## Where prompts appear
 
+The panel is per tab; see [site-accounts.md](site-accounts.md#per-tab-panel).
+
 | Situation | Shows |
 |---|---|
 | User clicks the toolbar icon | The side panel |

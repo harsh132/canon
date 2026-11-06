@@ -36,4 +36,9 @@ Newest last. Each entry: what, why, and what would change it.
 | 2026-11-06 | Side panel on icon click | User request. Stays open across tabs and shows dapp prompts in place |
 | 2026-11-06 | Dapp requests open the toolbar popup, not a window | A separate window tiled full-size on the user's desktop. Chrome only opens the side panel on a click, but `openPopup` works without one. An open panel shows requests itself |
 | 2026-11-06 | Swap on the v4 native ETH/USDC pool, not WETH/USDC | Sepolia's v4 WETH/USDC pools are empty; Relay Adapt unwraps, swaps, and re-wraps any leftover so a failed swap returns funds |
+| 2026-11-06 | Per-tab side panel showing that tab's dapp and its address | User's idea: Uniswap and Aave open side by side each show their own address |
+| 2026-11-06 | Fund a site address from the private balance in one unshield; WETH arrives as ETH | A new site address is empty; dapps and gas expect ETH |
+| 2026-11-06 | Gasless site addresses through EIP-7702 to Uniswap's Calibur, submitted by our sponsor | User asked for 7702 straight away. Calibur is audited, already on Sepolia, and lets a relayer execute signed batches, so no ETH and no ERC-4337 bundler |
+| 2026-11-06 | Delegate only the wallet's own site addresses, only to Calibur; refuse calls into the account | A 7702 delegation hands the account to the code it names. Main and standard accounts stay plain |
+| 2026-11-06 | EIP-5792 with `atomic` and `auxiliaryFunds` | Batches map onto one Calibur call; the batch id is the transaction hash, so status needs no storage |
 | 2026-11-06 | Show dapp icons on prompts, not only in lists | User's choice over Ender's lists-only rule. The origin stays the leading line; WalletConnect icons are fetched through Nox |

@@ -17,6 +17,9 @@
 | Circuit artifact host (IPFS) | The IP of someone about to prove | Public data, fetched directly |
 | WalletConnect relay | The IP of the wallet and the dapps it pairs with | WebSocket, not RPC; not routable through Nox |
 | Each dapp | Only the address it was given | A fresh address per dapp ([walletconnect.md](walletconnect.md)) |
+| Chain, on Fund | That a RAILGUN user sent this amount to this site address | One unshield; not which balance or which other addresses |
+| Chain, on a site address's dapp call | The site address made it; Pangolin's sponsor paid gas | EIP-7702 + Calibur ([site-accounts.md](site-accounts.md)). The address never holds gas money, so no funding link from Main |
+| Pangolin's sponsor, on a site address's call | The site address and its calls, which go on chain anyway | Not the user's other addresses |
 | A WalletConnect dapp's icon host | That someone fetched the icon, not who | Fetched by the core through Nox. Browser-dapp favicons come from Chrome's cache, with no request |
 | WalletConnect analytics | Nothing | Requests to `pulse.walletconnect.org` are blocked in the core |
 
