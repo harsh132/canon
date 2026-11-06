@@ -5,7 +5,7 @@
 // through the core; eth_requestAccounts prompts and returns a fresh address;
 // personal_sign recovers to it; a second origin gets a different address;
 // reloading the first origin returns the same address without a prompt.
-import { verifyMessage } from 'ethers';
+import { HDNodeWallet, verifyMessage } from 'ethers';
 import { launch } from './smoke.mjs';
 
 const PORT = 8791;
@@ -49,6 +49,10 @@ await pw[0].type(PASSWORD);
 await pw[1].type(PASSWORD);
 await click('^create$');
 await waitText('saved it');
+const phrase = await popup.evaluate(() =>
+  [...document.querySelectorAll('ol li')].map((li) => li.textContent.replace(/^\d+/, '').trim()).join(' '),
+);
+const appAddress = (i) => HDNodeWallet.fromPhrase(phrase, undefined, `m/44'/60'/1984'/7702'/0'/0'/${i}'`).address.toLowerCase();
 await click('saved it');
 await waitText('Private balance');
 log('wallet ready');
@@ -87,6 +91,8 @@ log('prompt:', (await text()).slice(0, 160));
 await click('^connect$');
 const [addr1] = await req1;
 log('PASS 127.0.0.1 sees', addr1);
+if (addr1.toLowerCase() !== appAddress(0)) fail(`127.0.0.1 address is not m/44'/60'/1984'/7702'/0'/0'/0'`);
+log("PASS it is m/44'/60'/1984'/7702'/0'/0'/0'");
 
 const sig = await (async () => {
   const p = d1.evaluate((a) => window.ethereum.request({ method: 'personal_sign', params: ['0x68656c6c6f', a] }), addr1);
@@ -105,6 +111,8 @@ await click('^connect$');
 const [addr2] = await req2;
 if (addr2.toLowerCase() === addr1.toLowerCase()) fail('two origins share an address');
 log('PASS localhost sees a different address', addr2);
+if (addr2.toLowerCase() !== appAddress(1)) fail(`localhost address is not m/44'/60'/1984'/7702'/0'/0'/1'`);
+log("PASS it is m/44'/60'/1984'/7702'/0'/0'/1'");
 
 // Reload origin 1: same address, no prompt.
 await d1.reload();
