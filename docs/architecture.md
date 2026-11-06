@@ -23,7 +23,7 @@ page  ─postMessage─▶ bridge ─port "pangolin-dapp"─▶ core   EIP-1193 
 popup ──runtime.sendMessage────▶ service worker "ensure-core" before connecting
 ```
 
-The command list is `Commands` in `src/shared/protocol.ts`. The core rejects anything else. The popup never receives a key, a mnemonic after backup, or a signer.
+The command list is `Commands` in `src/shared/protocol.ts`. The core rejects anything else. The popup never receives a key or a signer. It receives the mnemonic only at backup, and from the menu's Recovery phrase after `vault.reveal` checks the password or passkey against the stored vault.
 
 ## Keys
 
@@ -76,6 +76,16 @@ esbuild bundles three entries; the Tailwind 4 CLI builds the CSS. See `apps/exte
 `ethers` and `axios` are aliased to a single build each. Without that, esbuild bundles the CommonJS and ESM builds side by side, and a transport hook on one copy misses the other's traffic.
 
 The extension id is pinned by the manifest `key` to `nigpkikilgbfgmgcmeiidiinikafjpjg`. The matching private key is `apps/extension/key.pem`, gitignored.
+
+## Screen frame
+
+Every unlocked screen sits in one frame (`src/popup/frame.tsx`):
+
+- **Header:** mark, a Sepolia badge, a lock icon and a menu (Get a name, Addresses, Privacy, Recovery phrase, Reset).
+- **Tabs under the header:** Home, Send, Swap, Apps.
+- **One status line at the bottom:** where reads go (Nox or direct, with clear and mixed counts; taps open Privacy) and how fresh the private balance is (taps sync).
+
+Home shows the site card (side panel, only when the tab has a dapp), the private balance in ETH, Main's public balance on demand, Receive, and recent activity. Locking returns the frame to Home.
 
 ## Where prompts appear
 

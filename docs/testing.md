@@ -15,7 +15,8 @@ End-to-end scripts in `apps/extension/scripts`. Each launches Chromium with `dis
 | `check-site-panel.mjs` | Two dapps in two tabs; each tab's panel shows its own site and address; a tab with no dapp shows none | A `--dev` build; port 8795 |
 | `apps/sponsor/scripts/execute-probe.ts` | The sponsor's `/execute` from a fresh address: first call with a 7702 authorization, then a two-call batch | The sponsor running |
 | `check-focus.mjs` | Every field on every screen shows one focus border and no outline (dark mode) | A build |
-| `check-panel.mjs` | Side panel behaviour and layout at several widths | A build |
+| `check-panel.mjs` | Side panel behaviour and layout at several widths: tabs at the top, status line pinned to the bottom | A build |
+| `shot-frame.mjs` | Screenshots of Home, the menu, Send, Recovery phrase and a panel with a dapp, dark, into `.cache/frame-shots/` | A build; port 8797 |
 | `check-icons.mjs` | Favicon on browser connect/sign prompts and lists; WalletConnect metadata icon fetched and shown inline | A build; port 8794; WalletConnect project id |
 | `check-prompt.mjs` | With no UI open, a dapp connect opens the toolbar popup, not a window; the icon still opens the panel | A build; serves its own page on port 8793 |
 | `e2e-wc.mjs` | Two dapps get two addresses; personal_sign recovers to the right one; a reconnect keeps its address | A WalletConnect project id that allows the extension origin |
@@ -36,6 +37,7 @@ PANGOLIN_PROFILE=$PWD/.cache/<new> bun scripts/e2e-fork.mjs
 
 | Date | Script | Network | Result |
 |---|---|---|---|
+| 2026-11-06 | New frame: `e2e-onboard`, `check-focus`, `check-panel`, `check-site-panel`, `check-prompt`, `e2e-injected`, `shot-name-focus` | Chromium | All pass. `e2e-onboard` now also reveals a passkey wallet's phrase from the menu (14 checks). It caught the app reopening on the last screen after lock |
 | 2026-11-06 | `e2e-onboard.mjs` | Chromium, virtual authenticator | All 13 checks pass. `check-focus`, `e2e-injected`, `check-prompt`, `check-site-panel` and `check-panel` pass on the new onboarding |
 | 2026-11-06 | `RPC_DIRECT=1 FUND_ONLY=1 e2e-sepolia.mjs dapp` | Sepolia, direct reads, sponsor | Funded the site address with 0.0005 ETH from private WETH in 40 s; 0.00049875 arrived ([tx](https://sepolia.etherscan.io/tx/0x7b724b9287d6e875e5a870a82e41386e38c03644681f0e44761e2ede911a0c8e)). Then a gasless batch wrapped 0.0001 ETH from it ([tx](https://sepolia.etherscan.io/tx/0x978c42646b1aacf773ea48cc58c7124d7a4c5f07ddd308e062fd7e340d64752f)) |
 | 2026-11-06 | `e2e-sepolia.mjs dapp`, Fund step, Nox | Sepolia | Failed twice: "No exit offers TLS tunnels" while the SDK built the 7702 unshield. Before the sponsor fix: "Only RAILGUN contracts". Before the test fix: it clicked the Fund screen's back button, also labelled Fund |

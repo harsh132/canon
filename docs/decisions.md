@@ -47,4 +47,8 @@ Newest last. Each entry: what, why, and what would change it.
 | 2026-11-06 | Onboarding opens in a tab on install | The toolbar popup can close while a passkey dialog has focus; the phrase screens need room |
 | 2026-11-06 | New wallets check three words of the phrase | Catches a phrase that was not written down |
 | 2026-11-06 | Sponsor relays RAILGUN's 7702 unshield (type 4) | User's choice. Keeps Fund one transaction and sponsored Make public working. Accepted only with one authorization to RelayAdapt7702 on Sepolia, signed by the transaction's own target |
+| 2026-11-06 | Tabs under the header; status in one bottom line; secondary items in a menu | User request: information at the bottom, a lock icon, a menu for things like Get a name |
+| 2026-11-06 | Show private WETH as ETH | It leaves as ETH, and users think in ETH |
+| 2026-11-06 | Recovery phrase in the menu, behind the password or passkey again | Passkey wallets otherwise see their phrase only once, at setup |
+| 2026-11-06 | Mainnet later; Sepolia only for the hackathon | User's call after pro.aave.com failed at the chain switch |
 | 2026-11-06 | Show dapp icons on prompts, not only in lists | User's choice over Ender's lists-only rule. The origin stays the leading line; WalletConnect icons are fetched through Nox |
