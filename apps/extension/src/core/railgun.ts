@@ -54,7 +54,7 @@ const describe = (err: unknown, depth = 0): string => {
 
 // FORK ONLY. No PPOI aggregator watches a local fork, so every shield would sit
 // in ShieldPending forever. Treat unspent notes as spendable and build no POI
-// proofs. Compiled out unless PANGOLIN_FORK=1; never for a real network.
+// proofs. Runs only in a PANGOLIN_FORK=1 build; never for a real network.
 const patchPoiForFork = (): void => {
   const poi = POI as unknown as Record<string, unknown>;
   poi.lists = [];
