@@ -2,7 +2,7 @@
 
 Pangolin with an ESP32-S3 running BuddyOS as the signer. The device holds the seed. The browser holds only what it must: RAILGUN's viewing key (to find notes and build proofs) and public addresses.
 
-Status: design agreed 2026-11-07. Device app in `~/Work/BuddyOS` (`components/app_wallet`), Pangolin side in this repo.
+Status: design agreed 2026-11-07. Reference device and vectors done (`apps/hw-mock`, `bun src/selftest.ts`: the engine's verifier accepts every output). Device app in `~/Work/BuddyOS` (`components/app_wallet`), Pangolin side in this repo.
 
 ## Who holds what
 
@@ -83,6 +83,10 @@ Request:
 ```
 
 `tokenHash` is 12 zero bytes followed by the 20-byte ERC-20 address.
+
+Pangolin adds one field to the Ledger contract: `walletSource` (string, `pangolin`). The device folds it into each transfer's encrypted annotation, which the engine rebuilds with the same value; a different source changes the bound-params hash and the engine rejects the signature.
+
+The device returns `senderRandom` for every note output. Pangolin's mock uses 15 random bytes for transfers and `MEMO_SENDER_RANDOM_NULL` (15 zero bytes) for change and broadcaster outputs; the engine accepts whatever the device returns.
 
 For each output the device picks the note randomness, computes the note public key and commitment, and encrypts the note to the recipient. Response bytes per output:
 

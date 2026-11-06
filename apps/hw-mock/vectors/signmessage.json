@@ -1,0 +1,20 @@
+{
+  "seed": "test test test test test test test test test test test junk",
+  "name": "signMessage",
+  "request": {
+    "id": 4,
+    "m": "signMessage",
+    "p": {
+      "path": "m/44'/60'/0'/0/0",
+      "message": "0x68656c6c6f2050616e676f6c696e"
+    }
+  },
+  "response": {
+    "id": 4,
+    "r": {
+      "signature": "0x20e548b73324291474a991e035acd72e5c51581e08b87d1473fd114d96251cf403e705420fa27e15c6e60dc3049a9b16425466dacd4f0fc04efc048b3ed73a6f1b"
+    }
+  },
+  "randomStream": [],
+  "frameHex": "02505701650000007b226964223a342c226d223a227369676e4d657373616765222c2270223a7b2270617468223a226d2f3434272f3630272f30272f302f30222c226d657373616765223a22307836383635366336633666323035303631366536373666366336393665227d7d1903f03b"
+}

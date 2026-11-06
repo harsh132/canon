@@ -1,0 +1,25 @@
+{
+  "seed": "test test test test test test test test test test test junk",
+  "name": "getAddresses",
+  "request": {
+    "id": 2,
+    "m": "getAddresses",
+    "p": {
+      "paths": [
+        "m/44'/60'/0'/0/0",
+        "m/44'/60'/1984'/7702'/0'/12345'/0'"
+      ]
+    }
+  },
+  "response": {
+    "id": 2,
+    "r": {
+      "addresses": [
+        "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+        "0x697A34882f587cfb70649a81eB3F89d01DE4627F"
+      ]
+    }
+  },
+  "randomStream": [],
+  "frameHex": "02505701630000007b226964223a322c226d223a22676574416464726573736573222c2270223a7b227061746873223a5b226d2f3434272f3630272f30272f302f30222c226d2f3434272f3630272f31393834272f37373032272f30272f3132333435272f3027225d7d7d447cd3a7"
+}

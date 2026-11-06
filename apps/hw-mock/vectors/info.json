@@ -1,0 +1,19 @@
+{
+  "seed": "test test test test test test test test test test test junk",
+  "name": "info",
+  "request": {
+    "id": 1,
+    "m": "info",
+    "p": {}
+  },
+  "response": {
+    "id": 1,
+    "r": {
+      "fw": "pangolin-mock/0.1",
+      "hasSeed": true,
+      "locked": false
+    }
+  },
+  "randomStream": [],
+  "frameHex": "025057011a0000007b226964223a312c226d223a22696e666f222c2270223a7b7d7d50d5a7c0"
+}

@@ -1,0 +1,17 @@
+{
+  "seed": "test test test test test test test test test test test junk",
+  "name": "vaultKey",
+  "request": {
+    "id": 3,
+    "m": "vaultKey",
+    "p": {}
+  },
+  "response": {
+    "id": 3,
+    "r": {
+      "signature": "0x574142075a2844e934a8de49a4a3805af4151ffdf1c52e03e5e0cd4366f5d0e824f3d93713b27d2c2dbafe852d5c39c6fb7cff4ff338b430cd3998be69bcc9a61b"
+    }
+  },
+  "randomStream": [],
+  "frameHex": "025057011e0000007b226964223a332c226d223a227661756c744b6579222c2270223a7b7d7d441ec53b"
+}
