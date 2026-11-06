@@ -1,11 +1,20 @@
 import { useEffect, useState } from 'react';
 import { decode, encode } from '../shared/codec';
 import type { Commands, CoreMessage, CoreState, Method, SwMessage } from '../shared/protocol';
-import { PORT_NAME } from '../shared/protocol';
+import { PORT_NAME, type UiKind } from '../shared/protocol';
 
 type Pending = { resolve: (v: unknown) => void; reject: (e: Error) => void };
 
 let port: chrome.runtime.Port | null = null;
+
+/** Which surface this page is: the side panel, the toolbar popup, or a prompt window. */
+export const uiKind: UiKind = location.pathname.endsWith('panel.html')
+  ? 'panel'
+  : new URLSearchParams(location.search).has('window')
+    ? 'window'
+    : 'popup';
+/** The tab a side panel belongs to (panel.html?tab=N). */
+export const panelTab: string | null = new URLSearchParams(location.search).get('tab');
 let nextId = 1;
 const pending = new Map<number, Pending>();
 let latest: CoreState | null = null;
@@ -16,7 +25,7 @@ const connect = async (): Promise<chrome.runtime.Port> => {
   await chrome.runtime.sendMessage({ type: 'ensure-core' } satisfies SwMessage);
   for (let attempt = 0; ; attempt += 1) {
     try {
-      const p = chrome.runtime.connect({ name: PORT_NAME });
+      const p = chrome.runtime.connect({ name: `${PORT_NAME}:${uiKind}` });
       await new Promise<void>((resolve, reject) => {
         const t = setTimeout(() => reject(new Error('core did not answer')), 1500);
         p.onMessage.addListener(function first(raw: string) {

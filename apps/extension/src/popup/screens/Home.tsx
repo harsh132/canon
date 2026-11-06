@@ -3,6 +3,7 @@ import { amount, short } from '../../shared/format';
 import type { Tab } from '../App';
 import { call } from '../client';
 import { Button, Card, Header, Slug, etherscan } from '../ui';
+import { SiteCard } from './SiteCard';
 
 const ago = (t?: number) => {
   if (!t) return '';
@@ -45,6 +46,7 @@ export const Home = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
           </div>
         }
       />
+      <SiteCard s={s} />
       <div className="mx-[18px] flex items-baseline justify-between rule-dash pt-1.5 pb-2.5">
         <Slug>{s.rpc.mode === 'nox' ? 'Reads via Nox' : 'Reads direct'}</Slug>
         <button onClick={() => go('privacy')} className={`font-mono text-[11px] ${s.rpc.mode === 'nox' && s.rpc.counts.clear === 0 ? 'text-accent' : 'text-warn'}`}>
