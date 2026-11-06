@@ -51,6 +51,11 @@ const ALIASES = {
   buffer: nm('buffer', 'index.js'),
   // The graph client swallows a resolution miss here and quick sync silently returns nothing.
   '@graphql-mesh/cross-helpers': nm('@graphql-mesh', 'cross-helpers', 'browser.js'),
+  // One copy each. RAILGUN require()s these while our code imports them, and
+  // esbuild would otherwise bundle the CJS and ESM builds side by side: a
+  // transport hook registered on one copy never sees the other's traffic.
+  ethers: nm('ethers', 'lib.esm', 'index.js'),
+  axios: nm('axios', 'index.js'),
 };
 const emptyShim = join(app, 'src', 'shims', 'node-empty.js');
 
@@ -136,6 +141,11 @@ const targets = [
 const copyStatic = () => {
   mkdirSync(join(dist, 'fonts'), { recursive: true });
   cpSync(join(app, 'public'), dist, { recursive: true });
+  // Anon-RPC's sandboxed page. Version-stamped, so it must be copied from the
+  // installed package on every build, never by hand.
+  const anon = nm('@anon-rpc', 'browser-extension-harness', 'dist', 'static', 'anon-rpc');
+  rmSync(join(dist, 'anon-rpc'), { recursive: true, force: true });
+  cpSync(anon, join(dist, 'anon-rpc'), { recursive: true });
   const fonts = [
     ['instrument-sans', 'instrument-sans-latin-400-normal.woff2'],
     ['instrument-sans', 'instrument-sans-latin-500-normal.woff2'],

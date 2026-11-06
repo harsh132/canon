@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@anon-rpc/browser-extension-harness": "0.4.0",
     "@fontsource/instrument-sans": "^5.2.0",
     "@fontsource/jetbrains-mono": "^5.2.0",
     "@railgun-community/engine": "9.9.1",
