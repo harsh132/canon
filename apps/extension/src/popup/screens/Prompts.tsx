@@ -1,8 +1,7 @@
-import { useState } from 'react';
 import type { CoreState, Verification } from '../../shared/protocol';
 import { short } from '../../shared/format';
 import { call, useAction } from '../client';
-import { Button, Card, ErrorLine, Header, Input, Row, Slug } from '../ui';
+import { Button, Card, ErrorLine, Header, Row, Slug } from '../ui';
 
 const TRUST: Record<Verification, { text: string; cls: string }> = {
   VALID: { text: 'Verified', cls: 'text-accent' },
@@ -15,7 +14,6 @@ const TRUST: Record<Verification, { text: string; cls: string }> = {
 export const ConnectPrompt = ({ s }: { s: CoreState }) => {
   const p = s.wc.proposal!;
   const a = useAction();
-  const locked = s.vault !== 'unlocked';
   const trust = TRUST[p.verification];
 
   return (
@@ -61,33 +59,17 @@ export const ConnectPrompt = ({ s }: { s: CoreState }) => {
       <div className="flex-1" />
       <div className="flex flex-col gap-2 px-[18px] pb-[18px]">
         <ErrorLine>{a.error ?? p.problem}</ErrorLine>
-        {locked && <Slug className="text-center">Unlock first</Slug>}
         <div className="grid grid-cols-2 gap-2">
           <Button variant="ghost" onClick={() => a.run(() => call('wc.reject', null))}>Reject</Button>
-          <Button busy={a.busy} disabled={locked || !p.canApprove} onClick={() => a.run(() => call('wc.approve', null))}>
+          <Button busy={a.busy} disabled={!p.account || !p.canApprove} onClick={() => a.run(() => call('wc.approve', null))}>
             Connect
           </Button>
         </div>
       </div>
-      {locked && <UnlockInline />}
     </div>
   );
 };
 
-
-const UnlockInline = () => {
-  const [pw, setPw] = useState('');
-  const a = useAction();
-  return (
-    <div className="flex gap-2 border-t border-rule px-[18px] py-3">
-      <Input type="password" placeholder="Password" value={pw} onChange={(e) => setPw(e.target.value)}
-        onKeyDown={(e) => e.key === 'Enter' && a.run(() => call('vault.unlock', { password: pw }))} />
-      <Button variant="ghost" className="flex-none" busy={a.busy} onClick={() => a.run(() => call('vault.unlock', { password: pw }))}>
-        Unlock
-      </Button>
-    </div>
-  );
-};
 
 export const RequestPrompt = ({ s }: { s: CoreState }) => {
   const r = s.wc.request!;

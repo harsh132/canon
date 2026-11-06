@@ -30,8 +30,9 @@ export const App = () => {
   if (!s || s.vault === 'unknown') return <div className="grid h-[var(--app-h)] place-items-center"><span className="slug">Starting</span></div>;
   if (backup) return <Backup phrase={backup} onDone={() => setBackup(null)} />;
   if (s.vault === 'none') return <Onboard onBackup={setBackup} />;
-  if (s.wc.proposal) return <ConnectPrompt s={s} />;
+  // Locked: always the unlock screen first; it names any waiting request.
   if (s.vault === 'locked') return <Unlock s={s} />;
+  if (s.wc.proposal) return <ConnectPrompt s={s} />;
   if (s.wc.request) return <RequestPrompt s={s} />;
 
   const go = (t: Tab) => setTab(t);
