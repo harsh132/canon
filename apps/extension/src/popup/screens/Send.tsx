@@ -26,7 +26,7 @@ export const Send = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
   const [value, setValue] = useState('');
   const [plan, setPlan] = useState<SendPlan | null>(null);
   const [hash, setHash] = useState<string | null>(null);
-  const [via, setVia] = useState<'broadcaster' | 'self'>('self');
+  const [via, setVia] = useState<'sponsor' | 'broadcaster' | 'self'>(process.env.PANGOLIN_FORK === '1' ? 'self' : 'sponsor');
   const a = useAction();
 
   const intent: SendIntent = { from, to, amount: value, gasFrom: 0, via };
@@ -88,11 +88,11 @@ export const Send = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
           </Button>
         )}
         {from === 'private' && (
-          <Field label="Gas" hint={via === 'broadcaster' ? `${s.broadcaster.count} online` : 'links Main'}>
-            <div className="grid grid-cols-2 gap-2">
-              {(['broadcaster', 'self'] as const).map((v) => (
-                <Button key={v} variant={via === v ? 'primary' : 'ghost'} className="py-2" onClick={() => { setVia(v); setPlan(null); }}>
-                  {v === 'broadcaster' ? 'Broadcaster' : 'Main'}
+          <Field label="Gas" hint={via === 'broadcaster' ? `${s.broadcaster.count} online` : via === 'self' ? 'links Main' : 'free on Sepolia'}>
+            <div className="grid grid-cols-3 gap-2">
+              {(['sponsor', 'broadcaster', 'self'] as const).map((v) => (
+                <Button key={v} variant={via === v ? 'primary' : 'ghost'} className="px-1 py-2" onClick={() => { setVia(v); setPlan(null); }}>
+                  {v === 'sponsor' ? 'Sponsor' : v === 'broadcaster' ? 'Broadcaster' : 'Main'}
                 </Button>
               ))}
             </div>
@@ -124,7 +124,7 @@ export const Send = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
             {plan.name && <Row label="Via">{plan.resolvedVia === 'org.railgun' ? 'org.railgun record' : 'ETH address record'}</Row>}
             <Row label="Seen">{SEEN[plan.kind]}</Row>
             {plan.broadcasterFee != null ? (
-              <Row label="Fee">{amount(plan.broadcasterFee, 18, 6)} WETH · broadcaster</Row>
+              <Row label="Fee">{plan.broadcasterFee === 0n ? 'Sponsored' : `${amount(plan.broadcasterFee, 18, 6)} WETH · broadcaster`}</Row>
             ) : (
               <Row label="Fee">{plan.gasFee > 0n && plan.gasFee < 1_000_000_000_000n ? '< 0.000001' : amount(plan.gasFee, 18, 6)} ETH</Row>
             )}

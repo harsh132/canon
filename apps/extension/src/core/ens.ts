@@ -61,6 +61,16 @@ export const claimName = async (label: string): Promise<string> => {
   return name;
 };
 
+/** Submits a proved RAILGUN transaction through the sponsor, which pays the gas. */
+export const sponsorRelay = async (to: string, data: string, minGasPrice: bigint): Promise<string> => {
+  const out = await call('/relay', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ chainId: 11155111, to, data, minGasPrice: minGasPrice.toString() }),
+  });
+  return String(out.hash);
+};
+
 export type Resolved = { address: string; via: 'org.railgun' | 'addr' };
 
 /**

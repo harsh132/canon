@@ -123,8 +123,8 @@ export type SendIntent = {
   from: 'private' | number;
   to: string;
   amount: string;
-  /** Who pays gas when sending from private: a public account (default) or a broadcaster. */
-  via?: 'broadcaster' | 'self';
+  /** Who pays gas when sending from private: Pangolin's sponsor (default), a RAILGUN broadcaster, or a public account. */
+  via?: 'sponsor' | 'broadcaster' | 'self';
   /** Public account that pays gas when via is 'self'. */
   gasFrom?: number;
 };
@@ -138,7 +138,7 @@ export type SendPlan = {
   gasFrom: number | null;
   /** Native gas the user pays from a public account. Zero via a broadcaster. */
   gasFee: bigint;
-  /** Fee to the broadcaster, in private WETH, when via is 'broadcaster'. */
+  /** Fee in private WETH when a broadcaster or the sponsor pays gas (0 for the testnet sponsor). */
   broadcasterFee: bigint | null;
   needsProof: boolean;
   /** Set when the user typed a name: what it resolved to, and from which record. */

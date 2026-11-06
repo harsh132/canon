@@ -19,7 +19,7 @@ import { recordActivity, signerFor } from './book';
 import { NETWORK, WETH, getProvider } from './config';
 import { currentWalletId, spendable, sync } from './railgun';
 import { pickBroadcaster, submitViaBroadcaster } from './broadcaster';
-import { isName, resolveName } from './ens';
+import { isName, resolveName, sponsorRelay } from './ens';
 import { emit, state } from './state';
 import type { Unlocked } from './vault';
 
@@ -123,9 +123,10 @@ const prepare = async (intent: SendIntent, u: Unlocked): Promise<Prepared> => {
     }
   };
 
-  // Main pays by default: Sepolia broadcasters currently reject on proof of innocence.
+  // Gas for private sends: Pangolin's sponsor (default), a RAILGUN broadcaster, or Main.
   const viaBroadcaster = intent.from === 'private' && intent.via === 'broadcaster';
-  const base = { kind, from: intent.from, to, amount, symbol: 'ETH', gasFrom: intent.from === 'private' && !viaBroadcaster ? gasFrom : null, broadcasterFee: null, ...(resolved ? { name: typed.toLowerCase(), resolvedVia: resolved.via } : {}) };
+  const viaSponsor = intent.from === 'private' && (intent.via ?? 'sponsor') === 'sponsor';
+  const base = { kind, from: intent.from, to, amount, symbol: 'ETH', gasFrom: intent.from === 'private' && !viaBroadcaster && !viaSponsor ? gasFrom : null, broadcasterFee: null, ...(resolved ? { name: typed.toLowerCase(), resolvedVia: resolved.via } : {}) };
 
   switch (kind) {
     case 'send': {
@@ -154,12 +155,13 @@ const prepare = async (intent: SendIntent, u: Unlocked): Promise<Prepared> => {
       if (amount > spendable()) throw new Error('More than your spendable private balance');
       const id = currentWalletId();
       const recipientsB = [{ ...weth, recipientAddress: to }];
-      if (viaBroadcaster) {
+      if (viaBroadcaster || viaSponsor) {
         // Unshielding to ETH goes through the Relay Adapt contract; the broadcaster must support it.
         const useRelayAdapt = kind === 'unshield';
-        const b = pickBroadcaster(WETH, useRelayAdapt);
-        if (!b) throw new Error('No broadcaster online yet. Retry, or pay gas from Main');
-        const feeToken = { tokenAddress: WETH, feePerUnitGas: b.feePerUnitGas };
+        const b = viaBroadcaster ? pickBroadcaster(WETH, useRelayAdapt) : null;
+        if (viaBroadcaster && !b) throw new Error('No broadcaster online yet. Retry, or pick another gas route');
+        // The sponsor charges nothing on testnet: no fee output in the proof.
+        const feeToken = { tokenAddress: WETH, feePerUnitGas: b?.feePerUnitGas ?? 0n };
         // Broadcasters commit to one minimum gas price, so the SDK requires type-1 gas here.
         const gasPrice = (await getProvider().getFeeData()).gasPrice ?? 1_000_000_000n;
         const t1 = (gasEstimate: bigint): TransactionGasDetails => ({ evmGasType: EVMGasType.Type1, gasEstimate, gasPrice });
@@ -170,13 +172,13 @@ const prepare = async (intent: SendIntent, u: Unlocked): Promise<Prepared> => {
         const gd = t1(gasEstimate);
         const { amount: feeAmount } = await calculateBroadcasterFeeERC20Amount(feeToken, gd);
         if (amount + feeAmount > spendable()) throw new Error('Amount plus broadcaster fee exceeds your private balance');
-        const fee = { tokenAddress: WETH, amount: feeAmount, recipientAddress: b.railgunAddress };
+        const fee = b ? { tokenAddress: WETH, amount: feeAmount, recipientAddress: b.railgunAddress } : undefined;
         const minGas = calculateGasPrice(gd);
         return {
           ...base,
           symbol: 'WETH',
           gasFee: 0n,
-          broadcasterFee: feeAmount,
+          broadcasterFee: b ? feeAmount : 0n,
           needsProof: true,
           run: async () => {
             let populated;
@@ -191,15 +193,17 @@ const prepare = async (intent: SendIntent, u: Unlocked): Promise<Prepared> => {
               );
               populated = await populateProvedUnshieldBaseToken(V2, NETWORK, to, id, weth, fee, false, minGas, gd);
             }
-            const hash = await submitViaBroadcaster({
-              to: populated.transaction.to as string,
-              data: populated.transaction.data as string,
-              broadcaster: b,
-              nullifiers: populated.nullifiers ?? [],
-              overallBatchMinGasPrice: minGas,
-              useRelayAdapt,
-              pois: populated.preTransactionPOIsPerTxidLeafPerList,
-            });
+            const hash = b
+              ? await submitViaBroadcaster({
+                  to: populated.transaction.to as string,
+                  data: populated.transaction.data as string,
+                  broadcaster: b,
+                  nullifiers: populated.nullifiers ?? [],
+                  overallBatchMinGasPrice: minGas,
+                  useRelayAdapt,
+                  pois: populated.preTransactionPOIsPerTxidLeafPerList,
+                })
+              : await sponsorRelay(populated.transaction.to as string, populated.transaction.data as string, minGas);
             return track(hash, kind === 'transfer' ? `Sent privately to ${to.slice(0, 10)}…` : `Made public to ${to.slice(0, 10)}…`);
           },
         };
