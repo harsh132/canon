@@ -1,0 +1,65 @@
+@import 'tailwindcss';
+
+@font-face { font-family: 'Instrument Sans'; font-weight: 400; font-display: block; src: url('fonts/instrument-sans-latin-400-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Instrument Sans'; font-weight: 500; font-display: block; src: url('fonts/instrument-sans-latin-500-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Instrument Sans'; font-weight: 600; font-display: block; src: url('fonts/instrument-sans-latin-600-normal.woff2') format('woff2'); }
+@font-face { font-family: 'JetBrains Mono'; font-weight: 400; font-display: block; src: url('fonts/jetbrains-mono-latin-400-normal.woff2') format('woff2'); }
+@font-face { font-family: 'JetBrains Mono'; font-weight: 700; font-display: block; src: url('fonts/jetbrains-mono-latin-700-normal.woff2') format('woff2'); }
+
+/* zo.mr "Tape". Paper by default, thermal when the OS is dark. */
+:root {
+  --page: #ece9e0; --sheet: #f7f6f1; --rule: #dbd8cc; --rule-strong: #c4c0b0;
+  --muted: #676458; --second: #55574d; --text: #14150f;
+  --accent: #0d7150; --accent-strong: #0a5c40; --on-accent: #f7f6f1;
+  --warn: #8a5a00; --danger: #b3261e;
+  --lift: 0 1px 0 0 rgb(20 21 15 / .04), 0 12px 28px -18px rgb(20 21 15 / .3);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --page: #121310; --sheet: #1a1b16; --rule: #2c2d26; --rule-strong: #3e4036;
+    --muted: #8f9082; --second: #a8a99b; --text: #efede3;
+    --accent: #22c88c; --accent-strong: #17a473; --on-accent: #08170f;
+    --warn: #e0a33a; --danger: #ff6b60;
+    --lift: 0 1px 0 0 rgb(0 0 0 / .4), 0 16px 32px -22px rgb(0 0 0 / .8);
+  }
+}
+
+@theme inline {
+  --color-page: var(--page);
+  --color-sheet: var(--sheet);
+  --color-rule: var(--rule);
+  --color-rule-strong: var(--rule-strong);
+  --color-muted: var(--muted);
+  --color-second: var(--second);
+  --color-ink: var(--text);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-on-accent: var(--on-accent);
+  --color-warn: var(--warn);
+  --color-danger: var(--danger);
+  --shadow-lift: var(--lift);
+  --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+html, body { margin: 0; background: var(--page); color: var(--text); }
+body { width: 380px; min-height: 600px; font-family: var(--font-sans); font-size: 14px; line-height: 1.4; -webkit-font-smoothing: antialiased; }
+body.window { width: auto; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+::selection { background: var(--accent); color: var(--on-accent); }
+
+@utility slug { font-family: var(--font-mono); font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); }
+@utility tnum { font-variant-numeric: tabular-nums; }
+@utility rule-dash { border-bottom: 1px dashed var(--rule); }
+@utility tape-edge {
+  position: relative;
+  &::after {
+    content: ''; position: absolute; left: 0; right: 0; bottom: -1px; height: 9px;
+    background: radial-gradient(circle at 6px 9px, transparent 5px, var(--page) 5.5px) 0 0 / 12px 9px repeat-x;
+  }
+}
+@utility stamp {
+  display: inline-block; transform: rotate(-13deg); border: 3px solid var(--accent); border-radius: 2px;
+  padding: 4px 9px; font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: .18em;
+  text-transform: uppercase; color: var(--accent);
+}
