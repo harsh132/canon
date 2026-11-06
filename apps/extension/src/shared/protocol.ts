@@ -170,6 +170,7 @@ export type Commands = {
   'swap.quote': { params: { amount: string }; result: { swapped: bigint; out: bigint; minOut: bigint } };
   'swap.execute': { params: { amount: string }; result: { hash: string } };
   'site.balances': { params: { address: string }; result: { eth: bigint; tokens: { symbol: string; decimals: number; amount: bigint }[] } };
+  'site.fund': { params: { address: string; token: string; amount: bigint }; result: { hash: string } };
   'ens.claim': { params: { label: string }; result: { name: string } };
   'dapp.disconnect': { params: { origin: string }; result: null };
   'wc.pair': { params: { uri: string }; result: null };

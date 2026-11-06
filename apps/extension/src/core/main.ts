@@ -14,6 +14,7 @@ import * as browser from './dapp';
 import { installTransport, setRpcMode } from './transport';
 import { startBroadcasters } from './broadcaster';
 import { claimName } from './ens';
+import { fundSite } from './fund';
 import { USDC, executeSwap, quoteSwap } from './swap';
 import { Contract, parseEther } from 'ethers';
 import { FORK } from './config';
@@ -171,6 +172,7 @@ const handlers: Handlers = {
     const [eth, ...amounts] = await Promise.all([p.getBalance(address), ...known.map((k) => erc20(k.token).balanceOf(address) as Promise<bigint>)]);
     return { eth, tokens: known.map((k, i) => ({ symbol: k.symbol, decimals: k.decimals, amount: amounts[i] })) };
   },
+  'site.fund': async (p) => fundSite(p, need()),
   'ens.claim': async ({ label }) => {
     need();
     const name = await claimName(label);
