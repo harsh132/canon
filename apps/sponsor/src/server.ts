@@ -1,6 +1,7 @@
 // Two jobs, one key:
 //  /claim  issues <label>.pangolin.eth (below)
 //  /relay  submits proved RAILGUN transactions so users' addresses never pay gas (relay.ts)
+//  /execute submits Calibur calls for EIP-7702 site addresses, delegating on first use (execute.ts)
 //
 // Issues <label>.pangolin.eth to a user's unfunded identity address, with an
 // org.railgun record pointing at their 0zk. The sponsor pays all gas, then
@@ -13,6 +14,7 @@ import { readFileSync } from 'node:fs';
 import { dnsEncode, id, isAddress } from 'ethers';
 import { A, FOREVER, RESOLVER_ALL, TEXT_KEY, USER_ROLES, ZERO, connect, resolverIface } from './ens';
 import { RelayError, relay } from './relay';
+import { execute } from './execute';
 
 const PARENT = process.env.PARENT_LABEL ?? 'pangolin';
 const PORT = Number(process.env.PORT ?? 8792);
@@ -91,6 +93,12 @@ Bun.serve({
         const body = (await req.json()) as Parameters<typeof relay>[1];
         const out = await serial(() => relay(sponsor, body));
         console.log('[sponsor] relayed', out.hash);
+        return json(out);
+      }
+      if (url.pathname === '/execute' && req.method === 'POST') {
+        const body = (await req.json()) as Parameters<typeof execute>[1];
+        const out = await serial(() => execute(sponsor, body));
+        console.log('[sponsor] executed for', body.account, out.delegated ? '' : '(with 7702 authorization)', out.hash);
         return json(out);
       }
       return json({ error: 'Not found' }, 404);
