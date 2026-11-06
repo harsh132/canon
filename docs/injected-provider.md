@@ -39,8 +39,8 @@ Locking sends `accountsChanged` with `[]` to every open tab; unlocking sends eac
 
 - EIP-6963 announces Pangolin, and `window.ethereum.isPangolin` is true.
 - `eth_chainId` is `0xaa36a7`; no accounts before connecting; `eth_blockNumber` answered through Nox.
-- Connecting `127.0.0.1` prompted and returned a fresh address at `m/44'/60'/1984'/7702'/0'/0'/0'`; `personal_sign` recovered to it.
-- `localhost` got a different address, at `…/0'/0'/1'`.
+- Connecting `127.0.0.1` prompted and returned a fresh address at `m/44'/60'/1984'/7702'/0'/1108850336'/0'` (purpose from `http://127.0.0.1:8791`); `personal_sign` recovered to it.
+- `localhost` got a different address, at `…/0'/421421168'/0'`.
 - Reloading `127.0.0.1` returned the same address with no prompt.
 
 ## Permissions

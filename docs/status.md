@@ -23,9 +23,9 @@ Updated 2026-11-06.
 
 ## Open questions
 
-- **RAILGUN's purpose registry.** We use purpose `0` for dapps and reserve `1` for temporary accounts. Confirm with the RAILGUN team.
+- **What purpose_id means.** We read it as one id per app and hash the dapp's origin into it. If RAILGUN meant one id per wallet app (Pangolin vs others), the layout changes. Confirm with the RAILGUN team, and whether they have a hashing rule other wallets follow.
 - **Two 7702 layouts.** The engine (9.9.1) derives its own temporary keys at `m/44'/60'/0'/7702'/railgunIndex'/chainId'/index'`, unlike the `1984'` layout the team sent. Ask which is canonical.
-- **Restore discovery.** Importing a phrase does not yet scan the app path for used dapp addresses.
+- **Restore listing.** Dapp addresses rederive on revisit, but an imported wallet does not list sites it has not seen yet.
 
 ## Next
 
