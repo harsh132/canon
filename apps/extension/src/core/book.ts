@@ -23,6 +23,8 @@ type BookData = {
   accounts: AccountRecord[];
   bindings: Record<string, Binding>;
   activity: Activity[];
+  /** This wallet's issued name, e.g. alice.pangolin.eth. */
+  name?: string;
 };
 
 const KEY = 'book';
@@ -134,6 +136,12 @@ export const revokeBrowser = async (origin: string): Promise<void> => {
   const b = need().bindings[origin];
   if (!b) return;
   b.browser = false;
+  await persist();
+};
+
+export const myName = (): string | null => data?.name ?? null;
+export const setName = async (name: string): Promise<void> => {
+  need().name = name;
   await persist();
 };
 

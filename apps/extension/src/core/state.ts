@@ -5,6 +5,7 @@ export const state: CoreState = {
   vault: 'unknown',
   chainId: CHAIN_ID,
   railgunAddress: null,
+  name: null,
   engine: { status: 'off' },
   sync: { status: 'idle', progress: 0 },
   privateBalances: [],

@@ -34,6 +34,8 @@ const define = {
   'process.env.PANGOLIN_SEPOLIA_RPC': JSON.stringify(process.env.PANGOLIN_SEPOLIA_RPC ?? env.PANGOLIN_SEPOLIA_RPC ?? ''),
   // Dev only: a local anvil fork of Sepolia, where no PPOI node can attest shields.
   'process.env.PANGOLIN_FORK': JSON.stringify(process.env.PANGOLIN_FORK ?? ''),
+  // Name sponsor (apps/sponsor). Local by default; https endpoints are reached through Nox.
+  'process.env.PANGOLIN_SPONSOR_URL': JSON.stringify(process.env.PANGOLIN_SPONSOR_URL ?? env.PANGOLIN_SPONSOR_URL ?? ''),
   global: 'globalThis',
   'import.meta.url': '"chrome-extension://pangolin/"',
 };

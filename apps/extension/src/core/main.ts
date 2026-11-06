@@ -3,7 +3,7 @@
 import type { Commands, CoreMessage, Method, Request, SwMessage } from '../shared/protocol';
 import { PORT_NAME } from '../shared/protocol';
 import { decode, encode } from '../shared/codec';
-import { accounts, activity, bindings, closeBook, createAccount, loadBook, signerFor } from './book';
+import { accounts, activity, bindings, closeBook, createAccount, loadBook, myName, signerFor } from './book';
 import { AUTO_LOCK_MS, getProvider } from './config';
 import { bootEngine, closeRailgunWallet, openRailgunWallet, sync } from './railgun';
 import { executeSend, planSend } from './send';
@@ -13,6 +13,7 @@ import * as wc from './wc';
 import * as browser from './dapp';
 import { installTransport, setRpcMode } from './transport';
 import { startBroadcasters } from './broadcaster';
+import { claimName } from './ens';
 import { FORK } from './config';
 
 let session: Unlocked | null = null;
@@ -33,6 +34,7 @@ const rebuildAccounts = (): void => {
   }));
   state.activity = activity();
   state.sites = browser.connectedSites();
+  state.name = myName();
   emit();
 };
 
@@ -50,6 +52,7 @@ const lock = (): void => {
   state.accounts = [];
   state.activity = [];
   state.sites = [];
+  state.name = null;
   browser.broadcastAccounts();
   wc.refreshWc();
   emit();
@@ -144,6 +147,12 @@ const handlers: Handlers = {
   'rpc.setMode': async ({ mode }) => {
     await setRpcMode(mode);
     return null;
+  },
+  'ens.claim': async ({ label }) => {
+    need();
+    const name = await claimName(label);
+    rebuildAccounts();
+    return { name };
   },
   'dapp.disconnect': async ({ origin }) => {
     need();

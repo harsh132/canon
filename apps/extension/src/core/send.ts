@@ -19,6 +19,7 @@ import { recordActivity, signerFor } from './book';
 import { NETWORK, WETH, getProvider } from './config';
 import { currentWalletId, spendable, sync } from './railgun';
 import { pickBroadcaster, submitViaBroadcaster } from './broadcaster';
+import { isName, resolveName } from './ens';
 import { emit, state } from './state';
 import type { Unlocked } from './vault';
 
@@ -75,7 +76,9 @@ type Prepared = SendPlan & { run: () => Promise<string> };
 let settling: Promise<unknown> = Promise.resolve();
 
 const prepare = async (intent: SendIntent, u: Unlocked): Promise<Prepared> => {
-  const to = intent.to.trim();
+  const typed = intent.to.trim();
+  const resolved = isName(typed) ? await resolveName(typed) : null;
+  const to = resolved?.address ?? typed;
   const kind = kindOf(intent.from, to);
   const amount = parseAmount(intent.amount);
   const gasFrom = intent.from === 'private' ? (intent.gasFrom ?? 0) : intent.from;
@@ -122,7 +125,7 @@ const prepare = async (intent: SendIntent, u: Unlocked): Promise<Prepared> => {
 
   // Main pays by default: Sepolia broadcasters currently reject on proof of innocence.
   const viaBroadcaster = intent.from === 'private' && intent.via === 'broadcaster';
-  const base = { kind, from: intent.from, to, amount, symbol: 'ETH', gasFrom: intent.from === 'private' && !viaBroadcaster ? gasFrom : null, broadcasterFee: null };
+  const base = { kind, from: intent.from, to, amount, symbol: 'ETH', gasFrom: intent.from === 'private' && !viaBroadcaster ? gasFrom : null, broadcasterFee: null, ...(resolved ? { name: typed.toLowerCase(), resolvedVia: resolved.via } : {}) };
 
   switch (kind) {
     case 'send': {

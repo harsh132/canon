@@ -122,6 +122,16 @@ const patchedFetch: typeof fetch = async (input, init) => {
   return realFetch(input, init);
 };
 
+/** For our own HTTPS calls (the name sponsor): through Nox when on. Local URLs go direct. */
+export const privateFetch = (url: string, init?: RequestInit): Promise<Response> => {
+  if (state.rpc.mode === 'nox' && url.startsWith('https:')) {
+    bump('mixed');
+    return via()(url, init);
+  }
+  bump('other');
+  return realFetch(url, init);
+};
+
 export const installTransport = async (): Promise<void> => {
   const saved = await store.getItem<RpcMode>(MODE_KEY);
   // A local fork is unreachable from a mixnet exit.

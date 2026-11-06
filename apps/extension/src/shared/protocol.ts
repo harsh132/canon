@@ -93,6 +93,8 @@ export type CoreState = {
   vault: VaultStatus;
   chainId: number;
   railgunAddress: string | null;
+  /** This wallet's name, if claimed. */
+  name: string | null;
   engine: { status: 'off' | 'starting' | 'ready' | 'error'; error?: string };
   sync: SyncState;
   privateBalances: TokenBalance[];
@@ -139,6 +141,9 @@ export type SendPlan = {
   /** Fee to the broadcaster, in private WETH, when via is 'broadcaster'. */
   broadcasterFee: bigint | null;
   needsProof: boolean;
+  /** Set when the user typed a name: what it resolved to, and from which record. */
+  name?: string;
+  resolvedVia?: 'org.railgun' | 'addr';
 };
 
 export type Commands = {
@@ -153,6 +158,7 @@ export type Commands = {
   'send.plan': { params: SendIntent; result: SendPlan };
   'send.execute': { params: SendIntent; result: { hash: string } };
   'rpc.setMode': { params: { mode: 'nox' | 'direct' }; result: null };
+  'ens.claim': { params: { label: string }; result: { name: string } };
   'dapp.disconnect': { params: { origin: string }; result: null };
   'wc.pair': { params: { uri: string }; result: null };
   'wc.chooseAccount': { params: { index: number | 'new' }; result: null };
