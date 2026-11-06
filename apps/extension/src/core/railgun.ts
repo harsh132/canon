@@ -66,6 +66,8 @@ const patchPoiForFork = (): void => {
 };
 
 let booted: Promise<void> | null = null;
+// Set by the engine when a scan stops early (e.g. a load-balanced RPC node behind head).
+let scanIncomplete = false;
 
 export const bootEngine = (): Promise<void> =>
   (booted ??= (async () => {
@@ -94,6 +96,7 @@ export const bootEngine = (): Promise<void> =>
     getProver().setSnarkJSGroth16(prover);
 
     setOnUTXOMerkletreeScanCallback((e) => {
+      if (e.scanStatus === 'Incomplete') scanIncomplete = true;
       if (state.sync.status !== 'syncing') return;
       state.sync = { ...state.sync, progress: Math.max(state.sync.progress, e.progress * 0.9) };
       emit();
@@ -220,7 +223,9 @@ export const sync = (): Promise<void> =>
     // The engine only retries its own timeouts; any other RPC blip aborts a scan.
     for (let attempt = 0; attempt < 3; attempt += 1) {
       try {
+        scanIncomplete = false;
         await refreshBalances(CHAIN, [id]);
+        if (scanIncomplete) throw new Error('Scan stopped early');
         state.sync = { status: 'done', progress: 1, at: Date.now() };
         emit();
         return;
