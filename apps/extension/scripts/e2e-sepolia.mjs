@@ -2,7 +2,8 @@
 //   bun scripts/e2e-sepolia.mjs setup     create the wallet (once), print Main and 0zk
 //   bun scripts/e2e-sepolia.mjs shield    Make private AMOUNT (default 0.01) from Main
 //   bun scripts/e2e-sepolia.mjs status    sync and print private balance (spendable / pending)
-//   bun scripts/e2e-sepolia.mjs spend     Send privately 0.002 to self, then Make public 0.002 to Main
+//   bun scripts/e2e-sepolia.mjs spend     Send privately 0.002 to self
+//   bun scripts/e2e-sepolia.mjs public    Make public 0.002 to Main (after the new notes clear POI)
 // The profile and the test phrase live in .cache/sepolia (gitignored). Test funds only.
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { launch } from './smoke.mjs';
@@ -143,6 +144,10 @@ if (phase === 'setup') {
   await new Promise((r) => setTimeout(r, 30000));
   await resync();
   log('after send privately:', await balances());
+} else if (phase === 'public') {
+  const b = await balances();
+  log('balances:', b);
+  if (!(Number(b.spendable) > 0.002)) throw new Error('not enough spendable yet; new notes wait for proof of innocence');
   await send({ from: 'private', to: main, amount: '0.002', expect: 'Make public' });
   await new Promise((r) => setTimeout(r, 30000));
   await resync();
