@@ -2,7 +2,15 @@
 
 Pangolin with an ESP32-S3 running BuddyOS as the signer. The device holds the seed. The browser holds only what it must: RAILGUN's viewing key (to find notes and build proofs) and public addresses.
 
-Status: design agreed 2026-11-07. Reference device and vectors done (`apps/hw-mock`, `bun src/selftest.ts`: the engine's verifier accepts every output). Device app in `~/Work/BuddyOS` (`components/app_wallet`), Pangolin side in this repo.
+Status (2026-11-07):
+
+| Part | State |
+|---|---|
+| Reference device and vectors (`apps/hw-mock`) | Done. `bun src/selftest.ts`: every secp256k1 message recovers, RAILGUN derivation matches a known 0zk, the engine's clear-sign verifier accepts every output and signature |
+| BuddyOS firmware (`~/Work/BuddyOS`, `components/wallet_core`, `components/app_wallet`) | C core reproduces all 10 vectors byte for byte on the host. Not yet flashed: waiting for the board on USB |
+| Pangolin: device link, signer, RAILGUN hardware wallet, onboarding, unlock, confirm banner | Done. `scripts/e2e-hardware.mjs` against the mock passed 11 of 11 once (below) |
+| A private send clear-signed end to end (real proof) | Not run: needs private funds on a device seed |
+| Gasless 7702 call signed on the device through the hosted sponsor | Not verified: the test hangs while RAILGUN's first sync keeps the extension busy | Device app in `~/Work/BuddyOS` (`components/app_wallet`), Pangolin side in this repo.
 
 ## Who holds what
 
