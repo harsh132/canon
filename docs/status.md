@@ -12,6 +12,7 @@ Updated 2026-11-06.
 | Make private, Send privately, Make public | `e2e-fork.mjs` on an anvil fork |
 | Make private on real Sepolia, through Nox | `e2e-sepolia.mjs shield`: spendable after about 12 min |
 | Send privately on real Sepolia, Main paying gas | Landed; its new notes still await proof of innocence |
+| Make public on real Sepolia, Main paying gas | Landed; proof and submit 38 s |
 | Broadcaster discovery over Waku in the extension | `e2e-sepolia.mjs broadcasters`: connected, 1 Sepolia broadcaster |
 | Public accounts, balances on demand | Manual |
 | Privacy screen with read counts and a Nox/direct switch | `e2e-create.mjs` output |
@@ -23,7 +24,6 @@ Updated 2026-11-06.
 - **Typed-data signing over WalletConnect.** Added to `e2e-wc.mjs`; a re-run stalled once at the personal_sign step after passing it the run before, so treat the script as flaky until it passes twice.
 - **eth_sendTransaction from a dapp.** Needs a funded address.
 - **A private send through a broadcaster on real Sepolia.** Discovery finds up to 4 broadcasters, the proof builds and the request reaches one, but it answers "Could not validate Proof of Innocence". Twice, minutes apart, with an input note that had cleared. Sepolia broadcasters may not be validating; unresolved.
-- **Make public on real Sepolia.** Blocked on the same.
 
 ## Open questions
 
