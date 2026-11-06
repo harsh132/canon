@@ -1,10 +1,11 @@
 // Signing shared by WalletConnect and the injected provider. Only these
 // methods are ever signed; eth_sign (blind digest signing) is not one of them.
 import { getBytes, isHexString, toUtf8String, type TransactionRequest } from 'ethers';
-import { recordActivity, signerFor } from './book';
-import { getProvider } from './config';
+import { isSiteAccount, recordActivity, signerFor } from './book';
+import { sponsoredExecute } from './smart';
+import { CHAIN_ID, getProvider } from './config';
 
-export const SIGN_METHODS = ['personal_sign', 'eth_signTypedData', 'eth_signTypedData_v3', 'eth_signTypedData_v4', 'eth_sendTransaction'];
+export const SIGN_METHODS = ['personal_sign', 'eth_signTypedData', 'eth_signTypedData_v3', 'eth_signTypedData_v4', 'eth_sendTransaction', 'wallet_sendCalls'];
 
 export class RpcError extends Error {
   constructor(public code: number, message: string) {
@@ -57,13 +58,23 @@ export const summarize = (method: string, params: unknown[]): { title: string; d
         ].join('\n'),
       };
     }
+    if (method === 'wallet_sendCalls') {
+      const calls = ((params[0] ?? {}) as { calls?: { to?: string; value?: string; data?: string }[] }).calls ?? [];
+      return {
+        title: calls.length === 1 ? 'Send transaction' : `Send ${calls.length} calls`,
+        isTransaction: true,
+        detail: calls
+          .map((c, i) => `${i + 1}. to ${c.to ?? '?'}  value ${c.value ? BigInt(c.value).toString() : '0'} wei  ${c.data && c.data !== '0x' ? `data ${c.data.slice(0, 10)}…` : 'no data'}`)
+          .join('\n'),
+      };
+    }
   } catch (e) {
     return { title: method, detail: (e as Error).message, isTransaction: false };
   }
   return { title: method, detail: '', isTransaction: false };
 };
 
-export const execute = async (index: number, method: string, params: unknown[], dapp: string): Promise<string> => {
+export const execute = async (index: number, method: string, params: unknown[], dapp: string): Promise<unknown> => {
   if (isDelegation(method, params)) throw new RpcError(4001, 'Pangolin does not sign account delegations');
   const signer = signerFor(index);
   if (method === 'personal_sign') {
@@ -75,6 +86,27 @@ export const execute = async (index: number, method: string, params: unknown[], 
     const types = { ...d.types };
     delete types.EIP712Domain;
     return signer.signTypedData(d.domain as never, types as never, d.message as never);
+  }
+  // Site addresses: gas sponsored through EIP-7702 + Calibur (smart.ts).
+  if (method === 'eth_sendTransaction' && isSiteAccount(index)) {
+    const p = params[0] as { to?: string; value?: string; data?: string };
+    if (!p.to) throw new RpcError(4200, 'Contract creation is not supported from a site address');
+    const hash = await sponsoredExecute(signer, [{ to: p.to, value: BigInt(p.value ?? 0), data: p.data ?? '0x' }]);
+    await recordActivity({ id: hash, kind: 'dapp', label: dapp, hash, at: Date.now(), status: 'pending' }).catch(() => {});
+    return hash;
+  }
+  // EIP-5792: a batch runs atomically as one Calibur call. The batch id is the transaction hash.
+  if (method === 'wallet_sendCalls') {
+    if (!isSiteAccount(index)) throw new RpcError(5700, 'Batched calls need a site address');
+    const req = (params[0] ?? {}) as { chainId?: string; calls?: { to?: string; value?: string; data?: string }[] };
+    if (req.chainId && BigInt(req.chainId) !== BigInt(CHAIN_ID)) throw new RpcError(5710, 'Sepolia only');
+    const calls = (req.calls ?? []).map((c) => {
+      if (!c.to) throw new RpcError(4200, 'Contract creation is not supported');
+      return { to: c.to, value: BigInt(c.value ?? 0), data: c.data ?? '0x' };
+    });
+    const hash = await sponsoredExecute(signer, calls);
+    await recordActivity({ id: hash, kind: 'dapp', label: dapp, hash, at: Date.now(), status: 'pending' }).catch(() => {});
+    return { id: hash };
   }
   if (method === 'eth_sendTransaction') {
     const p = params[0] as TransactionRequest & { gas?: string };

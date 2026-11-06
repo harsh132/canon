@@ -89,6 +89,12 @@ export const previewAccount = (dappKey?: string | null): { index: number; path: 
   return { index: nextIndex(), path, address: deriveAt(session.mnemonic, path).address };
 };
 
+/** The derivation path of an account in the book. */
+export const pathOf = (index: number): string | null => data?.accounts.find((a) => a.index === index)?.path ?? null;
+
+/** Site addresses live on RAILGUN's app path; only these use sponsored 7702 execution. */
+export const isSiteAccount = (index: number): boolean => (pathOf(index) ?? '').startsWith("m/44'/60'/1984'/7702'/");
+
 export const accounts = (): AccountRecord[] => (data ? [...data.accounts].sort((a, b) => a.index - b.index) : []);
 
 export const bindings = (): Record<string, Binding> => data?.bindings ?? {};
