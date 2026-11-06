@@ -51,4 +51,5 @@ Newest last. Each entry: what, why, and what would change it.
 | 2026-11-06 | Show private WETH as ETH | It leaves as ETH, and users think in ETH |
 | 2026-11-06 | Recovery phrase in the menu, behind the password or passkey again | Passkey wallets otherwise see their phrase only once, at setup |
 | 2026-11-06 | Mainnet later; Sepolia only for the hackathon | User's call after pro.aave.com failed at the chain switch |
+| 2026-11-07 | Host the sponsor on Cloudflare Workers with one Durable Object, deployed with `cf` | User's choice. The Durable Object keeps one transaction queue for the single sponsor key; the free `workers.dev` address avoids a domain. Tighter caps in public |
 | 2026-11-06 | Show dapp icons on prompts, not only in lists | User's choice over Ender's lists-only rule. The origin stays the leading line; WalletConnect icons are fetched through Nox |

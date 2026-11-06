@@ -26,6 +26,7 @@ Updated 2026-11-06.
 | EIP-5792: `wallet_getCapabilities`, `wallet_sendCalls`, `wallet_getCallsStatus` | `e2e-sepolia.mjs dapp` |
 | Onboarding: new wallet with word check, restore grid, passkey (PRF) wallets | `e2e-onboard.mjs` with a virtual authenticator |
 | Fund a site address from private WETH, arriving as ETH (sponsor relays RAILGUN's type-4 unshield) | `e2e-sepolia.mjs dapp` with `RPC_DIRECT=1` |
+| Hosted sponsor on Cloudflare (Worker + Durable Object) | `execute-probe.ts` against the live URL: delegate, then a two-call batch |
 | Per-tab side panel showing each tab's dapp and address | `check-site-panel.mjs` |
 | Per-dapp WalletConnect addresses: two dapps get two fresh addresses, personal_sign recovers to the right one, a reconnect keeps its address | `e2e-wc.mjs`, Pangolin project id |
 
@@ -46,7 +47,7 @@ Updated 2026-11-06.
 
 ## Next
 
-1. Host the sponsor on https, so claims and sponsored sends work off this machine and go through Nox.
+1. Prove the extension against the hosted sponsor with one sponsored action. The sponsor is live on Cloudflare ([sponsor.md](sponsor.md)); in Nox mode it needs a Nox TLS exit.
 2. Submissions: make the repo public, fill the Uniswap feedback form, record the demo.
 3. Ask the RAILGUN team why Sepolia broadcasters reject on proof of innocence.
 4. WalletConnect signing stall (parked).

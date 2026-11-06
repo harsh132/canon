@@ -9,6 +9,7 @@
 | UI | The onboarding tab (`onboard.html`) on first install; Chrome side panel (`panel.html`) when the user clicks the toolbar icon; the toolbar popup (`popup.html`) when a dapp asks for something and no Pangolin UI is open; a small window (`popup.html?window=1`) only if Chrome refuses the popup | `src/popup` | Nothing secret. Renders pushed state, sends commands |
 | Inpage provider | Each http(s) page's own world | `src/inpage/provider.ts` | Nothing. EIP-1193 provider, EIP-6963 announcement |
 | Bridge | Each page, isolated world | `src/inpage/bridge.ts` | Nothing. Relays calls to the core over a port Chrome stamps with the tab's origin |
+| Sponsor | Cloudflare Worker + Durable Object (`apps/sponsor`); `bun src/server.ts` locally | `apps/sponsor/src` | The gas key. Pays for private sends, swaps, Fund, name claims and site-address calls ([sponsor.md](sponsor.md)) |
 | Anon-RPC sandbox | Null-origin iframe inside the core | `dist/anon-rpc/<ver>/sandbox.html` | The hash-pinned Nox worker bundle |
 
 The core lives in the offscreen document because the service worker is killed when idle and has no DOM. The offscreen document stays up, so the engine, its IndexedDB store and the WalletConnect socket survive the popup closing.

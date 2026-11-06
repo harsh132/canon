@@ -37,6 +37,7 @@ PANGOLIN_PROFILE=$PWD/.cache/<new> bun scripts/e2e-fork.mjs
 
 | Date | Script | Network | Result |
 |---|---|---|---|
+| 2026-11-07 | `execute-probe.ts`, hosted sponsor | Sepolia, Cloudflare | Fresh address delegated and called ([tx](https://sepolia.etherscan.io/tx/0xab5735d62ec023f837049cb6bca15c052a22f400411cc443c2a35533a73a44b2)), then a two-call batch ([tx](https://sepolia.etherscan.io/tx/0x0c8a5ac71025b93bfab69533a938d9ae24e459664076a586546df06a43662a21)). A first run failed only because the public RPC answered from a node a block behind; the probe now waits for the delegation |
 | 2026-11-06 | New frame: `e2e-onboard`, `check-focus`, `check-panel`, `check-site-panel`, `check-prompt`, `e2e-injected`, `shot-name-focus` | Chromium | All pass. `e2e-onboard` now also reveals a passkey wallet's phrase from the menu (14 checks). It caught the app reopening on the last screen after lock |
 | 2026-11-06 | `e2e-onboard.mjs` | Chromium, virtual authenticator | All 13 checks pass. `check-focus`, `e2e-injected`, `check-prompt`, `check-site-panel` and `check-panel` pass on the new onboarding |
 | 2026-11-06 | `RPC_DIRECT=1 FUND_ONLY=1 e2e-sepolia.mjs dapp` | Sepolia, direct reads, sponsor | Funded the site address with 0.0005 ETH from private WETH in 40 s; 0.00049875 arrived ([tx](https://sepolia.etherscan.io/tx/0x7b724b9287d6e875e5a870a82e41386e38c03644681f0e44761e2ede911a0c8e)). Then a gasless batch wrapped 0.0001 ETH from it ([tx](https://sepolia.etherscan.io/tx/0x978c42646b1aacf773ea48cc58c7124d7a4c5f07ddd308e062fd7e340d64752f)) |
