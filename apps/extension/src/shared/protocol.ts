@@ -100,6 +100,8 @@ export type CoreState = {
   activity: Activity[];
   proof: { label: string; progress: number } | null;
   rpc: RpcState;
+  /** RAILGUN broadcasters over Waku. count: distinct broadcasters seen on Sepolia. */
+  broadcaster: { status: 'off' | 'connecting' | 'connected' | 'none' | 'error'; count: number; error?: string };
   /** Sites connected through the injected provider. */
   sites: { origin: string; address: string; label: string }[];
   wc: {
@@ -119,7 +121,9 @@ export type SendIntent = {
   from: 'private' | number;
   to: string;
   amount: string;
-  /** Public account that pays gas when sending from private. */
+  /** Who pays gas when sending from private: a broadcaster (default) or a public account. */
+  via?: 'broadcaster' | 'self';
+  /** Public account that pays gas when via is 'self'. */
   gasFrom?: number;
 };
 
@@ -130,7 +134,10 @@ export type SendPlan = {
   amount: bigint;
   symbol: string;
   gasFrom: number | null;
+  /** Native gas the user pays from a public account. Zero via a broadcaster. */
   gasFee: bigint;
+  /** Fee to the broadcaster, in private WETH, when via is 'broadcaster'. */
+  broadcasterFee: bigint | null;
   needsProof: boolean;
 };
 

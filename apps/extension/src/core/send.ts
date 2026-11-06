@@ -9,14 +9,16 @@ import {
   populateProvedUnshieldBaseToken,
   populateShieldBaseToken,
   validateRailgunAddress,
+  calculateBroadcasterFeeERC20Amount,
 } from '@railgun-community/wallet';
-import { EVMGasType, TXIDVersion, type TransactionGasDetails } from '@railgun-community/shared-models';
+import { EVMGasType, TXIDVersion, calculateGasPrice, type TransactionGasDetails } from '@railgun-community/shared-models';
 import { getAddress, keccak256, parseEther, type TransactionRequest } from 'ethers';
 import type { SendIntent, SendKind, SendPlan } from '../shared/protocol';
 import { isHexAddress, isZk } from '../shared/format';
 import { recordActivity, signerFor } from './book';
 import { NETWORK, WETH, getProvider } from './config';
 import { currentWalletId, spendable, sync } from './railgun';
+import { pickBroadcaster, submitViaBroadcaster } from './broadcaster';
 import { emit, state } from './state';
 import type { Unlocked } from './vault';
 
@@ -81,25 +83,28 @@ const prepare = async (intent: SendIntent, u: Unlocked): Promise<Prepared> => {
   const weth = { tokenAddress: WETH, amount };
   const { maxFeePerGas } = await fees();
 
-  const broadcast = async (tx: TransactionRequest, label: string): Promise<string> => {
-    const sent = await payer.sendTransaction(tx);
-    const entry = { id: sent.hash, kind, label, amount: intent.amount, hash: sent.hash, at: Date.now(), status: 'pending' as const };
-    await recordActivity(entry);
+  const track = (hash: string, label: string): string => {
+    const entry = { id: hash, kind, label, amount: intent.amount, hash, at: Date.now(), status: 'pending' as const };
+    void recordActivity(entry).catch(() => {});
     state.activity = [entry, ...state.activity.filter((a) => a.id !== entry.id)];
     emit();
-    const settled = sent.wait().then(
-      async (r) => {
-        const done = { ...entry, status: r?.status === 1 ? ('done' as const) : ('failed' as const) };
-        await recordActivity(done).catch(() => {});
-        state.activity = state.activity.map((a) => (a.id === done.id ? done : a));
-        emit();
-        if (kind !== 'send') await sync();
-      },
-      () => {},
-    );
+    const settled = getProvider()
+      .waitForTransaction(hash)
+      .then(
+        async (r) => {
+          const done = { ...entry, status: r?.status === 1 ? ('done' as const) : ('failed' as const) };
+          await recordActivity(done).catch(() => {});
+          state.activity = state.activity.map((a) => (a.id === done.id ? done : a));
+          emit();
+          if (kind !== 'send') await sync();
+        },
+        () => {},
+      );
     if (kind === 'transfer' || kind === 'unshield') settling = settled;
-    return sent.hash;
+    return hash;
   };
+
+  const broadcast = async (tx: TransactionRequest, label: string): Promise<string> => track((await payer.sendTransaction(tx)).hash, label);
 
   const withProof = async <T>(label: string, fn: (cb: (p: number) => void) => Promise<T>): Promise<T> => {
     state.proof = { label, progress: 0 };
@@ -115,7 +120,8 @@ const prepare = async (intent: SendIntent, u: Unlocked): Promise<Prepared> => {
     }
   };
 
-  const base = { kind, from: intent.from, to, amount, symbol: 'ETH', gasFrom: intent.from === 'private' ? gasFrom : null };
+  const viaBroadcaster = intent.from === 'private' && intent.via !== 'self';
+  const base = { kind, from: intent.from, to, amount, symbol: 'ETH', gasFrom: intent.from === 'private' && !viaBroadcaster ? gasFrom : null, broadcasterFee: null };
 
   switch (kind) {
     case 'send': {
@@ -143,6 +149,57 @@ const prepare = async (intent: SendIntent, u: Unlocked): Promise<Prepared> => {
       await settling;
       if (amount > spendable()) throw new Error('More than your spendable private balance');
       const id = currentWalletId();
+      const recipientsB = [{ ...weth, recipientAddress: to }];
+      if (viaBroadcaster) {
+        // Unshielding to ETH goes through the Relay Adapt contract; the broadcaster must support it.
+        const useRelayAdapt = kind === 'unshield';
+        const b = pickBroadcaster(WETH, useRelayAdapt);
+        if (!b) throw new Error('No broadcaster online yet. Retry, or pay gas from Main');
+        const feeToken = { tokenAddress: WETH, feePerUnitGas: b.feePerUnitGas };
+        // Broadcasters commit to one minimum gas price, so the SDK requires type-1 gas here.
+        const gasPrice = (await getProvider().getFeeData()).gasPrice ?? 1_000_000_000n;
+        const t1 = (gasEstimate: bigint): TransactionGasDetails => ({ evmGasType: EVMGasType.Type1, gasEstimate, gasPrice });
+        const { gasEstimate } =
+          kind === 'transfer'
+            ? await gasEstimateForUnprovenTransfer(V2, NETWORK, id, u.railgunKey, undefined, recipientsB, [], t1(0n), feeToken, false)
+            : await gasEstimateForUnprovenUnshieldBaseToken(V2, NETWORK, to, id, u.railgunKey, weth, t1(0n), feeToken, false);
+        const gd = t1(gasEstimate);
+        const { amount: feeAmount } = await calculateBroadcasterFeeERC20Amount(feeToken, gd);
+        if (amount + feeAmount > spendable()) throw new Error('Amount plus broadcaster fee exceeds your private balance');
+        const fee = { tokenAddress: WETH, amount: feeAmount, recipientAddress: b.railgunAddress };
+        const minGas = calculateGasPrice(gd);
+        return {
+          ...base,
+          symbol: 'WETH',
+          gasFee: 0n,
+          broadcasterFee: feeAmount,
+          needsProof: true,
+          run: async () => {
+            let populated;
+            if (kind === 'transfer') {
+              await withProof('Proving', (cb) =>
+                generateTransferProof(V2, NETWORK, id, u.railgunKey, false, undefined, recipientsB, [], fee, false, minGas, cb),
+              );
+              populated = await populateProvedTransfer(V2, NETWORK, id, false, undefined, recipientsB, [], fee, false, minGas, gd);
+            } else {
+              await withProof('Proving', (cb) =>
+                generateUnshieldBaseTokenProof(V2, NETWORK, to, id, u.railgunKey, weth, fee, false, minGas, cb),
+              );
+              populated = await populateProvedUnshieldBaseToken(V2, NETWORK, to, id, weth, fee, false, minGas, gd);
+            }
+            const hash = await submitViaBroadcaster({
+              to: populated.transaction.to as string,
+              data: populated.transaction.data as string,
+              broadcaster: b,
+              nullifiers: populated.nullifiers ?? [],
+              overallBatchMinGasPrice: minGas,
+              useRelayAdapt,
+              pois: populated.preTransactionPOIsPerTxidLeafPerList,
+            });
+            return track(hash, kind === 'transfer' ? `Sent privately to ${to.slice(0, 10)}…` : `Made public to ${to.slice(0, 10)}…`);
+          },
+        };
+      }
       const og = await gasDetails(0n);
       const recipients = [{ ...weth, recipientAddress: to }];
       const { gasEstimate } =

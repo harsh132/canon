@@ -12,6 +12,8 @@ import { createVault, newMnemonic, normaliseMnemonic, unlockVault, vaultExists, 
 import * as wc from './wc';
 import * as browser from './dapp';
 import { installTransport, setRpcMode } from './transport';
+import { startBroadcasters } from './broadcaster';
+import { FORK } from './config';
 
 let session: Unlocked | null = null;
 let lockTimer: ReturnType<typeof setTimeout> | null = null;
@@ -62,6 +64,8 @@ const afterUnlock = async (u: Unlocked, imported: boolean): Promise<void> => {
   browser.broadcastAccounts();
   touch();
   // The engine can take a while on first boot; the vault is usable before it is.
+  // Broadcasters cannot see a local fork.
+  if (!FORK) void startBroadcasters();
   void openRailgunWallet(u, imported)
     .then(() => sync())
     .catch((e) => {
