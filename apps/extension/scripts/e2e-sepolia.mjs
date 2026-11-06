@@ -24,10 +24,11 @@ const AMOUNT = process.env.AMOUNT ?? '0.01';
 const VIA = process.env.VIA ?? 'sponsor';
 
 const { browser, popup, corePage, id: extId } = await launch();
+const WATCHDOG_MIN = Number(process.env.WATCHDOG_MIN ?? 25);
 setTimeout(() => {
-  console.error('[sep] watchdog: 25 min');
+  console.error(`[sep] watchdog: ${WATCHDOG_MIN} min`);
   browser.close().finally(() => process.exit(1));
-}, 25 * 60_000).unref();
+}, WATCHDOG_MIN * 60_000).unref();
 
 const t0 = Date.now();
 const log = (...a) => console.log(`[sep ${Math.round((Date.now() - t0) / 1000)}s]`, ...a);
@@ -160,6 +161,16 @@ if (phase === 'setup') {
 } else if (phase === 'private') {
   // Send privately (gas route from VIA, default sponsor) to TO, default a name.
   const to = process.env.TO ?? 'alice.pangolin.eth';
+  // WAIT_SPENDABLE=1: stay open, resyncing, until enough clears proof of innocence
+  // (the wallet submits those proofs only while it runs).
+  if (process.env.WAIT_SPENDABLE) {
+    const need = Number(process.env.AMOUNT ?? '0.001');
+    for (let i = 0; i < 25 && !(Number((await balances()).spendable) >= need); i += 1) {
+      await new Promise((r) => setTimeout(r, 60_000));
+      await resync();
+      log(`waiting to clear +${i + 1}m`, await balances());
+    }
+  }
   await send({ from: 'private', to, amount: process.env.AMOUNT ?? '0.001', expect: 'Send privately' });
   // Stay open: the wallet submits the send's POIs in the background, like a broadcaster.
   const t1 = Date.now();
