@@ -2,6 +2,7 @@ import type { CoreState, Verification } from '../../shared/protocol';
 import { short } from '../../shared/format';
 import { call, useAction } from '../client';
 import { AppIcon, Button, Card, ErrorLine, Header, Row, Slug, faviconFor } from '../ui';
+import { SEPOLIA_ID, netOf } from '../../shared/networks';
 
 const TRUST: Record<Verification, { text: string; cls: string }> = {
   VALID: { text: 'Verified', cls: 'text-accent' },
@@ -40,7 +41,7 @@ export const ConnectPrompt = ({ s }: { s: CoreState }) => {
             <div className="mt-1 text-[17px] font-semibold">{p.account.isNew ? 'A new address' : p.account.label}</div>
             <div className="mt-3 border-t border-dashed border-rule">
               <Row label="Address">{short(p.account.address, 8, 6)}</Row>
-              <Row label="Chain" last>Sepolia</Row>
+              <Row label="Network" last>{netOf((p.origin && s.siteChains[p.origin]) || SEPOLIA_ID)?.name}</Row>
             </div>
           </>
         ) : (
@@ -91,6 +92,7 @@ export const RequestPrompt = ({ s }: { s: CoreState }) => {
           {r.account && <div className="font-mono text-xs text-second">as {short(r.account.address, 8, 6)}</div>}
         </div>
       </div>
+      {r.network && <Slug className="mx-[18px] mt-3">On {r.network}</Slug>}
       <Card className="mx-[18px] mt-4 max-h-[300px] overflow-auto px-4 py-3">
         <pre className="font-mono text-[11px] leading-relaxed whitespace-pre-wrap break-all">{r.detail}</pre>
       </Card>

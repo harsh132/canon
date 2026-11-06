@@ -46,9 +46,7 @@ export const AppHeader = ({ s, tab, go }: { s: CoreState; tab: Tab; go: (t: Tab)
         <div className="flex items-center gap-2">
           <Mark />
           <span className="font-mono text-[11px] font-bold tracking-[0.18em] uppercase">Pangolin</span>
-          <span className="rounded-sm border border-rule px-1.5 py-px font-mono text-[9px] tracking-[0.14em] text-warn uppercase">
-            Sepolia{process.env.PANGOLIN_FORK === '1' ? ' fork' : ''}
-          </span>
+          <PrivateNet s={s} />
         </div>
         <div className="flex items-center gap-0.5">
           <IconButton label="Lock" onClick={() => void call('vault.lock', null)}>
@@ -98,6 +96,51 @@ export const AppHeader = ({ s, tab, go }: { s: CoreState; tab: Tab; go: (t: Tab)
   );
 };
 
+/** The private network badge; its menu switches RAILGUN between Sepolia and Arbitrum. */
+const PrivateNet = ({ s }: { s: CoreState }) => {
+  const [open, setOpen] = useState(false);
+  const nets: { id: 'sepolia' | 'arbitrum'; label: string }[] = [
+    { id: 'sepolia', label: 'Sepolia' },
+    { id: 'arbitrum', label: 'Arbitrum' },
+  ];
+  const current = nets.find((n) => n.id === s.privateNet)!;
+  return (
+    <span className="relative">
+      <button
+        onClick={() => setOpen(!open)}
+        aria-expanded={open}
+        title="Private network"
+        className={`rounded-sm border px-1.5 py-px font-mono text-[9px] tracking-[0.14em] uppercase ${s.privateNet === 'sepolia' ? 'border-rule text-warn' : 'border-rule text-accent'}`}
+      >
+        {current.label}
+        {process.env.PANGOLIN_FORK === '1' ? ' fork' : ''}
+      </button>
+      {open && (
+        <>
+          <button aria-label="Close" className="fixed inset-0 z-10 cursor-default" onClick={() => setOpen(false)} />
+          <div role="menu" className="absolute top-6 left-0 z-20 w-48 rounded-sm border border-rule bg-sheet py-1 shadow-lift">
+            <div className="px-3.5 pt-1.5 pb-1 font-mono text-[9px] tracking-[0.14em] text-muted uppercase">Private network · switching locks</div>
+            {nets.map((n) => (
+              <button
+                key={n.id}
+                role="menuitem"
+                onClick={() => {
+                  setOpen(false);
+                  if (n.id !== s.privateNet) void call('net.setPrivate', { net: n.id });
+                }}
+                className={`flex w-full items-center justify-between px-3.5 py-2 text-left text-[13px] hover:bg-page ${n.id === s.privateNet ? 'text-accent' : ''}`}
+              >
+                {n.label}
+                {n.id === 'sepolia' && <span className="font-mono text-[9px] tracking-[0.14em] text-warn uppercase">Test</span>}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </span>
+  );
+};
+
 const ago = (t?: number) => {
   if (!t) return '';
   const m = Math.round((Date.now() - t) / 60_000);
@@ -136,3 +179,11 @@ export const Footer = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
     </footer>
   );
 };
+
+/** Send and Swap while RAILGUN is on Arbitrum: view-only for now. */
+export const SepoliaOnly = () => (
+  <div className="flex flex-col items-center gap-3 px-[18px] pt-20 text-center">
+    <span className="stamp">Sepolia only</span>
+    <p className="text-[14px] text-second">Private sends and swaps run on Sepolia for now. Arbitrum is view-only.</p>
+  </div>
+);

@@ -1,4 +1,5 @@
 import { useEffect, useState, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode } from 'react';
+import { explorerTx } from '../shared/networks';
 
 const cx = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).join(' ');
 
@@ -92,7 +93,8 @@ export const Copy = ({ value, label = 'Copy' }: { value: string; label?: string 
   </Button>
 );
 
-export const etherscan = (hash: string) => `https://sepolia.etherscan.io/tx/${hash}`;
+/** A transaction on its network's explorer (Sepolia when no network is given). */
+export const etherscan = (hash: string, chainId?: number) => explorerTx(hash, chainId);
 
 /**
  * Chrome's cached favicon for a site the user has open or visited. Served by

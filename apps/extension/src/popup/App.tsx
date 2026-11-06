@@ -12,7 +12,7 @@ import { Name } from './screens/Name';
 import { Swap } from './screens/Swap';
 import { ConnectPrompt, RequestPrompt } from './screens/Prompts';
 import { Phrase, Reset } from './screens/Phrase';
-import { AppHeader, Footer } from './frame';
+import { AppHeader, Footer, SepoliaOnly } from './frame';
 
 export type Tab = 'home' | 'send' | 'receive' | 'apps' | 'accounts' | 'privacy' | 'name' | 'swap' | 'phrase' | 'reset';
 
@@ -54,13 +54,13 @@ export const App = () => {
       <AppHeader s={s} tab={tab} go={go} />
       <div className="flex-1">
         {tab === 'home' && <Home s={s} go={go} />}
-        {tab === 'send' && <Send s={s} go={go} />}
+        {tab === 'send' && (s.privateNet === 'sepolia' ? <Send s={s} go={go} /> : <SepoliaOnly />)}
         {tab === 'receive' && <Receive s={s} go={go} />}
         {tab === 'apps' && <Apps s={s} />}
         {tab === 'accounts' && <Accounts s={s} go={go} />}
         {tab === 'privacy' && <Privacy s={s} go={go} />}
         {tab === 'name' && <Name s={s} go={go} />}
-        {tab === 'swap' && <Swap s={s} go={go} />}
+        {tab === 'swap' && (s.privateNet === 'sepolia' ? <Swap s={s} go={go} /> : <SepoliaOnly />)}
         {tab === 'phrase' && <Phrase s={s} go={go} />}
         {tab === 'reset' && <Reset go={go} />}
       </div>

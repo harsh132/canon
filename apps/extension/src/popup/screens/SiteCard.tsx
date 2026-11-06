@@ -3,6 +3,7 @@ import type { CoreState } from '../../shared/protocol';
 import { amount, short } from '../../shared/format';
 import { call, panelTab } from '../client';
 import { AppIcon, Button, Card, Copy, Row, Slug, faviconFor } from '../ui';
+import { NETS, SEPOLIA_ID, netOf } from '../../shared/networks';
 
 type Balances = { eth: bigint; tokens: { symbol: string; decimals: number; amount: bigint }[] };
 
@@ -15,17 +16,20 @@ export const SiteCard = ({ s, onFund }: { s: CoreState; onFund?: (address: strin
   const account = origin ? s.accounts.find((a) => a.origins.includes(origin)) : undefined;
   const connected = !!origin && (s.sites.some((x) => x.origin === origin) || !!account);
   const [bal, setBal] = useState<Balances | null>(null);
+  const [picking, setPicking] = useState(false);
+  const chainId = (origin && s.siteChains[origin]) || SEPOLIA_ID;
+  const net = netOf(chainId);
 
   // Read once per site, and on demand; never polled.
   const refresh = () => {
     if (!account) return;
-    void call('site.balances', { address: account.address }).then(setBal, () => setBal(null));
+    void call('site.balances', { address: account.address, chainId }).then(setBal, () => setBal(null));
   };
   useEffect(() => {
     setBal(null);
     refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [account?.address]);
+  }, [account?.address, chainId]);
 
   if (!panelTab || s.vault !== 'unlocked') return null;
   // No dapp in this tab: nothing to show.
@@ -41,15 +45,45 @@ export const SiteCard = ({ s, onFund }: { s: CoreState; onFund?: (address: strin
         </div>
         {account && <Copy value={account.address} label={short(account.address)} />}
       </div>
+      {/* The site's network: dapps switch it themselves; this is the manual override. */}
+      <div className="relative mt-2.5">
+        <button
+          onClick={() => setPicking(!picking)}
+          aria-expanded={picking}
+          className="inline-flex items-center gap-1.5 rounded-sm border border-rule px-2 py-1 font-mono text-[10px] tracking-[0.14em] uppercase text-second hover:text-ink"
+        >
+          <span className={`inline-block h-1.5 w-1.5 rounded-full ${net?.testnet ? 'bg-warn' : 'bg-accent'}`} />
+          {net?.name ?? chainId}
+        </button>
+        {picking && (
+          <div role="menu" className="absolute top-8 left-0 z-20 w-44 rounded-sm border border-rule bg-sheet py-1 shadow-lift">
+            {NETS.map((n) => (
+              <button
+                key={n.chainId}
+                role="menuitem"
+                onClick={() => {
+                  setPicking(false);
+                  void call('site.setChain', { origin, chainId: n.chainId });
+                }}
+                className={`flex w-full items-center justify-between px-3 py-2 text-left text-[13px] hover:bg-page ${n.chainId === chainId ? 'text-accent' : ''}`}
+              >
+                {n.name}
+                {n.testnet && <span className="font-mono text-[9px] tracking-[0.14em] text-warn uppercase">Test</span>}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
       {account && (
         <div className="mt-2.5 border-t border-dashed border-rule">
-          <Row label="ETH">{bal ? amount(bal.eth) : '…'}</Row>
+          <Row label={net?.native ?? 'ETH'}>{bal ? amount(bal.eth) : '…'}</Row>
           {bal?.tokens.filter((t) => t.amount > 0n).map((t) => (
             <Row key={t.symbol} label={t.symbol}>{amount(t.amount, t.decimals, t.decimals > 6 ? 4 : 2)}</Row>
           ))}
           <div className="flex items-center justify-between pt-2.5">
             <Button variant="link" className="text-muted" onClick={refresh}>Refresh</Button>
-            {onFund && (
+            {/* Fund unshields on the private network, so only a site on that network can receive it. */}
+            {onFund && s.privateNet === 'sepolia' && chainId === SEPOLIA_ID && (
               <Button variant="ghost" className="px-4 py-2" onClick={() => onFund(account.address, origin)}>
                 Fund
               </Button>

@@ -67,7 +67,7 @@ export const Home = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
         {s.activity.slice(0, 4).map((a, i, list) => (
           <a
             key={a.id}
-            href={a.hash ? etherscan(a.hash) : undefined}
+            href={a.hash ? etherscan(a.hash, a.chainId) : undefined}
             target="_blank"
             rel="noreferrer"
             className={`flex items-baseline justify-between py-2.5 text-[13px] ${i < list.length - 1 ? 'rule-dash' : ''}`}
