@@ -10,6 +10,7 @@ export const RPC_URL = process.env.PANGOLIN_SEPOLIA_RPC || 'https://ethereum-sep
 export const POI_NODES = ['https://ppoi.fdi.network'];
 export const WC_PROJECT_ID = process.env.PANGOLIN_WC_PROJECT_ID ?? '';
 export const DEV = process.env.NODE_ENV !== 'production';
+export const FORK = process.env.PANGOLIN_FORK === '1';
 export const AUTO_LOCK_MS = 15 * 60_000;
 
 // The one place RPC transport is chosen. Anon-RPC slots in here next.

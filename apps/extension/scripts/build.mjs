@@ -31,7 +31,9 @@ for (const file of ['.env', '.env.local']) {
 const define = {
   'process.env.NODE_ENV': JSON.stringify(dev ? 'development' : 'production'),
   'process.env.PANGOLIN_WC_PROJECT_ID': JSON.stringify(env.PANGOLIN_WC_PROJECT_ID ?? ''),
-  'process.env.PANGOLIN_SEPOLIA_RPC': JSON.stringify(env.PANGOLIN_SEPOLIA_RPC ?? ''),
+  'process.env.PANGOLIN_SEPOLIA_RPC': JSON.stringify(process.env.PANGOLIN_SEPOLIA_RPC ?? env.PANGOLIN_SEPOLIA_RPC ?? ''),
+  // Dev only: a local anvil fork of Sepolia, where no PPOI node can attest shields.
+  'process.env.PANGOLIN_FORK': JSON.stringify(process.env.PANGOLIN_FORK ?? ''),
   global: 'globalThis',
   'import.meta.url': '"chrome-extension://pangolin/"',
 };

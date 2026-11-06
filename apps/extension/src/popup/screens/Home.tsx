@@ -37,7 +37,7 @@ export const Home = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
         }
       />
       <div className="mx-[18px] flex items-baseline justify-between rule-dash pt-1.5 pb-2.5">
-        <Slug>Private · Sepolia</Slug>
+        <Slug>Private · Sepolia{process.env.PANGOLIN_FORK === '1' ? ' fork' : ''}</Slug>
         <button
           title={s.sync.error ?? s.engine.error}
           onClick={() => void call('railgun.sync', null)}

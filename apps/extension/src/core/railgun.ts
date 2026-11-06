@@ -11,14 +11,14 @@ import {
   setOnUTXOMerkletreeScanCallback,
   startRailgunEngine,
 } from '@railgun-community/wallet';
-import type { SnarkJSGroth16 } from '@railgun-community/engine';
+import { POI, WalletBalanceBucket, type SnarkJSGroth16 } from '@railgun-community/engine';
 import { NETWORK_CONFIG, RailgunWalletBalanceBucket, type RailgunBalancesEvent } from '@railgun-community/shared-models';
 import leveljs from 'level-js';
 import localforage from 'localforage';
 import { groth16 } from 'snarkjs';
 import { Contract } from 'ethers';
 import type { TokenBalance } from '../shared/protocol';
-import { CHAIN, DEV, NETWORK, POI_NODES, RPC_URL, WETH, getProvider } from './config';
+import { CHAIN, DEV, FORK, NETWORK, POI_NODES, RPC_URL, WETH, getProvider } from './config';
 import { emit, state } from './state';
 import { saveRailgunWalletId, type Unlocked } from './vault';
 
@@ -52,6 +52,19 @@ const describe = (err: unknown, depth = 0): string => {
   return cause == null || depth > 4 ? head : `${head} <- ${describe(cause, depth + 1)}`;
 };
 
+// FORK ONLY. No PPOI aggregator watches a local fork, so every shield would sit
+// in ShieldPending forever. Treat unspent notes as spendable and build no POI
+// proofs. Compiled out unless PANGOLIN_FORK=1; never for a real network.
+const patchPoiForFork = (): void => {
+  const poi = POI as unknown as Record<string, unknown>;
+  poi.lists = [];
+  poi.getActiveListKeys = () => [];
+  poi.getAllListKeys = () => [];
+  poi.getBalanceBucket = (txo: { spendtxid: unknown }) =>
+    txo.spendtxid !== false ? WalletBalanceBucket.Spent : WalletBalanceBucket.Spendable;
+  console.warn('[railgun] FORK MODE: POI checks disabled');
+};
+
 let booted: Promise<void> | null = null;
 
 export const bootEngine = (): Promise<void> =>
@@ -65,7 +78,9 @@ export const bootEngine = (): Promise<void> =>
         if (!BENIGN.some((b) => msg.includes(b))) console.error('[railgun]', msg);
       },
     );
+    if (FORK) delete (NETWORK_CONFIG[NETWORK] as { poi?: unknown }).poi;
     await startRailgunEngine('pangolin', leveljs('pangolin-railgun'), DEV, artifactStore, false, false, POI_NODES);
+    if (FORK) patchPoiForFork();
 
     const singleThread = !blobWorkersAllowed();
     console.log('[railgun] prover threads:', singleThread ? 'single' : 'multi');
