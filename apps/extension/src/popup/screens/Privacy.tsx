@@ -10,7 +10,7 @@ export const Privacy = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
   const leaked = counts.clear;
 
   return (
-    <div className="flex min-h-[560px] flex-col">
+    <div className="flex min-h-[calc(var(--app-h)-44px)] flex-col">
       <Header title="Privacy" onBack={() => go('home')} right={<Slug>This session</Slug>} />
       <Card edge className="mx-[18px] mt-2.5 px-[18px] pt-[18px]">
         <div className="flex items-start justify-between">

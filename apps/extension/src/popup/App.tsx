@@ -27,7 +27,7 @@ export const App = () => {
   // Held here, not in Onboard: the vault flips to unlocked before the phrase is acknowledged.
   const [backup, setBackup] = useState<string | null>(null);
 
-  if (!s || s.vault === 'unknown') return <div className="grid h-[600px] place-items-center"><span className="slug">Starting</span></div>;
+  if (!s || s.vault === 'unknown') return <div className="grid h-[var(--app-h)] place-items-center"><span className="slug">Starting</span></div>;
   if (backup) return <Backup phrase={backup} onDone={() => setBackup(null)} />;
   if (s.vault === 'none') return <Onboard onBackup={setBackup} />;
   if (s.wc.proposal) return <ConnectPrompt s={s} />;
@@ -36,7 +36,7 @@ export const App = () => {
 
   const go = (t: Tab) => setTab(t);
   return (
-    <div className="flex min-h-[600px] flex-col">
+    <div className="flex min-h-[var(--app-h)] flex-col">
       <div className="flex-1">
         {tab === 'home' && <Home s={s} go={go} />}
         {tab === 'send' && <Send s={s} go={go} />}
@@ -47,7 +47,7 @@ export const App = () => {
         {tab === 'name' && <Name s={s} go={go} />}
         {tab === 'swap' && <Swap s={s} go={go} />}
       </div>
-      <nav aria-label="Main" className="flex justify-between border-t border-rule px-[18px] pt-3 pb-3.5 font-mono text-[10px] tracking-[0.18em] uppercase">
+      <nav aria-label="Main" className="sticky bottom-0 flex justify-between border-t border-rule bg-page px-[18px] pt-3 pb-3.5 font-mono text-[10px] tracking-[0.18em] uppercase">
         {NAV.map((n) => (
           <button
             key={n.tab}

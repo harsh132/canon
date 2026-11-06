@@ -28,7 +28,7 @@ export const Swap = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
   }
 
   return (
-    <div className="flex min-h-[560px] flex-col">
+    <div className="flex min-h-[calc(var(--app-h)-44px)] flex-col">
       <Header title="Swap" onBack={() => go('home')} right={<Slug>Uniswap v4</Slug>} />
       <div className="px-[18px] pt-2.5">
         <Field label="Pay" hint={`${amount(weth?.spendable ?? 0n)} private`}>

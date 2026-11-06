@@ -19,7 +19,7 @@ export const ConnectPrompt = ({ s }: { s: CoreState }) => {
   const trust = TRUST[p.verification];
 
   return (
-    <div className="flex min-h-[600px] flex-col">
+    <div className="flex min-h-[var(--app-h)] flex-col">
       <Header title="Connect" right={<Slug className={trust.cls}>{trust.text}</Slug>} />
       <div className="px-[18px] pt-4">
         <div className="text-[19px] font-semibold">{p.name}</div>
@@ -93,7 +93,7 @@ export const RequestPrompt = ({ s }: { s: CoreState }) => {
   const r = s.wc.request!;
   const a = useAction();
   return (
-    <div className="flex min-h-[600px] flex-col">
+    <div className="flex min-h-[var(--app-h)] flex-col">
       <Header title={r.dapp} right={<Slug>{r.account ? r.account.label : 'Unknown address'}</Slug>} />
       <div className="px-[18px] pt-2">
         <div className="text-[19px] font-semibold">{r.title}</div>

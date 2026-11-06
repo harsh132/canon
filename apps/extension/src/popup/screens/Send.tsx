@@ -51,7 +51,7 @@ export const Send = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
   }
 
   return (
-    <div className="flex min-h-[560px] flex-col">
+    <div className="flex min-h-[calc(var(--app-h)-44px)] flex-col">
       <Header title="Send" onBack={() => go('home')} right={<Slug>{unit} · {amount(fromBalance)}</Slug>} />
       <div className="flex flex-col gap-4 px-[18px] pt-2.5">
         <Field label="From">

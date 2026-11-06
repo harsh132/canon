@@ -21,7 +21,7 @@ export const Onboard = ({ onBackup }: { onBackup: (phrase: string) => void }) =>
     });
 
   return (
-    <div className="flex min-h-[600px] flex-col">
+    <div className="flex min-h-[var(--app-h)] flex-col">
       <Header title="Pangolin" />
       <div className="flex flex-1 flex-col gap-4 px-[18px] pt-6">
         <div className="grid grid-cols-2 gap-2">
@@ -58,7 +58,7 @@ export const Onboard = ({ onBackup }: { onBackup: (phrase: string) => void }) =>
 };
 
 export const Backup = ({ phrase, onDone }: { phrase: string; onDone: () => void }) => (
-  <div className="flex min-h-[600px] flex-col">
+  <div className="flex min-h-[var(--app-h)] flex-col">
     <Header title="Recovery phrase" />
     <div className="flex flex-1 flex-col gap-4 px-[18px] pt-4">
       <Card edge className="p-4">

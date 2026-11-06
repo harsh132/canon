@@ -11,7 +11,7 @@ export const Unlock = ({ s }: { s: CoreState }) => {
   const pending = s.wc.request ? 'Unlock to review a request' : null;
 
   return (
-    <div className="flex min-h-[600px] flex-col">
+    <div className="flex min-h-[var(--app-h)] flex-col">
       <Header title="Pangolin" />
       <div className="flex flex-1 flex-col gap-4 px-[18px] pt-24">
         {pending && <Slug className="text-accent">{pending}</Slug>}
