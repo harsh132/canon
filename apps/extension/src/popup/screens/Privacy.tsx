@@ -29,7 +29,8 @@ export const Privacy = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
             <span className={leaked ? 'text-warn' : ''}>{leaked}</span>
           </Row>
           <Row label="Bootstrap">{counts.bootstrap} · names Nox only</Row>
-          <Row label="Bulk sync" last>{counts.sync + counts.artifacts} · public data</Row>
+          <Row label="Bulk sync">{counts.sync + counts.artifacts} · public data</Row>
+          <Row label="Other" last>{counts.other}</Row>
         </div>
       </Card>
       <div className="flex-1" />

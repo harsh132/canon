@@ -91,9 +91,14 @@ const getUrl = async (req: FetchRequest): Promise<GetUrlResponse> => {
 // counted. Proof-of-innocence lookups carry this wallet's blinded commitments,
 // so they go through the worker with the RPC reads.
 const POI_HOSTS = ['ppoi.fdi.network'];
-const classify = (url: string): 'poi' | 'sync' | 'artifacts' | 'other' => {
+// WalletConnect's analytics. Sent even with telemetry off; never needed.
+const BLOCKED_HOSTS = ['pulse.walletconnect.org', 'pulse.walletconnect.com'];
+const classify = (url: string): 'poi' | 'sync' | 'artifacts' | 'bootstrap' | 'blocked' | 'other' => {
   const host = new URL(url, location.href).host;
+  if (BLOCKED_HOSTS.includes(host)) return 'blocked';
   if (POI_HOSTS.includes(host)) return 'poi';
+  // The worker's hash-pinned bundle. Names Nox, not the user.
+  if (url.includes('/anon-rpc/')) return 'bootstrap';
   if (/subsquid|squid|graph/i.test(host)) return 'sync';
   if (/ipfs|artifact/i.test(host + url)) return 'artifacts';
   return 'other';
@@ -107,7 +112,9 @@ const patchedFetch: typeof fetch = async (input, init) => {
     bump('mixed');
     return via()(input, init);
   }
-  bump(kind === 'sync' ? 'sync' : kind === 'artifacts' ? 'artifacts' : 'clear');
+  if (kind === 'blocked') return new Response(null, { status: 204 });
+  if (kind === 'other') console.log('[transport] direct', url.slice(0, 120));
+  bump(kind === 'poi' ? 'clear' : kind);
   return realFetch(input, init);
 };
 

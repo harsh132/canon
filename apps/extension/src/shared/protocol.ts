@@ -80,8 +80,8 @@ export type RpcState = {
   error?: string;
   bootMs?: number;
   /** mixed: through Nox. clear: RPC sent directly. bootstrap: the worker's own specifier reads.
-   *  sync / artifacts: bulk public downloads that name no one. */
-  counts: { mixed: number; clear: number; bootstrap: number; sync: number; artifacts: number };
+   *  sync / artifacts: bulk public downloads that name no one. other: non-RPC requests (relay, bundle). */
+  counts: { mixed: number; clear: number; bootstrap: number; sync: number; artifacts: number; other: number };
 };
 
 export type CoreState = {

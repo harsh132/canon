@@ -11,7 +11,7 @@ export const state: CoreState = {
   accounts: [],
   activity: [],
   proof: null,
-  rpc: { mode: 'nox', status: 'off', counts: { mixed: 0, clear: 0, bootstrap: 0, sync: 0, artifacts: 0 } },
+  rpc: { mode: 'nox', status: 'off', counts: { mixed: 0, clear: 0, bootstrap: 0, sync: 0, artifacts: 0, other: 0 } },
   wc: { configured: Boolean(WC_PROJECT_ID), ready: false, sessions: [], proposal: null, request: null },
 };
 
