@@ -25,3 +25,4 @@ Newest last. Each entry: what, why, and what would change it.
 | 2026-11-06 | Fail closed when Nox is down | A silent fallback to direct RPC would leak exactly what the feature hides |
 | 2026-11-06 | Injected provider alongside WalletConnect, same per-site binding | User request. One origin key for both, so a site sees one address however it connects |
 | 2026-11-06 | Do not take `window.ethereum` from another wallet | EIP-6963 lets dapps pick; overwriting would break the user's existing wallet |
+| 2026-11-06 | Per-dapp addresses on RAILGUN's `m/44'/60'/1984'/7702'/chain'/purpose'/i'`, chain `0`, purpose `0` | From the RAILGUN team. Keeps dapp addresses apart from ordinary accounts; chain `0` gives a site one address on every network. Main stays on the standard path |

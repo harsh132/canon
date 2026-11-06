@@ -28,8 +28,17 @@ The command list is `Commands` in `src/shared/protocol.ts`. The core rejects any
 ## Keys
 
 - One BIP-39 phrase per wallet.
-- Public addresses are `m/44'/60'/0'/0/i`. Index 0 is **Main**. Each new dapp gets the lowest unused index, labelled with the dapp's name. Indices are never reused.
-- The RAILGUN wallet derives from the same phrase, so one backup restores both.
+
+| Account | Path | Why |
+|---|---|---|
+| Main | `m/44'/60'/0'/0/0` | MetaMask's standard path, so the phrase restores Main in any wallet |
+| Accounts the user adds | `m/44'/60'/0'/0/n` | Same standard path, next unused `n` |
+| Per-dapp addresses | `m/44'/60'/1984'/7702'/0'/0'/i'` | RAILGUN's app-specific layout `…/chain_id'/purpose_id'/index'`. Chain `0` = every network; purpose `0` = dapp connections |
+| Temporary single-chain accounts (reserved) | `m/44'/60'/1984'/7702'/<chain id>'/1'/i'` | Purpose `1`. Not used yet |
+| RAILGUN spending / viewing | `m/44'/1984'/0'/0'/i'`, `m/420'/1984'/0'/0'/i'` | The RAILGUN engine's own |
+
+- Each book record stores its path; the book's `index` is only an id. Records are never deleted, so a path is never reused.
+- Dapp addresses do not appear when the phrase is restored in an ordinary wallet. Recovering them needs a wallet that follows RAILGUN's layout.
 - The password is stretched with PBKDF2-SHA256, 600,000 iterations, into 96 bytes: the vault key (AES-GCM), the RAILGUN encryption key, and the account-book key (AES-GCM).
 
 ## Storage

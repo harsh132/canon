@@ -21,6 +21,12 @@ Updated 2026-11-06.
 - **eth_sendTransaction from a dapp.** Needs a funded address.
 - **Make private on real Sepolia.** Needs a funded address.
 
+## Open questions
+
+- **RAILGUN's purpose registry.** We use purpose `0` for dapps and reserve `1` for temporary accounts. Confirm with the RAILGUN team.
+- **Two 7702 layouts.** The engine (9.9.1) derives its own temporary keys at `m/44'/60'/0'/7702'/railgunIndex'/chainId'/index'`, unlike the `1984'` layout the team sent. Ask which is canonical.
+- **Restore discovery.** Importing a phrase does not yet scan the app path for used dapp addresses.
+
 ## Next
 
 1. RAILGUN broadcaster, so private sends stop paying gas from Main.

@@ -11,7 +11,7 @@
 
 - **A dapp's identity is its full host.** `app.uniswap.org` and `uniswap.org` are two dapps. Non-default ports count. On IPFS path gateways the CID is part of the key. Merging two sites would hand them a shared address; splitting one only costs a duplicate.
 - **Prefer the attested origin.** WalletConnect's Verify origin is used when present; the dapp's self-declared URL is the fallback, and the prompt says "self-declared".
-- **First contact gets a fresh address.** The next unused HD index, labelled with the dapp's name. The user can pick an existing address instead.
+- **First contact gets a fresh address** on RAILGUN's app path, `m/44'/60'/1984'/7702'/0'/0'/i'`, labelled with the dapp's name. The user can pick an existing address instead.
 - **Reconnects get the same address.** The binding is never re-pointed. Disconnecting does not delete it.
 - **Mint before approving.** The address is written to the book before the session exists, so a session never signs as an address the book lacks.
 - **Nothing is auto-approved.** Proposals and requests open the popup.
