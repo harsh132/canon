@@ -15,7 +15,7 @@ Built at ETHGlobal Mumbai, November 2026. Working name; may be renamed.
 |---|---|
 | `apps/extension` | the Chrome extension (MV3, Vite, React, Tailwind) |
 | `packages/` | shared libraries as they split out of the extension |
-| `docs/` | design notes and findings |
+| `docs/` | architecture, privacy, decisions, testing, status ([index](docs/README.md)) |
 
 Package manager: [bun](https://bun.sh) workspaces.
 

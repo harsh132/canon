@@ -1,6 +1,6 @@
 # Pangolin extension
 
-Chrome MV3 wallet. RAILGUN private balance, plus a fresh public address for every dapp you connect over WalletConnect.
+Chrome MV3 wallet. RAILGUN private balance, every RPC read through Anon-RPC (Nox), and a fresh public address for every dapp you connect over WalletConnect. Full docs: [`docs/`](../../docs/README.md).
 
 ## Run
 
@@ -22,7 +22,7 @@ Add `chrome-extension://nigpkikilgbfgmgcmeiidiinikafjpjg` to the WalletConnect p
 
 | Path | Runs in | Holds |
 |---|---|---|
-| `src/core` | offscreen document | vault, RAILGUN engine, WalletConnect, account book |
+| `src/core` | offscreen document | vault, RAILGUN engine, Anon-RPC worker, WalletConnect, account book |
 | `src/background` | service worker | keeps the core alive, opens prompts |
 | `src/popup` | popup | UI only; sends whitelisted commands, never sees keys |
 | `src/shared/protocol.ts` | both | the command whitelist and pushed state |
