@@ -8,9 +8,10 @@
 //   bun scripts/e2e-sepolia.mjs name      claim LABEL.pangolin.eth, then pay it from Main by name
 //   bun scripts/e2e-sepolia.mjs spend     Send privately 0.002 to self
 //   bun scripts/e2e-sepolia.mjs public    Make public 0.002 to Main (after the new notes clear POI)
+//   bun scripts/e2e-sepolia.mjs dapp      a local dapp on its site address: EIP-5792 + sponsored 7702 calls, then Fund
 // The profile and the test phrase live in .cache/sepolia (gitignored). Test funds only.
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { launch } from './smoke.mjs';
+import { createWallet, launch } from './smoke.mjs';
 
 const dir = new URL('../.cache/sepolia/', import.meta.url).pathname;
 mkdirSync(dir, { recursive: true });
@@ -22,7 +23,7 @@ const AMOUNT = process.env.AMOUNT ?? '0.01';
 // Gas for private sends: 'sponsor' (default), 'broadcaster' or 'self' (Main pays).
 const VIA = process.env.VIA ?? 'sponsor';
 
-const { browser, popup } = await launch();
+const { browser, popup, corePage, id: extId } = await launch();
 setTimeout(() => {
   console.error('[sep] watchdog: 25 min');
   browser.close().finally(() => process.exit(1));
@@ -65,16 +66,8 @@ const balances = async () => {
 // Unlock or create.
 await waitText('Password|New wallet');
 if (/new wallet/i.test(await text())) {
-  const pw = await popup.$$('input[type=password]');
-  await pw[0].type(PASSWORD);
-  await pw[1].type(PASSWORD);
-  await click('^create$');
-  await waitText('saved it');
-  const phrase = await popup.evaluate(() =>
-    [...document.querySelectorAll('ol li')].map((li) => li.textContent.replace(/^\d+/, '').trim()).join(' '),
-  );
+  const phrase = await createWallet(popup, PASSWORD);
   writeFileSync(walletFile, JSON.stringify({ phrase, note: 'Sepolia test wallet for e2e-sepolia.mjs' }, null, 2));
-  await click('saved it');
   log('created wallet; phrase saved to .cache/sepolia/wallet.json');
 } else {
   await (await popup.$('input[type=password]')).type(PASSWORD);
@@ -227,6 +220,115 @@ if (phase === 'setup') {
   await new Promise((r) => setTimeout(r, 30000));
   await resync();
   log('after make public:', await balances());
+}
+
+if (phase === 'dapp') {
+  // A dapp on a fresh site address (no ETH): EIP-5792 capabilities, a sponsored
+  // eth_sendTransaction (delegates to Calibur), a batch via wallet_sendCalls, then
+  // Fund from the panel and a batch that carries value. Needs a --dev build.
+  const { Interface, JsonRpcProvider } = await import('ethers');
+  const rpc = new JsonRpcProvider('https://ethereum-sepolia-rpc.publicnode.com', 11155111, { staticNetwork: true });
+  const WETH = '0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14';
+  const erc20 = new Interface(['function approve(address,uint256)', 'function deposit() payable']);
+  const PORT = 8796;
+  const server = Bun.serve({ port: PORT, hostname: '127.0.0.1', fetch: () => new Response('<!doctype html><title>dapp</title><h1>dapp</h1>', { headers: { 'content-type': 'text/html' } }) });
+  const page = await browser.newPage();
+  await page.goto(`http://127.0.0.1:${PORT}/`);
+  const req = (method, params = []) => page.evaluate((m, p) => window.ethereum.request({ method: m, params: p }), method, params);
+  // The prompt's approve button sits next to its Reject button.
+  const approveNext = async (label) => {
+    await popup.bringToFront();
+    const find = (l) => [...document.querySelectorAll('button')].find((b) => new RegExp(l, 'i').test(b.textContent.trim()) && /^reject$/i.test(b.previousElementSibling?.textContent.trim() ?? ''));
+    await popup.waitForFunction(find, { timeout: 60000, polling: 300 }, `^${label}$`);
+    log('prompt:', (await text()).slice(0, 220));
+    await popup.evaluate(`(${find})(${JSON.stringify(`^${label}$`)}).click()`);
+  };
+  // A site connected on an earlier run answers without a prompt.
+  const pConnect = req('eth_requestAccounts');
+  const quick = await Promise.race([pConnect.then(() => true, () => true), new Promise((r) => setTimeout(() => r(false), 3000))]);
+  if (!quick) await approveNext('connect');
+  const [addr] = await pConnect;
+  log('site address', addr, 'ETH', await rpc.getBalance(addr), 'code', await rpc.getCode(addr));
+  log('capabilities', JSON.stringify(await req('wallet_getCapabilities', [addr])));
+
+  if (!process.env.FUND_ONLY) {
+  const t1 = Date.now();
+  const pTx = req('eth_sendTransaction', [{ from: addr, to: WETH, data: erc20.encodeFunctionData('approve', [WETH, 7n]) }]);
+  await approveNext('send');
+  const h1 = await pTx;
+  const r1 = await rpc.waitForTransaction(h1, 1, 300000);
+  log(`eth_sendTransaction ${Math.round((Date.now() - t1) / 1000)}s`, h1, 'status', r1.status, 'tx.from', r1.from, 'type', (await rpc.getTransaction(h1)).type);
+  log('code now', await rpc.getCode(addr));
+
+  const pCalls = req('wallet_sendCalls', [{ version: '2.0.0', from: addr, chainId: '0xaa36a7', atomicRequired: true, calls: [
+    { to: WETH, data: erc20.encodeFunctionData('approve', [WETH, 8n]) },
+    { to: WETH, data: erc20.encodeFunctionData('approve', ['0x000000000022D473030F116dDEE9F6B43aC78BA3', 9n]) },
+  ] }]);
+  await approveNext('send');
+  const { id } = await pCalls;
+  let st;
+  for (let i = 0; i < 60; i += 1) {
+    st = await req('wallet_getCallsStatus', [id]);
+    if (st.status !== 100) break;
+    await new Promise((r) => setTimeout(r, 3000));
+  }
+  log('wallet_sendCalls id', id, 'status', st.status, 'receipts', st.receipts.length, 'logs', st.receipts[0]?.logs.length);
+  }
+
+  // Fund from the panel: private WETH arrives as ETH.
+  const tabs = await corePage.evaluate(() => globalThis.__pangolinState.tabs);
+  const tabId = Object.entries(tabs).find(([, o]) => o === `http://127.0.0.1:${PORT}`)?.[0];
+  const panel = await browser.newPage();
+  await panel.setViewport({ width: 380, height: 760 });
+  log('panel for tab', tabId);
+  panel.on('framenavigated', (f) => log('panel navigated', f.url()));
+  panel.on('console', (m) => log('[panel]', m.type(), m.text().slice(0, 200)));
+  panel.on('pageerror', (e) => log('[panel:error]', String(e).slice(0, 300)));
+  try {
+    await panel.goto(`chrome-extension://${extId}/panel.html?tab=${tabId}`);
+    await panel.bringToFront();
+    const ptext = async () => (await panel.evaluate(() => document.body.innerText)).replace(/\s+/g, ' ');
+    const pclick = (re) => panel.evaluate((src) => [...document.querySelectorAll('button')].find((b) => new RegExp(src, 'i').test(b.textContent.trim())).click(), re);
+    await panel.waitForFunction(() => [...document.querySelectorAll('button')].some((b) => /^fund$/i.test(b.textContent.trim())), { timeout: 60000, polling: 500 });
+    await pclick('^fund$');
+    await new Promise((r) => setTimeout(r, 1000));
+    log('fund screen:', (await ptext()).slice(0, 200));
+    await panel.waitForFunction(() => /From private/i.test(document.body.innerText), { timeout: 30000, polling: 500 });
+    await pclick('^ETH');
+    log('picked:', (await ptext()).slice(0, 200));
+    await panel.waitForSelector('input[inputmode=decimal]', { timeout: 30000 });
+    // React-compatible value set: native setter, then an input event.
+    await panel.evaluate((v) => {
+      const el = document.querySelector('input[inputmode=decimal]');
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(el, v);
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+    }, process.env.AMOUNT ?? '0.0005');
+    log('amount set:', (await ptext()).slice(0, 300));
+    const t2 = Date.now();
+    await panel.waitForFunction(() => [...document.querySelectorAll('button')].some((b) => /^fund$/i.test(b.textContent.trim()) && !b.disabled), { timeout: 30000, polling: 500 });
+    await pclick('^fund$');
+    log('fund clicked');
+    await panel.waitForFunction(() => /submitted|error|failed|more than/i.test(document.body.innerText), { timeout: 900000, polling: 1000 });
+    const fundText = (await panel.evaluate(() => document.body.innerText)).replace(/\s+/g, ' ');
+    await panel.screenshot({ path: `${dir}dapp-fund.png` });
+    if (!/submitted/i.test(fundText)) throw new Error(`fund failed: ${fundText.slice(0, 300)}`);
+    const fundHash = await panel.evaluate(() => document.querySelector('a[href*="etherscan"]')?.href.split('/').pop());
+    await rpc.waitForTransaction(fundHash, 1, 600000);
+    log(`fund ${Math.round((Date.now() - t2) / 1000)}s`, fundHash, 'site ETH now', await rpc.getBalance(addr));
+  } catch (e) {
+    log('panel step failed:', e.message, '| panel:', (await panel.evaluate(() => document.body.innerText)).replace(/\s+/g, ' ').slice(0, 400));
+    await panel.screenshot({ path: `${dir}dapp-fund-fail.png` });
+    throw e;
+  }
+
+  const pVal = req('wallet_sendCalls', [{ version: '2.0.0', from: addr, chainId: '0xaa36a7', atomicRequired: true, calls: [
+    { to: WETH, value: '0x5af3107a4000', data: erc20.encodeFunctionData('deposit') },
+  ] }]);
+  await approveNext('send');
+  const { id: id2 } = await pVal;
+  const r3 = await rpc.waitForTransaction(id2, 1, 300000);
+  log('value batch', id2, 'status', r3.status, 'site ETH after', await rpc.getBalance(addr));
+  server.stop();
 }
 await popup.screenshot({ path: `${dir}${phase}.png` });
 await browser.close();

@@ -1,7 +1,7 @@
 // Side panel check: the service worker opens the panel on icon click, and the
 // panel page fills narrow, medium and wide panels at full height.
 //   PANGOLIN_PROFILE=/new/dir bun scripts/check-panel.mjs
-import { launch } from './smoke.mjs';
+import { createWallet, launch } from './smoke.mjs';
 
 const { browser, popup, id } = await launch();
 const sw = await (await browser.waitForTarget((t) => t.type() === 'service_worker' && t.url().endsWith('background.js'))).worker();
@@ -11,13 +11,7 @@ console.log('panel options:', JSON.stringify(await sw.evaluate(() => chrome.side
 // Create a wallet in the popup tab first so the panel shows Home.
 const click = (page, re) =>
   page.evaluate((src) => [...document.querySelectorAll('button')].find((b) => new RegExp(src, 'i').test(b.textContent.trim())).click(), re);
-await popup.waitForSelector('input[type=password]');
-const pw = await popup.$$('input[type=password]');
-await pw[0].type('correct horse battery');
-await pw[1].type('correct horse battery');
-await click(popup, '^create$');
-await popup.waitForFunction(() => /saved it/i.test(document.body.innerText));
-await click(popup, 'saved it');
+const phrase = await createWallet(popup, 'correct horse battery');
 await popup.waitForFunction(() => /private balance/i.test(document.body.innerText));
 const popupBox = await popup.evaluate(() => ({ w: document.body.offsetWidth, h: document.body.offsetHeight }));
 console.log('popup body:', popupBox);

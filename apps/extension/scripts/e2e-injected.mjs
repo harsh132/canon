@@ -6,7 +6,7 @@
 // personal_sign recovers to it; a second origin gets a different address;
 // reloading the first origin returns the same address without a prompt.
 import { HDNodeWallet, keccak256, toUtf8Bytes, verifyMessage } from 'ethers';
-import { launch } from './smoke.mjs';
+import { createWallet, launch } from './smoke.mjs';
 
 const PORT = 8791;
 const PASSWORD = 'correct horse battery';
@@ -43,20 +43,11 @@ const fail = (m) => {
   throw new Error(m);
 };
 
-await popup.waitForSelector('input[type=password]');
-const pw = await popup.$$('input[type=password]');
-await pw[0].type(PASSWORD);
-await pw[1].type(PASSWORD);
-await click('^create$');
-await waitText('saved it');
-const phrase = await popup.evaluate(() =>
-  [...document.querySelectorAll('ol li')].map((li) => li.textContent.replace(/^\d+/, '').trim()).join(' '),
-);
+const phrase = await createWallet(popup, PASSWORD);
 // Same rule as core/vault.ts dappPurposeId, restated here so the test is independent.
 const purposeOf = (key) => Number.parseInt(keccak256(toUtf8Bytes(key)).slice(2, 10), 16) & 0x7fffffff;
 const dappPath = (key) => `m/44'/60'/1984'/7702'/0'/${purposeOf(key)}'/0'`;
 const dappAddress = (key) => HDNodeWallet.fromPhrase(phrase, undefined, dappPath(key)).address.toLowerCase();
-await click('saved it');
 await waitText('Private balance');
 log('wallet ready');
 

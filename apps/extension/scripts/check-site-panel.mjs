@@ -2,7 +2,7 @@
 // shows that site and the address it sees. A tab with no dapp shows none.
 // Needs a --dev build (reads core state through a debug handle).
 //   PANGOLIN_PROFILE=/new/dir bun scripts/check-site-panel.mjs
-import { launch } from './smoke.mjs';
+import { createWallet, launch } from './smoke.mjs';
 
 const PORT = 8795;
 const server = Bun.serve({ port: PORT, hostname: '127.0.0.1', fetch: () => new Response('<!doctype html><h1>dapp</h1>', { headers: { 'content-type': 'text/html' } }) });
@@ -15,13 +15,7 @@ const text = (page) => page.evaluate(() => document.body.innerText.replace(/\s+/
 console.log('icon opens panel everywhere:', JSON.stringify(await sw.evaluate(() => chrome.sidePanel.getPanelBehavior())));
 console.log('panel enabled globally:', JSON.stringify(await sw.evaluate(() => chrome.sidePanel.getOptions({}))));
 
-await popup.waitForSelector('input[type=password]');
-const pw = await popup.$$('input[type=password]');
-await pw[0].type('correct horse battery');
-await pw[1].type('correct horse battery');
-await click(popup, '^create$');
-await popup.waitForFunction(() => /saved it/i.test(document.body.innerText));
-await click(popup, 'saved it');
+const phrase = await createWallet(popup, 'correct horse battery');
 await popup.waitForFunction(() => /private balance/i.test(document.body.innerText));
 
 const connect = async (host) => {

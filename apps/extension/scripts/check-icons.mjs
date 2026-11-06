@@ -4,7 +4,7 @@
 //   PANGOLIN_PROFILE=/new/dir bun scripts/check-icons.mjs
 import { readFileSync } from 'node:fs';
 import { SignClient } from '@walletconnect/sign-client';
-import { launch } from './smoke.mjs';
+import { createWallet, launch } from './smoke.mjs';
 
 const PORT = 8794;
 const png = readFileSync(new URL('../public/icons/128.png', import.meta.url));
@@ -28,13 +28,7 @@ const iconState = (page) =>
   );
 
 await popup.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: 'dark' }]);
-await popup.waitForSelector('input[type=password]');
-const pw = await popup.$$('input[type=password]');
-await pw[0].type('correct horse battery');
-await pw[1].type('correct horse battery');
-await click(popup, '^create$');
-await popup.waitForFunction(() => /saved it/i.test(document.body.innerText));
-await click(popup, 'saved it');
+const phrase = await createWallet(popup, 'correct horse battery');
 await popup.waitForFunction(() => /private balance/i.test(document.body.innerText));
 
 // Browser dapp: connect prompt shows in the open popup tab.

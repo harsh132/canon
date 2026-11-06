@@ -1,6 +1,6 @@
 // Creates a wallet in a fresh profile and waits for the first RAILGUN sync.
 //   PANGOLIN_PROFILE=/some/new/dir bun scripts/e2e-create.mjs
-import { launch } from './smoke.mjs';
+import { createWallet, launch } from './smoke.mjs';
 
 const PASSWORD = process.env.PANGOLIN_PASSWORD ?? 'correct horse battery';
 const { browser, popup, corePage } = await launch();
@@ -16,15 +16,9 @@ const click = (re) =>
     b.click();
   }, re);
 
-await popup.waitForSelector('input[type=password]');
-const pw = await popup.$$('input[type=password]');
-await pw[0].type(PASSWORD);
-await pw[1].type(PASSWORD);
 const t0 = Date.now();
-await click('^create$');
-await popup.waitForFunction(() => /saved it/i.test(document.body.innerText), { timeout: 60000 });
+const phrase = await createWallet(popup, PASSWORD);
 console.log('created in', Date.now() - t0, 'ms');
-await click('saved it');
 for (let i = 0; i < 50; i += 1) {
   await new Promise((r) => setTimeout(r, 6000));
   const t = await text();

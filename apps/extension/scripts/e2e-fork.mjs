@@ -5,7 +5,7 @@
 // 1. create wallet  2. fund Main on the fork  3. Make private 1 ETH
 // 4. Send privately 0.2 to self  5. Make public 0.3 to a fresh 0x
 import { Wallet } from 'ethers';
-import { launch } from './smoke.mjs';
+import { createWallet, launch } from './smoke.mjs';
 
 const RPC = 'http://127.0.0.1:8545';
 const PASSWORD = 'correct horse battery';
@@ -34,13 +34,7 @@ const waitText = (re, timeout = 120000) =>
 const privateBalance = async () => Number((await text()).match(/PRIVATE BALANCE ([\d.]+)/i)?.[1] ?? NaN);
 
 // 1. create
-await popup.waitForSelector('input[type=password]');
-const pw = await popup.$$('input[type=password]');
-await pw[0].type(PASSWORD);
-await pw[1].type(PASSWORD);
-await click('^create$');
-await waitText('saved it');
-await click('saved it');
+const phrase = await createWallet(popup, PASSWORD);
 await waitText('Synced', 300000);
 log('wallet created and synced');
 

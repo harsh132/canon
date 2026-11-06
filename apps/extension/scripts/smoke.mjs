@@ -16,6 +16,8 @@ export const launch = async ({ headful = process.argv.includes('--headful') } = 
     executablePath: process.env.CHROME ?? '/usr/bin/chromium',
     headless: !headful,
     userDataDir: profile,
+    // Proving blocks the extension's renderer (core and UI share it) for minutes.
+    protocolTimeout: 900_000,
     args: [`--disable-extensions-except=${dist}`, `--load-extension=${dist}`, '--no-first-run', '--window-size=420,720'],
   });
   const sw = await browser.waitForTarget((t) => t.type() === 'service_worker' && t.url().endsWith('background.js'), { timeout: 15000 });
@@ -47,3 +49,32 @@ if (import.meta.main) {
   await popup.screenshot({ path: join(app, '.cache', 'popup.png') });
   if (!process.argv.includes('--keep')) await browser.close();
 }
+
+/** Onboard a new phrase wallet: pick New wallet, set the password, read the phrase, pass the word check. Returns the phrase. */
+export const createWallet = async (page, password) => {
+  const click = (re) =>
+    page.evaluate((src) => {
+      const b = [...document.querySelectorAll('button')].find((x) => new RegExp(src, 'i').test((x.textContent ?? '').trim()));
+      if (!b) throw new Error(`no button ${src}`);
+      b.click();
+    }, re);
+  const waitText = (re, timeout = 60000) => page.waitForFunction((src) => new RegExp(src, 'i').test(document.body.innerText), { timeout, polling: 200 }, re);
+  await waitText('new wallet');
+  await click('^new wallet');
+  await page.waitForSelector('input[type=password]');
+  const pw = await page.$$('input[type=password]');
+  await pw[0].type(password);
+  await pw[1].type(password);
+  await click('^create$');
+  await waitText('saved it');
+  const phrase = await page.evaluate(() => [...document.querySelectorAll('ol li')].map((li) => li.textContent.replace(/^\d+/, '').trim()).join(' '));
+  await click('^saved it$');
+  await page.waitForSelector('input[aria-label^="Word"]');
+  const words = phrase.split(' ');
+  for (const input of await page.$$('input[aria-label^="Word"]')) {
+    const n = Number((await input.evaluate((el) => el.getAttribute('aria-label'))).split(' ')[1]);
+    await input.type(words[n - 1]);
+  }
+  await click('^done$');
+  return phrase;
+};

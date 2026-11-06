@@ -2,7 +2,7 @@
 // and checks: no outline is drawn on the field itself, and the field or its
 // wrapper shows the accent border. Saves a strip of screenshots.
 //   PANGOLIN_PROFILE=/new/dir bun scripts/check-focus.mjs
-import { launch } from './smoke.mjs';
+import { createWallet, launch } from './smoke.mjs';
 
 const { browser, popup } = await launch();
 await popup.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: 'dark' }]);
@@ -52,18 +52,18 @@ const checkScreen = async (screen) => {
   }
 };
 
-// Onboarding: create (two passwords), then import (textarea + two passwords).
+// Onboarding: create (two passwords), restore (the word grid), then a real create.
+// A back button's text is its screen's title.
+await popup.waitForFunction(() => /new wallet/i.test(document.body.innerText));
+await click('^new wallet');
 await popup.waitForSelector('input[type=password]');
 await checkScreen('onboard-create');
-await click('^import$');
-await checkScreen('onboard-import');
 await click('^new wallet$');
-const pw = await popup.$$('input[type=password]');
-await pw[0].type('correct horse battery');
-await pw[1].type('correct horse battery');
-await click('^create$');
-await popup.waitForFunction(() => /saved it/i.test(document.body.innerText));
-await click('saved it');
+await click('^restore');
+await popup.waitForSelector('input[aria-label="Word 1"]');
+await checkScreen('onboard-restore');
+await click('^restore$');
+await createWallet(popup, 'correct horse battery');
 await popup.waitForFunction(() => /private balance/i.test(document.body.innerText));
 
 await nav('send');

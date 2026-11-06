@@ -7,7 +7,7 @@
 import { readFileSync } from 'node:fs';
 import { SignClient } from '@walletconnect/sign-client';
 import { hexlify, toUtf8Bytes, verifyMessage, verifyTypedData } from 'ethers';
-import { launch } from './smoke.mjs';
+import { createWallet, launch } from './smoke.mjs';
 
 const projectId =
   process.env.PANGOLIN_WC_PROJECT_ID ??
@@ -39,13 +39,7 @@ const waitText = async (re, timeout = 60000) => {
   }
 };
 
-await popup.waitForSelector('input[type=password]');
-const pw = await popup.$$('input[type=password]');
-await pw[0].type(PASSWORD);
-await pw[1].type(PASSWORD);
-await click('^create$');
-await waitText('saved it');
-await click('saved it');
+const phrase = await createWallet(popup, PASSWORD);
 await waitText('Private balance');
 log('wallet ready');
 

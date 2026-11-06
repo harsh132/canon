@@ -2,7 +2,7 @@
 // popup (popup.html), not the fallback window (popup.html?window=1), and the
 // icon should go back to opening the side panel afterwards.
 //   PANGOLIN_PROFILE=/new/dir bun scripts/check-prompt.mjs
-import { launch } from './smoke.mjs';
+import { createWallet, launch } from './smoke.mjs';
 
 const PORT = 8793;
 const server = Bun.serve({ port: PORT, hostname: '127.0.0.1', fetch: () => new Response('<!doctype html><h1>dapp</h1>', { headers: { 'content-type': 'text/html' } }) });
@@ -11,13 +11,7 @@ const sw = await (await browser.waitForTarget((t) => t.type() === 'service_worke
 const click = (page, re) =>
   page.evaluate((src) => [...document.querySelectorAll('button')].find((b) => new RegExp(src, 'i').test(b.textContent.trim())).click(), re);
 
-await popup.waitForSelector('input[type=password]');
-const pw = await popup.$$('input[type=password]');
-await pw[0].type('correct horse battery');
-await pw[1].type('correct horse battery');
-await click(popup, '^create$');
-await popup.waitForFunction(() => /saved it/i.test(document.body.innerText));
-await click(popup, 'saved it');
+const phrase = await createWallet(popup, 'correct horse battery');
 await popup.waitForFunction(() => /private balance/i.test(document.body.innerText));
 
 const dapp = await browser.newPage();
