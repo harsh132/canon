@@ -171,13 +171,13 @@ const respondError = async (r: WalletKitTypes.SessionRequest, code: number, mess
 export const startWc = async (): Promise<void> => {
   if (!WC_PROJECT_ID || kit) return;
   try {
-    const core = new Core({ projectId: WC_PROJECT_ID });
+    const core = new Core({ projectId: WC_PROJECT_ID, telemetryEnabled: false });
     kit = await WalletKit.init({
       core,
       metadata: {
         name: 'Pangolin',
         description: 'Private wallet',
-        url: 'https://github.com/harsh132/pangolin',
+        url: location.origin,
         icons: [],
       },
     });

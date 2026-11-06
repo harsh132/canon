@@ -16,6 +16,7 @@ const root = join(app, '..', '..');
 const nm = (...p) => join(root, 'node_modules', ...p);
 const dist = join(app, 'dist');
 const watch = process.argv.includes('--watch');
+const dev = watch || process.argv.includes('--dev');
 
 // .env -> build-time constants. Public config only (project ids, RPC URLs).
 const env = {};
@@ -28,7 +29,7 @@ for (const file of ['.env', '.env.local']) {
   }
 }
 const define = {
-  'process.env.NODE_ENV': JSON.stringify(watch ? 'development' : 'production'),
+  'process.env.NODE_ENV': JSON.stringify(dev ? 'development' : 'production'),
   'process.env.PANGOLIN_WC_PROJECT_ID': JSON.stringify(env.PANGOLIN_WC_PROJECT_ID ?? ''),
   'process.env.PANGOLIN_SEPOLIA_RPC': JSON.stringify(env.PANGOLIN_SEPOLIA_RPC ?? ''),
   global: 'globalThis',
@@ -111,8 +112,8 @@ const common = {
   platform: 'browser',
   target: 'chrome120',
   define,
-  sourcemap: watch ? 'inline' : false,
-  minify: !watch,
+  sourcemap: dev ? 'inline' : false,
+  minify: !dev,
   legalComments: 'none',
   logLevel: 'warning',
   mainFields: ['browser', 'module', 'main'],
