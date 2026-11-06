@@ -10,6 +10,7 @@ Updated 2026-11-06.
 | RAILGUN sync on real Sepolia, every RPC read through Nox | `e2e-create.mjs`: 50 s, 18 mixed, 0 clear |
 | Proof-of-innocence lookups through Nox | 3 PPOI requests per first sync, each 200 |
 | Make private, Send privately, Make public | `e2e-fork.mjs` on an anvil fork |
+| Make private on real Sepolia, through Nox | `e2e-sepolia.mjs shield`: tx landed, balance pending proof of innocence |
 | Public accounts, balances on demand | Manual |
 | Privacy screen with read counts and a Nox/direct switch | `e2e-create.mjs` output |
 | Injected provider (`window.ethereum`, EIP-6963) with per-site addresses | `e2e-injected.mjs` |
@@ -19,7 +20,7 @@ Updated 2026-11-06.
 
 - **Typed-data signing over WalletConnect.** Added to `e2e-wc.mjs`; a re-run stalled once at the personal_sign step after passing it the run before, so treat the script as flaky until it passes twice.
 - **eth_sendTransaction from a dapp.** Needs a funded address.
-- **Make private on real Sepolia.** Needs a funded address.
+- **Spending on real Sepolia.** Waiting for the shield's proof-of-innocence hold to clear.
 
 ## Open questions
 
