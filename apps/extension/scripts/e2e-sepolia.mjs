@@ -166,6 +166,15 @@ if (phase === 'setup') {
   // Send privately (gas route from VIA, default sponsor) to TO, default a name.
   const to = process.env.TO ?? 'alice.pangolin.eth';
   await send({ from: 'private', to, amount: process.env.AMOUNT ?? '0.001', expect: 'Send privately' });
+  // Stay open: the wallet submits the send's POIs in the background, like a broadcaster.
+  const t1 = Date.now();
+  for (let i = 0; i < 25; i += 1) {
+    await new Promise((r) => setTimeout(r, 60_000));
+    await resync();
+    const b = await balances();
+    log(`+${Math.round((Date.now() - t1) / 60000)}m`, b);
+    if (b.pending === '0' || b.pending === '0.0000') break;
+  }
 } else if (phase === 'broadcasters') {
   // Waku discovery takes a while; read the Privacy screen until one shows up.
   await popup.evaluate(() => [...document.querySelectorAll('button')].find((b) => /clear ·/.test(b.textContent)).click());
