@@ -2,7 +2,7 @@ import type { CoreState } from '../shared/protocol';
 import { CHAIN_ID, WC_PROJECT_ID } from './config';
 
 export const state: CoreState = {
-  vault: 'none',
+  vault: 'unknown',
   chainId: CHAIN_ID,
   railgunAddress: null,
   engine: { status: 'off' },

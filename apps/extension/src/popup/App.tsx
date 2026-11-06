@@ -25,7 +25,7 @@ export const App = () => {
   // Held here, not in Onboard: the vault flips to unlocked before the phrase is acknowledged.
   const [backup, setBackup] = useState<string | null>(null);
 
-  if (!s) return <div className="grid h-[600px] place-items-center"><span className="slug">Starting</span></div>;
+  if (!s || s.vault === 'unknown') return <div className="grid h-[600px] place-items-center"><span className="slug">Starting</span></div>;
   if (backup) return <Backup phrase={backup} onDone={() => setBackup(null)} />;
   if (s.vault === 'none') return <Onboard onBackup={setBackup} />;
   if (s.wc.proposal) return <ConnectPrompt s={s} />;

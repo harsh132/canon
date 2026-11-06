@@ -4,7 +4,8 @@
 export const PORT_NAME = 'pangolin-popup';
 export const DAPP_PORT_NAME = 'pangolin-dapp';
 
-export type VaultStatus = 'none' | 'locked' | 'unlocked';
+/** 'unknown' until the core has read storage; the popup must not offer onboarding before then. */
+export type VaultStatus = 'unknown' | 'none' | 'locked' | 'unlocked';
 
 export type TokenBalance = {
   token: string;
