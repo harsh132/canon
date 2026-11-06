@@ -17,11 +17,13 @@ const ensureCore = async (): Promise<void> => {
   await creating;
 };
 
-// Clicking the toolbar icon opens the side panel. Dapp requests open the small
-// toolbar popup instead: the popup is attached to the icon just long enough to
-// open it, then detached so the next icon click opens the panel again. When a
-// Pangolin UI is already open the core shows the request there and never asks
-// for this. A separate window is the last resort if Chrome refuses the popup.
+// The side panel belongs to a tab. Clicking the toolbar icon enables the panel
+// for that tab only and opens it; other tabs have none, and switching back
+// restores it. The panel learns its tab from ?tab= so it can show that site.
+//
+// Dapp requests open the small toolbar popup: it is attached to the icon just
+// long enough to open, then detached so the next click opens the panel again.
+// A separate window is the last resort if Chrome refuses the popup.
 const openPrompt = async (windowId?: number): Promise<void> => {
   await chrome.action.setBadgeBackgroundColor({ color: '#0d7150' });
   await chrome.action.setBadgeText({ text: '1' });
@@ -35,10 +37,22 @@ const openPrompt = async (windowId?: number): Promise<void> => {
   }
 };
 
-const usePanel = () => chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(() => {});
+// No panel anywhere by default, and the icon click is ours to handle.
+const perTabPanels = () =>
+  Promise.all([
+    chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: false }),
+    chrome.sidePanel.setOptions({ enabled: false }),
+  ]).catch(() => {});
+
+chrome.action.onClicked.addListener((tab) => {
+  if (tab.id == null) return;
+  // Both calls must start inside the click; awaiting the first would lose it.
+  void chrome.sidePanel.setOptions({ tabId: tab.id, path: `panel.html?tab=${tab.id}`, enabled: true });
+  void chrome.sidePanel.open({ tabId: tab.id }).catch((e) => console.warn('[sw] side panel', e));
+});
 
 chrome.runtime.onInstalled.addListener(() => {
-  void usePanel();
+  void perTabPanels();
   void ensureCore();
 });
 chrome.runtime.onStartup.addListener(() => void ensureCore());
@@ -53,5 +67,5 @@ chrome.runtime.onMessage.addListener((msg: SwMessage, _sender, reply) => {
   return false;
 });
 
-void usePanel();
+void perTabPanels();
 void ensureCore();
