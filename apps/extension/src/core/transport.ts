@@ -7,7 +7,7 @@
 import { AnonRpcWorker } from '@anon-rpc/browser-extension-harness';
 import { FetchRequest } from 'ethers';
 import axios from 'axios';
-import { FORK, RPC_URL } from './config';
+import { DEV, FORK, RPC_URL } from './config';
 import { emit, state } from './state';
 import { store } from './store';
 
@@ -110,7 +110,9 @@ const patchedFetch: typeof fetch = async (input, init) => {
   const kind = classify(url);
   if (kind === 'poi' && state.rpc.mode === 'nox') {
     bump('mixed');
-    return via()(input, init);
+    const res = await via()(input, init);
+    if (DEV) console.log('[transport] poi via nox', res.status);
+    return res;
   }
   if (kind === 'blocked') return new Response(null, { status: 204 });
   if (kind === 'other') console.log('[transport] direct', url.slice(0, 120));
