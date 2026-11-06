@@ -2,6 +2,8 @@ import {
   ArtifactStore,
   createRailgunWallet,
   generatePOIsForWallet,
+  refreshReceivePOIsForWallet,
+  refreshSpentPOIsForWallet,
   getTXOsSpentPOIStatusInfoForWallet,
   getTXOsReceivedPOIStatusInfoForWallet,
   getChainTxidsStillPendingSpentPOIs,
@@ -250,6 +252,11 @@ export const sync = (): Promise<void> =>
         // them clean and submits that to the PPOI node. Do it now, while open,
         // rather than waiting on the engine's background trigger.
         await generatePOIsForWallet(NETWORK, id).catch((e) => console.warn('[railgun] POI generation', describe(e)));
+        // Ask the PPOI node for our notes' current status, as a broadcaster does
+        // before checking spendability. Without this, cleared notes can stay
+        // "pending" in the wallet's cache.
+        await refreshReceivePOIsForWallet(TXIDVersion.V2_PoseidonMerkle, NETWORK, id).catch((e) => console.warn('[railgun] receive POIs', describe(e)));
+        await refreshSpentPOIsForWallet(TXIDVersion.V2_PoseidonMerkle, NETWORK, id).catch((e) => console.warn('[railgun] spent POIs', describe(e)));
         await refreshBalances(CHAIN, [id]);
         state.sync = { status: 'done', progress: 1, at: Date.now() };
         emit();
