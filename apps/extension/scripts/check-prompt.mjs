@@ -38,6 +38,52 @@ const page = await target.asPage();
 await page.waitForFunction(() => /connect/i.test(document.body.innerText), { timeout: 15000 });
 await click(page, '^connect$');
 console.log('dapp got:', JSON.stringify(await req));
+
+// Locked wallet: the popup must show the unlock screen first, naming the site,
+// then the connect screen after unlocking. Then: rejecting while locked.
+const extId = new URL(target.url()).host;
+const lockWallet = async () => {
+  const ui = await browser.newPage();
+  await ui.goto(`chrome-extension://${extId}/popup.html`);
+  await ui.waitForFunction(() => /lock/i.test(document.body.innerText), { timeout: 15000 });
+  await click(ui, '^lock$');
+  await ui.waitForFunction(() => /unlock/i.test(document.body.innerText), { timeout: 15000 });
+  await ui.close();
+  await new Promise((r) => setTimeout(r, 500));
+};
+const popupFor = async (dappPage, method) => {
+  const before = new Set(browser.targets().map((t) => t));
+  const pending = dappPage.evaluate((m) => window.ethereum.request({ method: m }).then((v) => ({ ok: v }), (e) => ({ err: e.code })), method);
+  const t = await browser.waitForTarget((x) => /\/popup\.html/.test(x.url()) && !before.has(x), { timeout: 15000 });
+  const p = await t.asPage();
+  await p.waitForFunction(() => document.body.innerText.length > 20, { timeout: 15000 });
+  return { p, pending };
+};
+
+await lockWallet();
+const dapp2 = await browser.newPage();
+await dapp2.goto(`http://localhost:${PORT}/`);
+{
+  const { p, pending } = await popupFor(dapp2, 'eth_requestAccounts');
+  const first = (await p.evaluate(() => document.body.innerText)).replace(/\s+/g, ' ');
+  console.log(/unlock to review/i.test(first) && /localhost:8793 wants to connect/i.test(first) ? 'ok   locked: unlock screen first, names the site' : `FAIL locked first screen: ${first.slice(0, 160)}`);
+  await (await p.$('input[type=password]')).type('correct horse battery');
+  await click(p, '^unlock$');
+  await p.waitForFunction(() => /sees/i.test(document.body.innerText), { timeout: 30000 });
+  console.log('ok   after unlock: connect screen');
+  await click(p, '^connect$');
+  console.log('dapp2 got:', JSON.stringify(await pending));
+}
+
+await lockWallet();
+const dapp3 = await browser.newPage();
+await dapp3.goto(`http://[::1]:${PORT}/`).catch(() => dapp3.goto(`http://127.0.0.1:${PORT}/?third`));
+{
+  const { p, pending } = await popupFor(dapp3, 'eth_requestAccounts');
+  await click(p, '^reject request$');
+  const res = await pending;
+  console.log(res.err === 4001 ? 'ok   reject while locked: dapp got 4001' : `FAIL reject while locked: ${JSON.stringify(res)}`);
+}
 await browser.close();
 server.stop();
 process.exit(0);
