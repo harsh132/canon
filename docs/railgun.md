@@ -44,3 +44,23 @@ Ported from Ender's engine WebView build:
 ## Fork mode
 
 `PANGOLIN_FORK=1` builds for a local anvil fork of Sepolia. No PPOI aggregator watches a fork, so every shield would stay pending forever. Fork mode removes the network's POI config and patches the engine to treat unspent notes as spendable. Never ship a fork build. See [testing.md](testing.md).
+
+## Broadcasters
+
+Private sends go through a RAILGUN broadcaster by default (`core/broadcaster.ts`, `@railgun-community/waku-broadcaster-client-web` 10.0.1). The broadcaster submits from its own address and takes its fee in private WETH, so no public address of the user's appears.
+
+- Discovery starts on unlock over Waku. On Sepolia it connected and found one broadcaster (fees in two tokens) within about 30 s.
+- Gas is type 1 with one gas price, because a broadcaster commits to an `overallBatchMinGasPrice`.
+- Make public unshields to ETH through the Relay Adapt contract, so it needs a broadcaster that supports Relay Adapt.
+- The Send screen offers "Main" instead, which pays gas publicly and links Main. The fork build defaults to Main.
+
+## Proof of innocence on real Sepolia
+
+Measured 2026-11-06 with `e2e-sepolia.mjs`:
+
+| Event | Time to spendable |
+|---|---|
+| Make private (shield) | About 12 minutes |
+| Send privately with Main paying gas | Not cleared after 40+ minutes |
+
+After the self-paid private send, both new notes sat in `MissingExternalPOI`, and the engine listed the send in `getChainTxidsStillPendingSpentPOIs`. The wallet has to generate the proof itself, which needs the send in RAILGUN's TXID tree first. `sync()` now calls `generatePOIsForWallet` after every scan so the proof is built while the wallet is open. A broadcaster send attaches its proofs up front instead. `scripts/poi-probe.mjs` prints this state from a dev build.
