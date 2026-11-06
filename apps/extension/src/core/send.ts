@@ -19,6 +19,7 @@ import { recordActivity, signerFor } from './book';
 import { NETWORK, WETH, getProvider } from './config';
 import { currentWalletId, spendable, sync } from './railgun';
 import { pickBroadcaster, submitViaBroadcaster } from './broadcaster';
+import { assurePOI } from './poi-assurance';
 import { isName, resolveName, sponsorRelay } from './ens';
 import { emit, state } from './state';
 import type { Unlocked } from './vault';
@@ -162,7 +163,8 @@ const prepare = async (intent: SendIntent, u: Unlocked): Promise<Prepared> => {
         const useRelayAdapt = kind === 'unshield';
         const b = viaBroadcaster ? pickBroadcaster(WETH, useRelayAdapt) : null;
         if (viaBroadcaster && !b) throw new Error('No broadcaster online yet. Retry, or pick another gas route');
-        // The sponsor charges nothing on testnet: no fee output in the proof.
+        // The sponsor charges nothing on testnet. Its "fee" is 1 wei to this wallet,
+        // placed first, so this wallet can submit the send's POIs like a broadcaster.
         const feeToken = { tokenAddress: WETH, feePerUnitGas: b?.feePerUnitGas ?? 0n };
         // Broadcasters commit to one minimum gas price, so the SDK requires type-1 gas here.
         const gasPrice = (await getProvider().getFeeData()).gasPrice ?? 1_000_000_000n;
@@ -173,8 +175,10 @@ const prepare = async (intent: SendIntent, u: Unlocked): Promise<Prepared> => {
             : await gasEstimateForUnprovenUnshieldBaseToken(V2, NETWORK, to, id, u.railgunKey, weth, t1(0n), feeToken, false);
         const gd = t1(gasEstimate);
         const { amount: feeAmount } = await calculateBroadcasterFeeERC20Amount(feeToken, gd);
-        if (amount + feeAmount > spendable()) throw new Error('Amount plus broadcaster fee exceeds your private balance');
-        const fee = b ? { tokenAddress: WETH, amount: feeAmount, recipientAddress: b.railgunAddress } : undefined;
+        if (amount + (b ? feeAmount : 1n) > spendable()) throw new Error('Amount plus broadcaster fee exceeds your private balance');
+        const fee = b
+          ? { tokenAddress: WETH, amount: feeAmount, recipientAddress: b.railgunAddress }
+          : { tokenAddress: WETH, amount: 1n, recipientAddress: state.railgunAddress as string };
         const minGas = calculateGasPrice(gd);
         return {
           ...base,
@@ -206,6 +210,14 @@ const prepare = async (intent: SendIntent, u: Unlocked): Promise<Prepared> => {
                   pois: populated.preTransactionPOIsPerTxidLeafPerList,
                 })
               : await sponsorRelay(populated.transaction.to as string, populated.transaction.data as string, minGas);
+            if (!b) {
+              void assurePOI({
+                txHash: hash,
+                transaction: populated.transaction,
+                useRelayAdapt,
+                pois: populated.preTransactionPOIsPerTxidLeafPerList,
+              });
+            }
             return track(hash, kind === 'transfer' ? `Sent privately to ${to.slice(0, 10)}…` : `Made public to ${to.slice(0, 10)}…`);
           },
         };
