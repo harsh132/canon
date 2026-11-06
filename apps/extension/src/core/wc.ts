@@ -7,6 +7,7 @@ import { SIGN_METHODS, execute, isDelegation, summarize } from './sign';
 import { CAIP_CHAIN, DEV, WC_PROJECT_ID } from './config';
 import { dappKeyFor } from './dapp-origin';
 import * as browser from './dapp';
+import { iconFor } from './icons';
 import { emit, state } from './state';
 
 // Every dapp gets its own public address. A first contact gets a fresh HD
@@ -84,7 +85,7 @@ const proposalView = (): WcProposalView | null => {
     origin: id.key,
     attested: id.attested,
     verification: id.verification,
-    icon: id.icon,
+    icon: iconFor(id.icon, () => refreshWc()),
     canApprove: !problem,
     problem,
     account,
@@ -103,6 +104,8 @@ const requestView = (): WcRequestView | null => {
   return {
     id: r.id,
     source: 'wc',
+    icon: iconFor(kit?.getActiveSessions()[r.topic]?.peer.metadata.icons?.[0], () => refreshWc()),
+    origin: null,
     topic: r.topic,
     dapp,
     method,
@@ -124,7 +127,7 @@ export const refreshWc = (): void => {
     topic: s.topic,
     name: s.peer.metadata.name,
     url: s.peer.metadata.url,
-    icon: s.peer.metadata.icons?.[0] ?? null,
+    icon: iconFor(s.peer.metadata.icons?.[0], () => refreshWc()),
     address: s.namespaces.eip155?.accounts?.[0]?.split(':')[2] ?? '',
   }));
   // Browser-tab prompts come first: the user is looking at that tab.
@@ -215,7 +218,7 @@ export const approveProposal = async (): Promise<void> => {
   }
   await k.approveSession({ id: proposal.id, namespaces });
   if (view.origin) {
-    await bind(view.origin, { index: view.account.index, name: view.name, icon: view.icon, verification: view.verification }).catch(
+    await bind(view.origin, { index: view.account.index, name: view.name, icon: identify(proposal).icon, verification: view.verification }).catch(
       () => {},
     );
   }

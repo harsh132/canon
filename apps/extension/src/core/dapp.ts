@@ -179,6 +179,8 @@ export const requestView = (): WcRequestView | null => {
   return {
     id: item.id,
     source: 'browser',
+    icon: null,
+    origin: item.origin,
     topic: item.origin,
     dapp: hostOf(item.origin),
     method: item.method,

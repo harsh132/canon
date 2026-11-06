@@ -42,6 +42,7 @@ export type Activity = {
   status: 'pending' | 'done' | 'failed';
 };
 
+/** icon fields on these views are data: URLs fetched by the core, never remote URLs. */
 export type WcSessionView = {
   topic: string;
   name: string;
@@ -70,6 +71,10 @@ export type WcProposalView = {
 export type WcRequestView = {
   id: number;
   source: 'wc' | 'browser';
+  /** WalletConnect: the dapp's icon as a data: URL, fetched through the transport. */
+  icon: string | null;
+  /** Browser dapps: the tab's origin, for its favicon. */
+  origin: string | null;
   topic: string;
   dapp: string;
   method: string;
