@@ -1,10 +1,10 @@
 import { Core } from '@walletconnect/core';
 import { WalletKit, type IWalletKit, type WalletKitTypes } from '@reown/walletkit';
 import { buildApprovedNamespaces, getSdkError } from '@walletconnect/utils';
-import { getBytes, isHexString, toUtf8String, type TransactionRequest } from 'ethers';
 import type { Verification, WcProposalView, WcRequestView } from '../shared/protocol';
-import { bind, bindingFor, createAccount, indexOfAddress, nextIndex, recordActivity, signerFor, accounts } from './book';
-import { CAIP_CHAIN, DEV, WC_PROJECT_ID, getProvider } from './config';
+import { bind, bindingFor, createAccount, indexOfAddress, nextIndex, signerFor, accounts } from './book';
+import { SIGN_METHODS, execute, isDelegation, summarize } from './sign';
+import { CAIP_CHAIN, DEV, WC_PROJECT_ID } from './config';
 import { dappKeyFor } from './dapp-origin';
 import { emit, state } from './state';
 
@@ -12,7 +12,7 @@ import { emit, state } from './state';
 // index labelled with the dapp's name; a reconnect gets the address it saw
 // before. Nothing is auto-approved.
 
-const METHODS = ['personal_sign', 'eth_signTypedData', 'eth_signTypedData_v3', 'eth_signTypedData_v4', 'eth_sendTransaction'];
+const METHODS = SIGN_METHODS;
 const EVENTS = ['accountsChanged', 'chainChanged'];
 
 let kit: IWalletKit | null = null;
@@ -88,24 +88,6 @@ const proposalView = (): WcProposalView | null => {
   };
 };
 
-const decodeMessage = (raw: unknown): string => {
-  if (typeof raw !== 'string') throw new Error('Malformed request');
-  if (!isHexString(raw)) return raw;
-  try {
-    return toUtf8String(raw);
-  } catch {
-    return raw;
-  }
-};
-
-type TypedData = { domain: Record<string, unknown>; types: Record<string, unknown>; message: Record<string, unknown>; primaryType?: string };
-const typedData = (params: unknown[]): TypedData => {
-  const raw = params[1] ?? params[0];
-  const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
-  if (!parsed || typeof parsed !== 'object') throw new Error('Malformed typed data');
-  return parsed as TypedData;
-};
-
 const requestView = (): WcRequestView | null => {
   const r = requests[0];
   if (!r) return null;
@@ -114,30 +96,7 @@ const requestView = (): WcRequestView | null => {
   const index = address && isUnlocked() ? indexOfAddress(address) : null;
   const label = index != null ? accounts().find((a) => a.index === index)?.label ?? '' : '';
   const dapp = kit?.getActiveSessions()[r.topic]?.peer.metadata.name ?? 'App';
-  let title = method;
-  let detail = '';
-  let isTransaction = false;
-  try {
-    if (method === 'personal_sign') {
-      title = 'Sign message';
-      detail = decodeMessage(params[0]);
-    } else if (method.startsWith('eth_signTypedData')) {
-      const d = typedData(params);
-      title = `Sign ${d.primaryType ?? 'data'}`;
-      detail = JSON.stringify(d.message ?? {}, null, 2).slice(0, 1200);
-    } else if (method === 'eth_sendTransaction') {
-      const tx = (params[0] ?? {}) as { to?: string; value?: string; data?: string };
-      title = 'Send transaction';
-      isTransaction = true;
-      detail = [
-        `to ${tx.to ?? 'new contract'}`,
-        `value ${tx.value ? BigInt(tx.value).toString() : '0'} wei`,
-        tx.data && tx.data !== '0x' ? `data ${tx.data.slice(0, 66)}…` : 'no data',
-      ].join('\n');
-    }
-  } catch (e) {
-    detail = String((e as Error).message);
-  }
+  const { title, detail, isTransaction } = summarize(method, params);
   return {
     id: r.id,
     topic: r.topic,
@@ -193,9 +152,7 @@ export const startWc = async (): Promise<void> => {
   });
   kit.on('session_request', (r) => {
     const { method, params } = r.params.request as { method: string; params: unknown[] };
-    const tx = method === 'eth_sendTransaction' ? (params?.[0] as Record<string, unknown> | undefined) : undefined;
-    // An EIP-7702 delegation installs code on the account. Never signed.
-    if (tx && ('authorizationList' in tx || tx.type === '0x4' || tx.type === 4)) {
+    if (isDelegation(method, params)) {
       void respondError(r, 4001, 'Pangolin does not sign account delegations');
       return;
     }
@@ -265,26 +222,8 @@ export const approveRequest = async (): Promise<void> => {
   const view = requestView();
   if (!r || !view) throw new Error('Nothing to approve');
   if (!view.account) throw new Error('Unlock first');
-  const signer = signerFor(view.account.index);
   const { method, params } = r.params.request as { method: string; params: unknown[] };
-  let result: string;
-  if (method === 'personal_sign') {
-    const raw = params[0] as string;
-    result = await signer.signMessage(isHexString(raw) ? getBytes(raw) : raw);
-  } else if (method.startsWith('eth_signTypedData')) {
-    const d = typedData(params);
-    const types = { ...d.types };
-    delete types.EIP712Domain;
-    result = await signer.signTypedData(d.domain as never, types as never, d.message as never);
-  } else {
-    const tx = { ...(params[0] as TransactionRequest) };
-    delete (tx as Record<string, unknown>).gas;
-    const p = params[0] as { gas?: string };
-    if (p.gas) tx.gasLimit = BigInt(p.gas);
-    const sent = await signer.connect(getProvider()).sendTransaction(tx);
-    result = sent.hash;
-    await recordActivity({ id: sent.hash, kind: 'dapp', label: view.dapp, hash: sent.hash, at: Date.now(), status: 'pending' }).catch(() => {});
-  }
+  const result = await execute(view.account.index, method, params, view.dapp);
   await k.respondSessionRequest({ topic: r.topic, response: { id: r.id, jsonrpc: '2.0', result } });
   requests.shift();
   refreshWc();
