@@ -22,14 +22,14 @@ Chrome stamps the port with the tab's origin. The core keys the site on that, so
 
 | Method | Behaviour |
 |---|---|
-| `eth_chainId`, `net_version` | Sepolia |
+| `eth_chainId`, `net_version` | The site's own network ([networks.md](networks.md)); new sites start on Sepolia |
 | `eth_accounts` | The site's address once connected and unlocked, else `[]` |
 | `eth_requestAccounts`, `wallet_requestPermissions` | Prompt on first contact. A new site gets a fresh address labelled with its host |
 | `wallet_getPermissions`, `wallet_revokePermissions` | Revoking keeps the address for next time |
 | `personal_sign`, `eth_signTypedData*`, `eth_sendTransaction` | Prompt. Error 4100 before connecting. EIP-7702 delegations refused with 4001. Transactions from a site address are gasless ([site-accounts.md](site-accounts.md)) |
 | `wallet_getCapabilities`, `wallet_sendCalls`, `wallet_getCallsStatus`, `wallet_showCallsStatus` | EIP-5792 for site addresses ([site-accounts.md](site-accounts.md#eip-5792)) |
 | Reads (`eth_call`, `eth_getBalance`, `eth_blockNumber`, logs, receipts, gas) | Answered through the core's provider, so through Nox |
-| `wallet_switchEthereumChain` | Accepts Sepolia only; else 4902 |
+| `wallet_switchEthereumChain`, `wallet_addEthereumChain` | Any network in Pangolin's list: accepted without a prompt, `chainChanged` to the site's tabs. Else 4902 (switch) or 4200 (add) |
 | Anything else | 4200 |
 
 Locking sends `accountsChanged` with `[]` to every open tab; unlocking sends each tab its address again.

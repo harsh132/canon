@@ -51,5 +51,9 @@ Newest last. Each entry: what, why, and what would change it.
 | 2026-11-06 | Show private WETH as ETH | It leaves as ETH, and users think in ETH |
 | 2026-11-06 | Recovery phrase in the menu, behind the password or passkey again | Passkey wallets otherwise see their phrase only once, at setup |
 | 2026-11-06 | Mainnet later; Sepolia only for the hackathon | User's call after pro.aave.com failed at the chain switch |
+| 2026-11-07 | RAILGUN on Arbitrum only among mainnets; public wallets on Ethereum, Arbitrum, Base, Optimism, Polygon | User's choice. Arbitrum has the classic Relay Adapt and proof of innocence, like Sepolia; Base is 7702-only with neither |
+| 2026-11-07 | A network per dapp; dapp chain switches accepted without a prompt | User's choice. Only networks in Pangolin's list, with Pangolin's own RPCs; the dapp's RPC URL is ignored |
+| 2026-11-07 | Keep Sepolia | The sponsor, names and the demo run there |
+| 2026-11-07 | One private network per core session, switched by restart | Every private module keeps its constants; switching locks the wallet |
 | 2026-11-07 | Host the sponsor on Cloudflare Workers with one Durable Object, deployed with `cf` | User's choice. The Durable Object keeps one transaction queue for the single sponsor key; the free `workers.dev` address avoids a domain. Tighter caps in public |
 | 2026-11-06 | Show dapp icons on prompts, not only in lists | User's choice over Ender's lists-only rule. The origin stays the leading line; WalletConnect icons are fetched through Nox |
