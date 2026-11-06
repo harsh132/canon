@@ -8,9 +8,9 @@ Status (2026-11-07):
 |---|---|
 | Reference device and vectors (`apps/hw-mock`) | Done. `bun src/selftest.ts`: every secp256k1 message recovers, RAILGUN derivation matches a known 0zk, the engine's clear-sign verifier accepts every output and signature |
 | BuddyOS firmware (`~/Work/BuddyOS`, `components/wallet_core`, `components/app_wallet`) | C core reproduces all 10 vectors byte for byte on the host. Not yet flashed: waiting for the board on USB |
-| Pangolin: device link, signer, RAILGUN hardware wallet, onboarding, unlock, confirm banner | Done. `scripts/e2e-hardware.mjs` against the mock passed 11 of 11 once (below) |
+| Pangolin: device link, signer, RAILGUN hardware wallet, onboarding, unlock, confirm banner | Done. `scripts/e2e-hardware.mjs` against the mock: all 13 checks pass, with a fresh seed each run |
 | A private send clear-signed end to end (real proof) | Not run: needs private funds on a device seed |
-| Gasless 7702 call signed on the device through the hosted sponsor | Not verified: the test hangs while RAILGUN's first sync keeps the extension busy | Device app in `~/Work/BuddyOS` (`components/app_wallet`), Pangolin side in this repo.
+| Gasless 7702 call signed on the device through the hosted sponsor | Done on Sepolia: Calibur batch and authorization signed on the mock device, sent by the Cloudflare sponsor in 14 s ([tx](https://sepolia.etherscan.io/tx/0x2e45d5be89ea22d1a600fc845970bfb954573689927ebd88f3a18e6143d39eda)) | Device app in `~/Work/BuddyOS` (`components/app_wallet`), Pangolin side in this repo.
 
 ## Who holds what
 

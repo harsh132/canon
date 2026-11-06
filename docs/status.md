@@ -47,7 +47,7 @@ Updated 2026-11-06.
 
 ## Next
 
-1. Prove the extension against the hosted sponsor with one sponsored action. The sponsor is live on Cloudflare ([sponsor.md](sponsor.md)); in Nox mode it needs a Nox TLS exit.
+1. Flash the BuddyOS wallet onto the board and run onboarding against it ([hardware-wallet.md](hardware-wallet.md)). The hosted sponsor is proven from the extension (a device-signed gasless call, 2026-11-07); in Nox mode it still needs a Nox TLS exit.
 2. Submissions: make the repo public, fill the Uniswap feedback form, record the demo.
 3. Ask the RAILGUN team why Sepolia broadcasters reject on proof of innocence.
 4. WalletConnect signing stall (parked).

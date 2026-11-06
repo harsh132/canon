@@ -78,19 +78,14 @@ await click('^connect$');
 const [addr] = (await conn).r ?? [];
 check(addr?.toLowerCase() === site.toLowerCase(), 'site address read from the device (RAILGUN app path)', addr);
 
-// The prompt's approve button (Sign or Send) sits right after its Reject button.
-const approve = async (call) => {
+// Wait for the prompt (it replaces the tab bar while shown), then press its Sign or Send.
+const approve = async (call, label = '^sign$') => {
   const p = call();
-  const pick = () => [...document.querySelectorAll('button')].find((b) => /^reject$/i.test(b.previousElementSibling?.textContent?.trim() ?? ''));
-  const t0 = Date.now();
-  for (;;) {
-    const found = await Promise.race([popup.evaluate(`!!(${pick})()`), new Promise((r) => setTimeout(() => r('busy'), 5000))]);
-    if (found === true) break;
-    if (Date.now() - t0 > 90000) throw new Error(`no prompt; screen: ${(await text()).slice(0, 200)}`);
-    if ((Date.now() - t0) % 10000 < 1200) console.log(`[test] waiting for the prompt (${found})`, Math.round((Date.now() - t0) / 1000), 's');
-    await new Promise((r) => setTimeout(r, 1000));
-  }
-  await popup.evaluate(`(${pick})().click()`);
+  await popup.bringToFront();
+  await waitText('reject');
+  await new Promise((r) => setTimeout(r, 300));
+  console.log('[test] prompt:', (await text()).slice(0, 260));
+  await click(label);
   return p;
 };
 const message = '0x48656c6c6f2066726f6d2050616e676f6c696e';
@@ -149,7 +144,7 @@ if (process.env.SPONSORED) {
   await setRpc('use direct rpc');
   const data = new Interface(['function approve(address,uint256)']).encodeFunctionData('approve', [WETH, 1n]);
   const t0 = Date.now();
-  const sent = await approve(() => rpc('eth_sendTransaction', [{ from: addr, to: WETH, data }]));
+  const sent = await approve(() => rpc('eth_sendTransaction', [{ from: addr, to: WETH, data }]), '^send$');
   if (sent.r) {
     const r = await rpcSepolia.waitForTransaction(sent.r, 1, 180000);
     const code = await rpcSepolia.getCode(addr);
