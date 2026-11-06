@@ -32,6 +32,7 @@ PANGOLIN_PROFILE=$PWD/.cache/<new> bun scripts/e2e-fork.mjs
 | 2026-11-06 | `e2e-fork.mjs` | Anvil fork | Make private 1 s; private send proof 12 s; make public 31 s; recipient got 0.29925 ETH |
 | 2026-11-06 | `e2e-sepolia.mjs spend` | Sepolia, Nox, Main pays gas | Send privately landed ([tx](https://sepolia.etherscan.io/tx/0xef03cb2196c67abdcf8fc5980c4d09c599ab606d9e130d2405caeced79640c98)), proof 20 s. New notes then waited on proof of innocence |
 | 2026-11-06 | `e2e-sepolia.mjs broadcasters` | Sepolia, Waku | Connected; 1 broadcaster |
+| 2026-11-06 | `e2e-sepolia.mjs spend`, via broadcaster | Sepolia, Waku | Proof built and sent; broadcaster replied "Could not validate Proof of Innocence". Retried 4 min later, same |
 | 2026-11-06 | `e2e-sepolia.mjs shield` | Sepolia, Nox | Made 0.01 ETH private ([tx](https://sepolia.etherscan.io/tx/0xeaca504c98a6bbb1eeaf0cb5cf4c33185df4d03e7f47de83fab6583d509417d1)), 935,150 gas. Shows 0.0099 WETH pending proof of innocence. 66 reads via Nox, 0 clear |
 | 2026-11-06 | `e2e-injected.mjs` | Sepolia, Nox | All checks pass in 7 s |
 | 2026-11-06 | `e2e-wc.mjs` | Sepolia, Pangolin project id | Distinct addresses, personal_sign, reconnect all pass. A later run with typed data stalled once; under watch |

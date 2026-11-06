@@ -52,6 +52,7 @@ Private sends go through a RAILGUN broadcaster by default (`core/broadcaster.ts`
 - Discovery starts on unlock over Waku. On Sepolia it connected and found one broadcaster (fees in two tokens) within about 30 s.
 - Gas is type 1 with one gas price, because a broadcaster commits to an `overallBatchMinGasPrice`.
 - Make public unshields to ETH through the Relay Adapt contract, so it needs a broadcaster that supports Relay Adapt.
+- On Sepolia (2026-11-06) the broadcaster rejected both attempts with "Could not validate Proof of Innocence", though our input note had cleared. Unresolved; Sepolia broadcasters may not validate POI. Main remains the working route there.
 - The Send screen offers "Main" instead, which pays gas publicly and links Main. The fork build defaults to Main.
 
 ## Proof of innocence on real Sepolia
