@@ -10,6 +10,7 @@
 | [walletconnect.md](walletconnect.md) | A public address per dapp, and the project-id setup |
 | [ens.md](ens.md) | Free `<label>.pangolin.eth` names that pay privately |
 | [uniswap.md](uniswap.md) | Private swap on Uniswap v4 through Relay Adapt |
+| [onboarding.md](onboarding.md) | New wallet, passkey and restore; how a passkey becomes a wallet |
 | [site-accounts.md](site-accounts.md) | Per-tab panel, Fund, and gasless dapp calls via EIP-7702, Calibur and EIP-5792 |
 | [injected-provider.md](injected-provider.md) | `window.ethereum` and EIP-6963, MetaMask-style |
 | [testing.md](testing.md) | The end-to-end scripts and what they last proved |

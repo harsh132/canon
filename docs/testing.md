@@ -8,7 +8,12 @@ End-to-end scripts in `apps/extension/scripts`. Each launches Chromium with `dis
 | `e2e-create.mjs` | New wallet, backup screen, first RAILGUN sync | A build; network |
 | `e2e-fork.mjs` | Make private 1 ETH, Send privately 0.2, Make public 0.3 to a fresh address | Anvil fork and a fork build |
 | `e2e-injected.mjs` | EIP-6963, chain id, a read through Nox, connect, personal_sign, a second origin, reload keeps the address | A build; serves its own page on port 8791 |
-| `e2e-sepolia.mjs` | Real Sepolia through Nox in a persistent profile: `setup`, `shield`, `status`, `spend` | Sepolia ETH in the test wallet's Main |
+| `e2e-sepolia.mjs` | Real Sepolia through Nox in a persistent profile: `setup`, `shield`, `status`, `spend`, `public`, `private`, `swap`, `name`, `broadcasters`, `dapp` | Sepolia ETH in the test wallet's Main |
+| `e2e-sepolia.mjs dapp` | A local dapp on an empty site address: EIP-5792 capabilities, a sponsored `eth_sendTransaction` that delegates to Calibur, a `wallet_sendCalls` batch and its status, Fund from the panel, a batch carrying value | A `--dev` build; the sponsor running; spendable private WETH |
+| `e2e-onboard.mjs` | Onboarding tab on install; new wallet with the word check; restore from a pasted phrase with a bad word flagged; passkey create, lock, unlock and restore after erase, on a virtual authenticator with PRF | A build |
+| `shot-onboard.mjs` | Screenshots of the onboarding screens into `.cache/onboard-shots/` | A build |
+| `check-site-panel.mjs` | Two dapps in two tabs; each tab's panel shows its own site and address; a tab with no dapp shows none | A `--dev` build; port 8795 |
+| `apps/sponsor/scripts/execute-probe.ts` | The sponsor's `/execute` from a fresh address: first call with a 7702 authorization, then a two-call batch | The sponsor running |
 | `check-focus.mjs` | Every field on every screen shows one focus border and no outline (dark mode) | A build |
 | `check-panel.mjs` | Side panel behaviour and layout at several widths | A build |
 | `check-icons.mjs` | Favicon on browser connect/sign prompts and lists; WalletConnect metadata icon fetched and shown inline | A build; port 8794; WalletConnect project id |
@@ -31,6 +36,10 @@ PANGOLIN_PROFILE=$PWD/.cache/<new> bun scripts/e2e-fork.mjs
 
 | Date | Script | Network | Result |
 |---|---|---|---|
+| 2026-11-06 | `e2e-onboard.mjs` | Chromium, virtual authenticator | All 13 checks pass. `check-focus`, `e2e-injected`, `check-prompt`, `check-site-panel` and `check-panel` pass on the new onboarding |
+| 2026-11-06 | `e2e-sepolia.mjs dapp`, Fund step | Sepolia | Not passing. After Fund is clicked in the panel, the panel freezes and no fund reaches the sponsor; the core logs nothing for it. Under investigation |
+| 2026-11-06 | `e2e-sepolia.mjs dapp` | Sepolia, Nox, sponsor | Empty site address: capabilities returned atomic + auxiliaryFunds; `eth_sendTransaction` delegated it to Calibur in a type-4 transaction from the sponsor ([tx](https://sepolia.etherscan.io/tx/0x09607fddca656b2b339db82df7fd1d9edf2de4c7b20cfe52aa3447bbb0a212b5)), 12 s; a two-call `wallet_sendCalls` landed with both events, status 200 ([tx](https://sepolia.etherscan.io/tx/0x4a67b7d4abb0fd2bba2b5c21749bae2794f5f0307f3d235170ac0425cdaa9cc7)). Re-run on the delegated address: type 2, 8 s |
+| 2026-11-06 | `execute-probe.ts` | Sepolia | Fresh address with 0 ETH: delegate and call, then a two-call batch; both status 1, sponsor as sender, allowances set |
 | 2026-11-06 | `e2e-create.mjs` | Sepolia, Nox | Synced in 50 s; 18 RPC via Nox, 0 clear |
 | 2026-11-06 | `e2e-create.mjs` | Sepolia, direct | Synced in 36 s |
 | 2026-11-06 | `e2e-fork.mjs` | Anvil fork | Make private 1 s; private send proof 12 s; make public 31 s; recipient got 0.29925 ETH |

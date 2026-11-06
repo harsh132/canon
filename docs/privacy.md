@@ -16,6 +16,7 @@
 | PPOI aggregator | Blinded commitments of this wallet's notes, not the IP | Sent through Nox in Nox mode; verified |
 | Circuit artifact host (IPFS) | The IP of someone about to prove | Public data, fetched directly |
 | WalletConnect relay | The IP of the wallet and the dapps it pairs with | WebSocket, not RPC; not routable through Nox |
+| Passkey provider (Google, Apple, a security key) | Holds the passkey, so it can open a passkey wallet | The PRF output never leaves the authenticator unencrypted; the provider's account security is the wallet's ([onboarding.md](onboarding.md#risks)) |
 | Each dapp | Only the address it was given | A fresh address per dapp ([walletconnect.md](walletconnect.md)) |
 | Chain, on Fund | That a RAILGUN user sent this amount to this site address | One unshield; not which balance or which other addresses |
 | Chain, on a site address's dapp call | The site address made it; Pangolin's sponsor paid gas | EIP-7702 + Calibur ([site-accounts.md](site-accounts.md)). The address never holds gas money, so no funding link from Main |

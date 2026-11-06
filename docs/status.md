@@ -22,13 +22,18 @@ Updated 2026-11-06.
 | Public accounts, balances on demand | Manual |
 | Privacy screen with read counts and a Nox/direct switch | `e2e-create.mjs` output |
 | Injected provider (`window.ethereum`, EIP-6963) with per-site addresses | `e2e-injected.mjs` |
+| Gasless dapp transactions from a site address (EIP-7702 to Calibur, sponsor pays) | `e2e-sepolia.mjs dapp`, `execute-probe.ts` |
+| EIP-5792: `wallet_getCapabilities`, `wallet_sendCalls`, `wallet_getCallsStatus` | `e2e-sepolia.mjs dapp` |
+| Onboarding: new wallet with word check, restore grid, passkey (PRF) wallets | `e2e-onboard.mjs` with a virtual authenticator |
+| Per-tab side panel showing each tab's dapp and address | `check-site-panel.mjs` |
 | Per-dapp WalletConnect addresses: two dapps get two fresh addresses, personal_sign recovers to the right one, a reconnect keeps its address | `e2e-wc.mjs`, Pangolin project id |
 
 ## Built, not yet verified
 
+- **Fund from the panel.** The Fund screen opens and fills, but after Fund is pressed the panel freezes and nothing reaches the sponsor. Unsolved.
+- **Passkeys on real authenticators.** Google Password Manager, iCloud Keychain and security keys need a manual try; headless tests use a virtual one.
 
 - **Typed-data signing over WalletConnect.** Added to `e2e-wc.mjs`; a re-run stalled once at the personal_sign step after passing it the run before, so treat the script as flaky until it passes twice.
-- **eth_sendTransaction from a dapp.** Needs a funded address.
 - **A private send through a broadcaster on real Sepolia.** Discovery finds up to 4 broadcasters, the proof builds and the request reaches one, but it answers "Could not validate Proof of Innocence". Twice, minutes apart, with an input note that had cleared. Sepolia broadcasters may not be validating; unresolved.
 
 ## Open questions

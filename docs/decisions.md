@@ -41,4 +41,9 @@ Newest last. Each entry: what, why, and what would change it.
 | 2026-11-06 | Gasless site addresses through EIP-7702 to Uniswap's Calibur, submitted by our sponsor | User asked for 7702 straight away. Calibur is audited, already on Sepolia, and lets a relayer execute signed batches, so no ETH and no ERC-4337 bundler |
 | 2026-11-06 | Delegate only the wallet's own site addresses, only to Calibur; refuse calls into the account | A 7702 delegation hands the account to the code it names. Main and standard accounts stay plain |
 | 2026-11-06 | EIP-5792 with `atomic` and `auxiliaryFunds` | Batches map onto one Calibur call; the batch id is the transaction hash, so status needs no storage |
+| 2026-11-06 | Onboarding: new wallet, passkey, restore; hardware later | User request |
+| 2026-11-06 | A passkey wallet is derived from the passkey's PRF output | User's choice (option 1): a synced passkey restores the wallet with no phrase. The phrase is still shown, optionally, at setup |
+| 2026-11-06 | The extension is the passkey's relying party; no hosted page | Chrome allows WebAuthn and PRF from an extension page (checked with a virtual authenticator). A hosted page would add a server and attack surface |
+| 2026-11-06 | Onboarding opens in a tab on install | The toolbar popup can close while a passkey dialog has focus; the phrase screens need room |
+| 2026-11-06 | New wallets check three words of the phrase | Catches a phrase that was not written down |
 | 2026-11-06 | Show dapp icons on prompts, not only in lists | User's choice over Ender's lists-only rule. The origin stays the leading line; WalletConnect icons are fetched through Nox |

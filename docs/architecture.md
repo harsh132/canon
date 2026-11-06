@@ -6,7 +6,7 @@
 |---|---|---|---|
 | Core | Offscreen document | `apps/extension/src/core` | Vault, RAILGUN engine, Anon-RPC worker, WalletConnect client, account book |
 | Service worker | MV3 background | `src/background/sw.ts` | Nothing. Creates the offscreen document, sets the badge, opens prompts |
-| UI | Chrome side panel (`panel.html`) when the user clicks the toolbar icon; the toolbar popup (`popup.html`) when a dapp asks for something and no Pangolin UI is open; a small window (`popup.html?window=1`) only if Chrome refuses the popup | `src/popup` | Nothing secret. Renders pushed state, sends commands |
+| UI | The onboarding tab (`onboard.html`) on first install; Chrome side panel (`panel.html`) when the user clicks the toolbar icon; the toolbar popup (`popup.html`) when a dapp asks for something and no Pangolin UI is open; a small window (`popup.html?window=1`) only if Chrome refuses the popup | `src/popup` | Nothing secret. Renders pushed state, sends commands |
 | Inpage provider | Each http(s) page's own world | `src/inpage/provider.ts` | Nothing. EIP-1193 provider, EIP-6963 announcement |
 | Bridge | Each page, isolated world | `src/inpage/bridge.ts` | Nothing. Relays calls to the core over a port Chrome stamps with the tab's origin |
 | Anon-RPC sandbox | Null-origin iframe inside the core | `dist/anon-rpc/<ver>/sandbox.html` | The hash-pinned Nox worker bundle |
@@ -27,7 +27,7 @@ The command list is `Commands` in `src/shared/protocol.ts`. The core rejects any
 
 ## Keys
 
-- One BIP-39 phrase per wallet.
+- One BIP-39 phrase per wallet. A passkey wallet's phrase comes from the passkey ([onboarding.md](onboarding.md#passkey-wallets)).
 
 | Account | Path | Why |
 |---|---|---|
@@ -42,7 +42,7 @@ The command list is `Commands` in `src/shared/protocol.ts`. The core rejects any
 - Deterministic, so restoring the phrase and revisiting a site yields the same address with no saved list. The book still only lists sites visited since the restore.
 - Dapp addresses do not appear when the phrase is restored in an ordinary wallet. Recovering them needs a wallet that follows this rule.
 - A WalletConnect dapp with no usable origin cannot get a derived address; the prompt defaults to Main.
-- The password is stretched with PBKDF2-SHA256, 600,000 iterations, into 96 bytes: the vault key (AES-GCM), the RAILGUN encryption key, and the account-book key (AES-GCM).
+- The password is stretched with PBKDF2-SHA256, 600,000 iterations, into 96 bytes: the vault key (AES-GCM), the RAILGUN encryption key, and the account-book key (AES-GCM). Passkey wallets get the same 96 bytes from HKDF over the passkey's PRF output.
 
 ## Storage
 
@@ -50,7 +50,7 @@ All in the extension origin's IndexedDB. The offscreen document has no `chrome.s
 
 | Store | Contents | At rest |
 |---|---|---|
-| `pangolin/kv` → `vault` | Salt, IV, encrypted phrase, RAILGUN wallet id | Encrypted |
+| `pangolin/kv` → `vault` | Kind, salt or passkey credential id, IV, encrypted phrase, RAILGUN wallet id | Encrypted |
 | `pangolin/kv` → `book` | Public accounts, dapp bindings, activity | Encrypted |
 | `pangolin/kv` → `rpcMode` | `nox` or `direct` | Plain |
 | `pangolin-railgun` | RAILGUN merkle trees (public data) and wallet data | Wallet data encrypted with the RAILGUN key |
