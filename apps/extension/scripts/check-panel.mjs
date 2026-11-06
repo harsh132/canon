@@ -24,15 +24,18 @@ for (const [w, h] of [[320, 900], [420, 900], [560, 900], [420, 520]]) {
   await panel.setViewport({ width: w, height: h });
   await new Promise((r) => setTimeout(r, 300));
   const m = await panel.evaluate(() => {
+    // Tabs pinned under the header at the top; the status line pinned at the bottom.
     const nav = document.querySelector('nav').getBoundingClientRect();
+    const foot = document.querySelector('footer').getBoundingClientRect();
     return {
       bodyW: document.body.offsetWidth,
       scrollW: document.documentElement.scrollWidth,
-      navBottom: Math.round(nav.bottom),
+      navTop: Math.round(nav.top),
+      footBottom: Math.round(foot.bottom),
       viewH: innerHeight,
     };
   });
-  const fits = m.scrollW <= w && m.bodyW === w && m.navBottom === m.viewH;
+  const fits = m.scrollW <= w && m.bodyW === w && m.navTop < 80 && m.footBottom === m.viewH;
   console.log(`${fits ? 'ok  ' : 'FAIL'} ${w}x${h}`, JSON.stringify(m));
   await panel.screenshot({ path: new URL(`../.cache/panel-${w}x${h}.png`, import.meta.url).pathname });
 }

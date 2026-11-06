@@ -52,8 +52,8 @@ for (const [origin, addr] of [[`http://127.0.0.1:${PORT}`, a.addr], [`http://loc
 }
 const none = await browser.newPage();
 await none.goto(`chrome-extension://${id}/panel.html?tab=999999`);
-await none.waitForFunction(() => /no dapp in this tab/i.test(document.body.innerText), { timeout: 15000 }).then(
-  () => console.log('ok   tab without a dapp: "No dapp in this tab"'),
+await none.waitForFunction(() => /private balance/i.test(document.body.innerText) && !/\bfund\b/i.test(document.body.innerText), { timeout: 15000 }).then(
+  () => console.log('ok   tab without a dapp: no site card'),
   () => {
     fails += 1;
     console.log('FAIL tab without a dapp');

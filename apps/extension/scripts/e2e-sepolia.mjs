@@ -58,7 +58,7 @@ const balances = async () => {
   const t = await text();
   return {
     spendable: t.match(/PRIVATE BALANCE ([\d.]+)/i)?.[1],
-    pending: t.match(/PENDING ([\d.]+) WETH/i)?.[1] ?? '0',
+    pending: t.match(/PENDING ([\d.]+) W?ETH/i)?.[1] ?? '0',
     reads: t.match(/(\d+) clear · (\d+) mixed/)?.[0],
   };
 };
@@ -140,6 +140,7 @@ if (phase === 'setup') {
 } else if (phase === 'name') {
   // Claim LABEL.pangolin.eth through the sponsor, then pay it from Main by name.
   const label = process.env.LABEL ?? 'alice';
+  await click('^menu$');
   await click('get a name|pangolin\\.eth');
   await waitText('Your name');
   if (!/Yours/i.test(await text())) {

@@ -117,7 +117,8 @@ const a2 = await connect(A2, 'A again');
 if (a2.address.toLowerCase() !== a1.address.toLowerCase()) throw new Error('A got a new address on reconnect');
 log('PASS reconnect keeps the address');
 
-await popup.evaluate(() => [...document.querySelectorAll('nav button')].find((b) => /addresses/i.test(b.textContent)).click());
+await popup.evaluate(() => [...document.querySelectorAll('button')].find((b) => /^menu$/i.test(b.textContent.trim())).click());
+await popup.evaluate(() => [...document.querySelectorAll('[role=menuitem]')].find((b) => /addresses/i.test(b.textContent)).click());
 await waitText('Main');
 log('addresses:', (await text()).slice(0, 300));
 await popup.screenshot({ path: new URL('../.cache/wc-addresses.png', import.meta.url).pathname });

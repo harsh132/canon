@@ -58,6 +58,7 @@ await popup.waitForFunction(() => /browser/i.test(document.body.innerText));
 await new Promise((r) => setTimeout(r, 500));
 console.log('apps list icons:', JSON.stringify(await iconState(popup)));
 await popup.screenshot({ path: `${out}apps.png` });
+await click(popup, '^menu$');
 await click(popup, '^addresses$');
 await new Promise((r) => setTimeout(r, 500));
 await popup.screenshot({ path: `${out}addresses.png`, clip: { x: 0, y: 0, width: 380, height: 220 } });

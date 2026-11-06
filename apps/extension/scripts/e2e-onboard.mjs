@@ -142,6 +142,15 @@ await click('^unlock with passkey$');
 await waitText('private balance');
 check((await shownMain())?.toLowerCase() === main3.toLowerCase(), 'passkey unlock opens the same wallet');
 
+// Recovery phrase from the menu, behind the passkey.
+await click('^menu$');
+await click('^recovery phrase$');
+await click('^show with passkey$');
+await waitText('anyone with these words');
+const revealed = await popup.evaluate(() => [...document.querySelectorAll('ol li')].map((li) => li.textContent.replace(/^\d+/, '').trim()).join(' '));
+check(revealed === phrase3, 'menu: recovery phrase shown after the passkey, and it matches');
+await click('^hide$');
+
 await erase();
 await click('^passkey');
 await click('^use existing passkey$');
