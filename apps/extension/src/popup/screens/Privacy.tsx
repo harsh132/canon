@@ -30,7 +30,8 @@ export const Privacy = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
           </Row>
           <Row label="Bootstrap">{counts.bootstrap} · names Nox only</Row>
           <Row label="Bulk sync">{counts.sync + counts.artifacts} · public data</Row>
-          <Row label="Other" last>{counts.other}</Row>
+          <Row label="Other">{counts.other}</Row>
+          <Row label="Broadcasters" last>{s.broadcaster.status}{s.broadcaster.count ? ` · ${s.broadcaster.count}` : ''}</Row>
         </div>
       </Card>
       <div className="flex-1" />

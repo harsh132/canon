@@ -26,9 +26,10 @@ export const Send = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
   const [value, setValue] = useState('');
   const [plan, setPlan] = useState<SendPlan | null>(null);
   const [hash, setHash] = useState<string | null>(null);
+  const [via, setVia] = useState<'broadcaster' | 'self'>(process.env.PANGOLIN_FORK === '1' ? 'self' : 'broadcaster');
   const a = useAction();
 
-  const intent: SendIntent = { from, to, amount: value, gasFrom: 0 };
+  const intent: SendIntent = { from, to, amount: value, gasFrom: 0, via };
   const priv = s.privateBalances[0]?.spendable ?? 0n;
   const fromBalance = from === 'private' ? priv : (s.accounts.find((x) => x.index === from)?.balance ?? null);
   const unit = from === 'private' ? 'WETH' : 'ETH';
@@ -86,6 +87,17 @@ export const Send = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
             To my private balance
           </Button>
         )}
+        {from === 'private' && (
+          <Field label="Gas" hint={via === 'broadcaster' ? `${s.broadcaster.count} online` : 'links Main'}>
+            <div className="grid grid-cols-2 gap-2">
+              {(['broadcaster', 'self'] as const).map((v) => (
+                <Button key={v} variant={via === v ? 'primary' : 'ghost'} className="py-2" onClick={() => { setVia(v); setPlan(null); }}>
+                  {v === 'broadcaster' ? 'Broadcaster' : 'Main'}
+                </Button>
+              ))}
+            </div>
+          </Field>
+        )}
         <Field label="Amount">
           <div className="flex items-center rounded-sm border border-rule bg-sheet px-3.5 py-2.5 focus-within:border-accent">
             <input
@@ -109,7 +121,11 @@ export const Send = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
           <div className="mt-1 text-[17px] font-semibold">{VERB[plan.kind]}</div>
           <div className="mt-3 border-t border-dashed border-rule">
             <Row label="Seen">{SEEN[plan.kind]}</Row>
-            <Row label="Fee">{plan.gasFee > 0n && plan.gasFee < 1_000_000_000_000n ? '< 0.000001' : amount(plan.gasFee, 18, 6)} ETH</Row>
+            {plan.broadcasterFee != null ? (
+              <Row label="Fee">{amount(plan.broadcasterFee, 18, 6)} WETH · broadcaster</Row>
+            ) : (
+              <Row label="Fee">{plan.gasFee > 0n && plan.gasFee < 1_000_000_000_000n ? '< 0.000001' : amount(plan.gasFee, 18, 6)} ETH</Row>
+            )}
             {plan.gasFrom != null && <Row label="Gas from">{gasLabel(plan.gasFrom)} · public</Row>}
             {plan.needsProof && <Row label="Proof" last>on this device</Row>}
           </div>
