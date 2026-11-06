@@ -133,6 +133,8 @@ const targets = [
     plugins: [quickSyncPlugin, shimPlugin], inject: [join(app, 'src/shims/inject.js')] },
   // The service worker only keeps the offscreen document alive and opens prompts.
   { ...common, entryPoints: { background: join(app, 'src/background/sw.ts') }, format: 'esm', outdir: dist },
+  // The injected provider (page world) and its bridge (isolated world).
+  { ...common, entryPoints: { inpage: join(app, 'src/inpage/provider.ts'), content: join(app, 'src/inpage/bridge.ts') }, format: 'iife', outdir: dist },
   // The popup never holds a key; it renders state and sends intents.
   { ...common, entryPoints: { popup: join(app, 'src/popup/main.tsx') }, format: 'esm', outdir: dist,
     jsx: 'automatic', plugins: [shimPlugin] },
