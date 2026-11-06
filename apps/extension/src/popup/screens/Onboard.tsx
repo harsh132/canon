@@ -2,11 +2,12 @@ import { useMemo, useState } from 'react';
 import { wordlists } from 'ethers';
 import { call, useAction } from '../client';
 import { createPasskey, getPasskey } from '../passkey';
+import { chooseDevice } from '../hardware';
 import { Button, Card, ErrorLine, Field, Header, Input, Slug } from '../ui';
 
 export type BackupView = { phrase: string; optional: boolean };
 
-type Step = 'welcome' | 'create' | 'passkey' | 'restore';
+type Step = 'welcome' | 'create' | 'passkey' | 'restore' | 'hardware';
 
 const isWord = (w: string): boolean => {
   try {
@@ -23,13 +24,14 @@ const Choice = ({ title, hint, onClick }: { title: string; hint: string; onClick
   </button>
 );
 
-/** First run: a new phrase, a passkey, or a phrase from elsewhere. Hardware wallets will be a fourth choice. */
+/** First run: a new phrase, a passkey, a phrase from elsewhere, or a hardware wallet. */
 export const Onboard = ({ onBackup }: { onBackup: (b: BackupView) => void }) => {
   const [step, setStep] = useState<Step>('welcome');
   const back = () => setStep('welcome');
   if (step === 'create') return <Create onBack={back} onBackup={onBackup} />;
   if (step === 'passkey') return <Passkey onBack={back} onBackup={onBackup} />;
   if (step === 'restore') return <Restore onBack={back} />;
+  if (step === 'hardware') return <Hardware onBack={back} />;
   return (
     <div className="flex min-h-[var(--app-h)] flex-col">
       <Header title="Pangolin" />
@@ -38,6 +40,7 @@ export const Onboard = ({ onBackup }: { onBackup: (b: BackupView) => void }) => 
         <Choice title="New wallet" hint="Recovery phrase" onClick={() => setStep('create')} />
         <Choice title="Passkey" hint="No phrase" onClick={() => setStep('passkey')} />
         <Choice title="Restore" hint="From a phrase" onClick={() => setStep('restore')} />
+        <Choice title="Hardware wallet" hint="USB device" onClick={() => setStep('hardware')} />
       </div>
     </div>
   );
@@ -123,6 +126,33 @@ const Passkey = ({ onBack, onBackup }: { onBack: () => void; onBackup: (b: Backu
           }
         >
           Use existing passkey
+        </Button>
+      </div>
+    </div>
+  );
+};
+
+/** A hardware wallet: pick the USB port, then three approvals on the device. */
+const Hardware = ({ onBack }: { onBack: () => void }) => {
+  const a = useAction();
+  return (
+    <div className="flex min-h-[var(--app-h)] flex-col">
+      <Header title="Hardware wallet" onBack={onBack} />
+      <div className="flex flex-1 flex-col gap-3 px-[18px] pt-6">
+        <p className="text-[15px] leading-snug">Keys stay on the device. Pangolin can see your private balance; only the device can spend it.</p>
+        <div className="flex-1" />
+        <ErrorLine>{a.error}</ErrorLine>
+        <Button
+          className="mb-[18px]"
+          busy={a.busy}
+          onClick={() =>
+            a.run(async () => {
+              await chooseDevice();
+              await call('vault.hardware', null);
+            })
+          }
+        >
+          Connect device
         </Button>
       </div>
     </div>

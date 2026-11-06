@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { CoreState } from '../../shared/protocol';
 import { call, useAction } from '../client';
 import { getPasskey } from '../passkey';
+import { chooseDevice, hasDevice } from '../hardware';
 import { Button, ErrorLine, Field, Header, Input, Slug } from '../ui';
 
 export const Unlock = ({ s }: { s: CoreState }) => {
@@ -9,9 +10,13 @@ export const Unlock = ({ s }: { s: CoreState }) => {
   const [reset, setReset] = useState(false);
   const a = useAction();
   const passkey = s.unlockWith?.kind === 'passkey';
+  const hardware = s.unlockWith?.kind === 'hardware';
   const unlock = () =>
     a.run(async () => {
-      if (passkey) await call('vault.unlockPasskey', { prf: (await getPasskey(s.unlockWith?.credentialId)).prf });
+      if (hardware) {
+        if (!(await hasDevice())) await chooseDevice();
+        await call('vault.unlockHardware', null);
+      } else if (passkey) await call('vault.unlockPasskey', { prf: (await getPasskey(s.unlockWith?.credentialId)).prf });
       else await call('vault.unlock', { password });
     });
 
@@ -35,13 +40,13 @@ export const Unlock = ({ s }: { s: CoreState }) => {
             <div className="mt-1 text-[15px] font-semibold">{pending}</div>
           </div>
         )}
-        {!passkey && (
+        {!passkey && !hardware && (
           <Field label="Password">
             <Input type="password" value={password} autoFocus onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && unlock()} />
           </Field>
         )}
         <ErrorLine>{a.error}</ErrorLine>
-        <Button busy={a.busy} onClick={unlock}>{passkey ? 'Unlock with passkey' : 'Unlock'}</Button>
+        <Button busy={a.busy} onClick={unlock}>{hardware ? 'Unlock with device' : passkey ? 'Unlock with passkey' : 'Unlock'}</Button>
         {reject && (
           <Button variant="link" className="self-center text-muted" onClick={reject}>
             Reject request

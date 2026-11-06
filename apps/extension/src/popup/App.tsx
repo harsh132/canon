@@ -68,3 +68,19 @@ export const App = () => {
     </div>
   );
 };
+
+/** While the hardware wallet waits for a press; mounted beside App so every screen gets it. */
+export const DeviceBanner = () => {
+  const s = useCore();
+  const what = s?.device?.waiting;
+  if (!what) return null;
+  return (
+  <div role="status" className="fixed inset-x-0 bottom-0 z-50 flex items-center gap-3 border-t border-accent bg-sheet px-[18px] py-3">
+    <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-accent" />
+    <div className="min-w-0">
+      <div className="font-mono text-[10px] tracking-[0.14em] text-accent uppercase">Confirm on your device</div>
+      <div className="truncate text-[13px]">{what}</div>
+    </div>
+  </div>
+  );
+};
