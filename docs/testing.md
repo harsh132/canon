@@ -28,7 +28,7 @@ PANGOLIN_PROFILE=$PWD/.cache/<new> bun scripts/e2e-fork.mjs
 | 2026-11-06 | `e2e-create.mjs` | Sepolia, Nox | Synced in 50 s; 18 RPC via Nox, 0 clear |
 | 2026-11-06 | `e2e-create.mjs` | Sepolia, direct | Synced in 36 s |
 | 2026-11-06 | `e2e-fork.mjs` | Anvil fork | Make private 1 s; private send proof 12 s; make public 31 s; recipient got 0.29925 ETH |
-| 2026-11-06 | `e2e-wc.mjs` | — | Not run to completion: the borrowed project id refuses the extension origin |
+| 2026-11-06 | `e2e-wc.mjs` | Sepolia, Pangolin project id | Distinct addresses, personal_sign, reconnect all pass. A later run with typed data stalled once; under watch |
 
 ## Bugs these caught
 

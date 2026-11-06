@@ -28,9 +28,11 @@ The relay only accepts origins on the WalletConnect project's allowlist. The ext
 chrome-extension://nigpkikilgbfgmgcmeiidiinikafjpjg
 ```
 
-Create a project at cloud.reown.com, allow that origin, and set `PANGOLIN_WC_PROJECT_ID` in `apps/extension/.env`.
+Pangolin's own project allows it. The id is public config, kept in `apps/extension/.env` as `PANGOLIN_WC_PROJECT_ID`.
 
-The dev `.env` currently borrows zo.mr's project id, which allows only zo.mr. The relay never connects from the extension, and after 20 s the Apps screen shows "Relay refused". The same code pairs in about one second under Node, which sends no origin.
+Verified 2026-11-06 with `e2e-wc.mjs`: two dapps got two fresh addresses, `personal_sign` recovered to dapp A's address, and A reconnecting got the same address back.
+
+A project whose allowlist lacks the origin never connects; after 20 s the Apps screen shows "Relay refused".
 
 ## Analytics
 
