@@ -10,7 +10,7 @@ cp apps/extension/.env.example apps/extension/.env   # set PANGOLIN_WC_PROJECT_I
 bun run --filter @pangolin/extension build
 ```
 
-Load `apps/extension/dist` at `chrome://extensions` with Developer mode on. The toolbar icon opens Pangolin in Chrome's side panel. The extension id is pinned by the manifest `key`:
+Load `apps/extension/dist` at `chrome://extensions` with Developer mode on. The toolbar icon opens Pangolin in Chrome's side panel. Dapp requests open the small toolbar popup when the panel is closed. The extension id is pinned by the manifest `key`:
 
 ```
 nigpkikilgbfgmgcmeiidiinikafjpjg

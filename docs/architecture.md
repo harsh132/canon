@@ -6,7 +6,7 @@
 |---|---|---|---|
 | Core | Offscreen document | `apps/extension/src/core` | Vault, RAILGUN engine, Anon-RPC worker, WalletConnect client, account book |
 | Service worker | MV3 background | `src/background/sw.ts` | Nothing. Creates the offscreen document, sets the badge, opens prompts |
-| UI | Chrome side panel (`panel.html`, opened by the toolbar icon), or a small window for dapp prompts when the panel is closed (`popup.html?window=1`) | `src/popup` | Nothing secret. Renders pushed state, sends commands |
+| UI | Chrome side panel (`panel.html`) when the user clicks the toolbar icon; the toolbar popup (`popup.html`) when a dapp asks for something and no Pangolin UI is open; a small window (`popup.html?window=1`) only if Chrome refuses the popup | `src/popup` | Nothing secret. Renders pushed state, sends commands |
 | Inpage provider | Each http(s) page's own world | `src/inpage/provider.ts` | Nothing. EIP-1193 provider, EIP-6963 announcement |
 | Bridge | Each page, isolated world | `src/inpage/bridge.ts` | Nothing. Relays calls to the core over a port Chrome stamps with the tab's origin |
 | Anon-RPC sandbox | Null-origin iframe inside the core | `dist/anon-rpc/<ver>/sandbox.html` | The hash-pinned Nox worker bundle |
@@ -76,3 +76,14 @@ esbuild bundles three entries; the Tailwind 4 CLI builds the CSS. See `apps/exte
 `ethers` and `axios` are aliased to a single build each. Without that, esbuild bundles the CommonJS and ESM builds side by side, and a transport hook on one copy misses the other's traffic.
 
 The extension id is pinned by the manifest `key` to `nigpkikilgbfgmgcmeiidiinikafjpjg`. The matching private key is `apps/extension/key.pem`, gitignored.
+
+## Where prompts appear
+
+| Situation | Shows |
+|---|---|
+| User clicks the toolbar icon | The side panel |
+| A dapp or WalletConnect request needs approval, no Pangolin UI open | The toolbar popup, on the requesting tab's window (`chrome.action.openPopup`, Chrome 127+) |
+| Same, with the panel or popup already open | The open UI shows it; nothing new opens |
+| Chrome refuses to open the popup | A small separate window, as a last resort |
+
+The service worker attaches `popup.html` to the icon only while opening it, then detaches it, so the next icon click opens the panel again. The core tracks open UI ports to decide whether to ask at all.
