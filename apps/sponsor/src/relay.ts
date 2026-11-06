@@ -44,18 +44,18 @@ export const relay = async (
   if (sent.length >= MAX_PER_HOUR) throw new RelayError(429, 'Relay busy; try later');
 
   const provider = sponsor.provider!;
-  // Simulate first: the sponsor must never pay for a transaction that reverts.
+  const network = (await provider.getFeeData()).gasPrice ?? minGasPrice;
+  // Legacy gas price: RAILGUN checks tx.gasprice >= the proof's minGasPrice.
+  const gasPrice = network > minGasPrice ? network : minGasPrice;
+  // Simulate first, at the real gas price (the contract checks it): never pay for a revert.
   let gas: bigint;
   try {
-    gas = await provider.estimateGas({ from: sponsor.address, to, data });
+    gas = await provider.estimateGas({ from: sponsor.address, to, data, gasPrice });
   } catch (e) {
     throw new RelayError(400, `Would revert: ${((e as { shortMessage?: string }).shortMessage ?? (e as Error).message).slice(0, 160)}`);
   }
   if (gas > MAX_GAS) throw new RelayError(400, 'Too much gas');
 
-  const network = (await provider.getFeeData()).gasPrice ?? minGasPrice;
-  // Legacy gas price: RAILGUN checks tx.gasprice >= the proof's minGasPrice.
-  const gasPrice = network > minGasPrice ? network : minGasPrice;
   const gasLimit = (gas * 12n) / 10n;
   const tx = await sponsor.sendTransaction({ to, data, gasLimit, gasPrice, type: 0 });
   sent.push(now);
