@@ -158,6 +158,8 @@ export type Commands = {
   'send.plan': { params: SendIntent; result: SendPlan };
   'send.execute': { params: SendIntent; result: { hash: string } };
   'rpc.setMode': { params: { mode: 'nox' | 'direct' }; result: null };
+  'swap.quote': { params: { amount: string }; result: { swapped: bigint; out: bigint; minOut: bigint } };
+  'swap.execute': { params: { amount: string }; result: { hash: string } };
   'ens.claim': { params: { label: string }; result: { name: string } };
   'dapp.disconnect': { params: { origin: string }; result: null };
   'wc.pair': { params: { uri: string }; result: null };

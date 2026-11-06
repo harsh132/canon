@@ -92,9 +92,10 @@ export const Home = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
         </div>
       </Card>
 
-      <div className="grid grid-cols-2 gap-2 px-[18px] pt-[18px]">
+      <div className="grid grid-cols-3 gap-2 px-[18px] pt-[18px]">
         <Button onClick={() => go('send')}>Send</Button>
         <Button variant="ghost" onClick={() => go('receive')}>Receive</Button>
+        <Button variant="ghost" onClick={() => go('swap')}>Swap</Button>
       </div>
 
       <div className="px-[18px] pt-5">

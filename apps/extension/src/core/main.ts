@@ -14,6 +14,8 @@ import * as browser from './dapp';
 import { installTransport, setRpcMode } from './transport';
 import { startBroadcasters } from './broadcaster';
 import { claimName } from './ens';
+import { executeSwap, quoteSwap } from './swap';
+import { parseEther } from 'ethers';
 import { FORK } from './config';
 
 let session: Unlocked | null = null;
@@ -147,6 +149,15 @@ const handlers: Handlers = {
   'rpc.setMode': async ({ mode }) => {
     await setRpcMode(mode);
     return null;
+  },
+  'swap.quote': async ({ amount }) => {
+    need();
+    const q = await quoteSwap(parseEther(amount || '0'));
+    return { swapped: q.swapped, out: q.out, minOut: q.minOut };
+  },
+  'swap.execute': async ({ amount }) => {
+    const { hash } = await executeSwap(parseEther(amount || '0'), need());
+    return { hash };
   },
   'ens.claim': async ({ label }) => {
     need();
