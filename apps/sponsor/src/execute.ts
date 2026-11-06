@@ -31,7 +31,7 @@ type Body = {
   authorization?: { address: string; chainId: string; nonce: string; r: string; s: string; yParity: string };
 };
 
-export const execute = async (sponsor: Wallet, body: Body): Promise<{ hash: string; delegated: boolean }> => {
+export const execute = async (sponsor: Wallet, body: Body, maxPerHour = MAX_PER_HOUR): Promise<{ hash: string; delegated: boolean }> => {
   const provider = sponsor.provider!;
   if (body.chainId !== CHAIN_ID) throw new RelayError(400, 'Sepolia only');
   const account = getAddress(String(body.account ?? ''));
@@ -66,7 +66,7 @@ export const execute = async (sponsor: Wallet, body: Body): Promise<{ hash: stri
 
   const now2 = Date.now();
   while (sent.length && sent[0] < now2 - 3_600_000) sent.shift();
-  if (sent.length >= MAX_PER_HOUR) throw new RelayError(429, 'Busy; try later');
+  if (sent.length >= maxPerHour) throw new RelayError(429, 'Busy; try later');
 
   const data = calibur.encodeFunctionData('execute', [
     [[calls.map((c) => [getAddress(c.to), BigInt(c.value), c.data]), true], BigInt(body.nonce ?? '0'), ZeroHash, sponsor.address, deadline],

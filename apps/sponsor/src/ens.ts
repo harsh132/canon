@@ -42,10 +42,9 @@ export const registryIface = new Interface(UserRegistryAbi);
 export const resolverIface = new Interface(PermissionedResolverAbi);
 export const labelId = (label: string) => BigInt(keccak256(toUtf8Bytes(label)));
 
-export const connect = () => {
-  const key = process.env.SPONSOR_KEY;
+export const connect = (key = process.env.SPONSOR_KEY, rpc = process.env.SEPOLIA_RPC) => {
   if (!key) throw new Error('SPONSOR_KEY is not set (apps/sponsor/.env)');
-  const provider = new JsonRpcProvider(process.env.SEPOLIA_RPC ?? 'https://ethereum-sepolia-rpc.publicnode.com', 11155111, {
+  const provider = new JsonRpcProvider(rpc || 'https://ethereum-sepolia-rpc.publicnode.com', 11155111, {
     staticNetwork: true,
     batchMaxCount: 1,
   });

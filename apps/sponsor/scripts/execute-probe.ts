@@ -62,6 +62,8 @@ const run = async (calls: { to: string; value: bigint; data: string }[]) => {
 
 console.log('account', signer.address, 'balance', await provider.getBalance(signer.address));
 await run([{ to: WETH, value: 0n, data: erc20.encodeFunctionData('approve', [executor, 1n]) }]);
+// The public RPC is load-balanced; wait until the node we hit has the delegation.
+for (let i = 0; i < 20 && (await provider.getCode(signer.address)) === '0x'; i += 1) await new Promise((r) => setTimeout(r, 1500));
 console.log('code', await provider.getCode(signer.address));
 await run([
   { to: WETH, value: 0n, data: erc20.encodeFunctionData('approve', [executor, 2n]) },

@@ -6,13 +6,18 @@
   "scripts": {
     "start": "bun src/server.ts",
     "setup-parent": "bun scripts/setup-parent.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "deploy": "node ../../node_modules/.bin/cf deploy --secrets-file .secrets.json",
+    "deploy:dry": "node ../../node_modules/.bin/cf deploy --dry-run"
   },
   "dependencies": {
     "ethers": "6.14.3"
   },
   "devDependencies": {
+    "@cloudflare/vite-plugin": "^2.0.0-beta.v.12",
     "@types/bun": "latest",
-    "typescript": "^6.0.0"
+    "cf": "^1.0.0-beta.28",
+    "typescript": "^6.0.0",
+    "vite": "^8.3.6"
   }
 }

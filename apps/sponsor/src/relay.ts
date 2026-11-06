@@ -48,6 +48,7 @@ export const relay = async (
     minGasPrice?: string;
     authorizationList?: { address: string; chainId: string; nonce: string; r: string; s: string; yParity: string }[];
   },
+  maxPerHour = MAX_PER_HOUR,
 ): Promise<{ hash: string; gasLimit: string }> => {
   if (body.chainId !== CHAIN_ID) throw new RelayError(400, 'Sepolia only');
   const to = String(body.to ?? '').toLowerCase();
@@ -79,7 +80,7 @@ export const relay = async (
 
   const now = Date.now();
   while (sent.length && sent[0] < now - 3_600_000) sent.shift();
-  if (sent.length >= MAX_PER_HOUR) throw new RelayError(429, 'Relay busy; try later');
+  if (sent.length >= maxPerHour) throw new RelayError(429, 'Relay busy; try later');
 
   // Simulate first, at the real gas price (the contract checks it): never pay for a revert.
   let gas: bigint;
