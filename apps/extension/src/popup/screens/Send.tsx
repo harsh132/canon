@@ -109,7 +109,7 @@ export const Send = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
           <div className="mt-1 text-[17px] font-semibold">{VERB[plan.kind]}</div>
           <div className="mt-3 border-t border-dashed border-rule">
             <Row label="Seen">{SEEN[plan.kind]}</Row>
-            <Row label="Fee">{amount(plan.gasFee, 18, 6)} ETH</Row>
+            <Row label="Fee">{plan.gasFee > 0n && plan.gasFee < 1_000_000_000_000n ? '< 0.000001' : amount(plan.gasFee, 18, 6)} ETH</Row>
             {plan.gasFrom != null && <Row label="Gas from">{gasLabel(plan.gasFrom)} · public</Row>}
             {plan.needsProof && <Row label="Proof" last>on this device</Row>}
           </div>
