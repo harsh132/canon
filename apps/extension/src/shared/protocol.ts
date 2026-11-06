@@ -2,6 +2,8 @@
 // and sends one of the whitelisted Commands below. Nothing else is accepted.
 
 export const PORT_NAME = 'pangolin-popup';
+/** What kind of UI a port belongs to: `${PORT_NAME}:${UiKind}`. */
+export type UiKind = 'panel' | 'popup' | 'window';
 export const DAPP_PORT_NAME = 'pangolin-dapp';
 
 /** 'unknown' until the core has read storage; the popup must not offer onboarding before then. */
@@ -109,6 +111,8 @@ export type CoreState = {
   rpc: RpcState;
   /** RAILGUN broadcasters over Waku. count: distinct broadcasters seen on Sepolia. */
   broadcaster: { status: 'off' | 'connecting' | 'connected' | 'none' | 'error'; count: number; error?: string };
+  /** Browser tab id -> the site (dapp key) open in it, from the bridge connections. */
+  tabs: Record<string, string>;
   /** Sites connected through the injected provider. */
   sites: { origin: string; address: string; label: string }[];
   wc: {
@@ -165,6 +169,7 @@ export type Commands = {
   'rpc.setMode': { params: { mode: 'nox' | 'direct' }; result: null };
   'swap.quote': { params: { amount: string }; result: { swapped: bigint; out: bigint; minOut: bigint } };
   'swap.execute': { params: { amount: string }; result: { hash: string } };
+  'site.balances': { params: { address: string }; result: { eth: bigint; tokens: { symbol: string; decimals: number; amount: bigint }[] } };
   'ens.claim': { params: { label: string }; result: { name: string } };
   'dapp.disconnect': { params: { origin: string }; result: null };
   'wc.pair': { params: { uri: string }; result: null };

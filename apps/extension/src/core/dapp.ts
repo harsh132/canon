@@ -31,6 +31,13 @@ type Item = {
 };
 
 const ports = new Map<chrome.runtime.Port, string>();
+
+/** Which site each tab holds, for the per-tab panel. */
+export const tabSites = (): Record<string, string> => {
+  const out: Record<string, string> = {};
+  for (const [port, origin] of ports) if (port.sender?.tab?.id != null) out[String(port.sender.tab.id)] = origin;
+  return out;
+};
 const queue: Item[] = [];
 let nextItemId = 1;
 let chosen: number | 'new' | null = null;
@@ -117,6 +124,7 @@ export const attachDappPort = (port: chrome.runtime.Port): void => {
     return;
   }
   ports.set(port, origin);
+  changed();
   port.onMessage.addListener(async (raw: string) => {
     let req: { id: number; method: string; params?: unknown[] };
     try {

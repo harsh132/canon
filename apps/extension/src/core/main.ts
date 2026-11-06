@@ -1,10 +1,10 @@
 // The core. Runs in the offscreen document, which outlives the popup and the
 // service worker's idle kills. Holds the only copy of the unlocked keys.
 import type { Commands, CoreMessage, Method, Request, SwMessage } from '../shared/protocol';
-import { PORT_NAME } from '../shared/protocol';
+import { PORT_NAME, type UiKind } from '../shared/protocol';
 import { decode, encode } from '../shared/codec';
 import { accounts, activity, bindings, closeBook, createAccount, loadBook, myName, signerFor } from './book';
-import { AUTO_LOCK_MS, getProvider } from './config';
+import { AUTO_LOCK_MS, DEV, WETH, getProvider } from './config';
 import { bootEngine, closeRailgunWallet, openRailgunWallet, sync } from './railgun';
 import { executeSend, planSend } from './send';
 import { emit, onState, state } from './state';
@@ -14,8 +14,8 @@ import * as browser from './dapp';
 import { installTransport, setRpcMode } from './transport';
 import { startBroadcasters } from './broadcaster';
 import { claimName } from './ens';
-import { executeSwap, quoteSwap } from './swap';
-import { parseEther } from 'ethers';
+import { USDC, executeSwap, quoteSwap } from './swap';
+import { Contract, parseEther } from 'ethers';
 import { FORK } from './config';
 
 let session: Unlocked | null = null;
@@ -36,6 +36,7 @@ const rebuildAccounts = (): void => {
   }));
   state.activity = activity();
   state.sites = browser.connectedSites();
+  state.tabs = browser.tabSites();
   state.name = myName();
   emit();
 };
@@ -159,6 +160,17 @@ const handlers: Handlers = {
     const { hash } = await executeSwap(parseEther(amount || '0'), need());
     return { hash };
   },
+  'site.balances': async ({ address }) => {
+    need();
+    const p = getProvider();
+    const erc20 = (t: string) => new Contract(t, ['function balanceOf(address) view returns (uint256)'], p);
+    const known = [
+      { symbol: 'WETH', decimals: 18, token: WETH },
+      { symbol: 'USDC', decimals: 6, token: USDC },
+    ];
+    const [eth, ...amounts] = await Promise.all([p.getBalance(address), ...known.map((k) => erc20(k.token).balanceOf(address) as Promise<bigint>)]);
+    return { eth, tokens: known.map((k, i) => ({ symbol: k.symbol, decimals: k.decimals, amount: amounts[i] })) };
+  },
   'ens.claim': async ({ label }) => {
     need();
     const name = await claimName(label);
@@ -216,20 +228,23 @@ const handlers: Handlers = {
 
 chrome.runtime.onConnect.addListener(browser.attachDappPort);
 
-// Open UI surfaces (side panel, popup window, test tabs). While one is open it
-// shows dapp prompts itself, so no prompt window is needed.
-let openUis = 0;
+// Open popups and prompt windows already show a request; side panels do not
+// (they show a "request waiting" bar instead), so only these suppress the popup.
 // windowId: the browser window of the requesting tab, so the popup opens there.
+let openPrompts = 0;
 const prompt = (windowId?: number) => {
-  if (openUis === 0) void sw({ type: 'prompt', windowId });
+  if (openPrompts === 0) void sw({ type: 'prompt', windowId });
 };
 
 chrome.runtime.onConnect.addListener((port) => {
-  if (port.name !== PORT_NAME) return;
-  openUis += 1;
-  port.onDisconnect.addListener(() => {
-    openUis -= 1;
-  });
+  if (!port.name.startsWith(PORT_NAME)) return;
+  const kind = port.name.slice(PORT_NAME.length + 1) as UiKind;
+  if (kind !== 'panel') {
+    openPrompts += 1;
+    port.onDisconnect.addListener(() => {
+      openPrompts -= 1;
+    });
+  }
   const push = () => port.postMessage(encode({ event: 'state', state } satisfies CoreMessage));
   const off = onState(push);
   push();
@@ -261,11 +276,15 @@ chrome.runtime.onConnect.addListener((port) => {
   });
 });
 
+// Dev builds only: lets test scripts read core state (e.g. which site is in which tab).
+if (DEV) (globalThis as Record<string, unknown>).__pangolinState = state;
+
 wc.configureWc({ isUnlocked: () => session != null, prompt });
 browser.configureDapp({
   isUnlocked: () => session != null,
   prompt,
   changed: () => {
+    state.tabs = browser.tabSites();
     wc.refreshWc();
     if (session) rebuildAccounts();
     if (!wc.hasPending()) void sw({ type: 'prompt-clear' });
