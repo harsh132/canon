@@ -40,12 +40,21 @@ export const claimName = async (label: string): Promise<string> => {
   if (!LABEL.test(l)) throw new Error('3–32 of a-z, 0-9, -');
   if (!state.railgunAddress) throw new Error('Wallet is still starting');
   const owner = await identity();
-  const out = await call('/claim', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ label: l, owner, zk: state.railgunAddress }),
-  });
-  const name = String(out.name);
+  let name = `${l}.${PARENT}`;
+  try {
+    const out = await call('/claim', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ label: l, owner, zk: state.railgunAddress }),
+    });
+    name = String(out.name);
+  } catch (e) {
+    // A claim whose reply was lost (popup closed mid-request) still landed.
+    // If the name already pays this wallet, it is ours.
+    if (!/taken/i.test((e as Error).message)) throw e;
+    const r = await resolveName(name).catch(() => null);
+    if (r?.address !== state.railgunAddress) throw e;
+  }
   await setName(name);
   state.name = name;
   emit();
