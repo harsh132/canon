@@ -5,7 +5,7 @@
 import type { WcProposalView, WcRequestView } from '../shared/protocol';
 import { DAPP_PORT_NAME } from '../shared/protocol';
 import { decode, encode } from '../shared/codec';
-import { accounts, bind, bindingFor, bindings, createAccount, previewAccount, revokeBrowser, signerFor } from './book';
+import { accounts, bind, bindingFor, bindings, createAccount, isSiteAccount, previewAccount, revokeBrowser, signerFor } from './book';
 import { CHAIN_ID, getProvider } from './config';
 import { dappKeyFor } from './dapp-origin';
 import { RpcError, SIGN_METHODS, execute, isDelegation, summarize } from './sign';
@@ -106,6 +106,39 @@ const handle = async (port: chrome.runtime.Port, origin: string, method: string,
     }
     case 'wallet_addEthereumChain':
       throw new RpcError(4200, 'Pangolin runs on Sepolia only');
+    // EIP-5792. Site addresses run Calibur through EIP-7702: batches are atomic and
+    // gas is sponsored. auxiliaryFunds (ERC-7682): the private balance can fund them.
+    case 'wallet_getCapabilities': {
+      const [address] = (params ?? []) as [string?];
+      const b = bindingFor(origin);
+      const mine = accountsFor(origin)[0];
+      if (!mine || (address && address.toLowerCase() !== mine) || !b || !isSiteAccount(b.index)) return {};
+      return { [CHAIN_HEX]: { atomic: { status: 'supported' }, auxiliaryFunds: { supported: true } } };
+    }
+    case 'wallet_getCallsStatus': {
+      const id = String((params ?? [])[0] ?? '');
+      const r = await getProvider().getTransactionReceipt(id);
+      const hex = (n: bigint | number) => `0x${BigInt(n).toString(16)}`;
+      return {
+        version: '2.0.0',
+        id,
+        chainId: CHAIN_HEX,
+        atomic: true,
+        status: !r ? 100 : r.status === 1 ? 200 : 500,
+        receipts: r
+          ? [{
+              logs: r.logs.map((l) => ({ address: l.address, data: l.data, topics: l.topics })),
+              status: hex(r.status ?? 0),
+              blockHash: r.blockHash,
+              blockNumber: hex(r.blockNumber),
+              gasUsed: hex(r.gasUsed),
+              transactionHash: r.hash,
+            }]
+          : [],
+      };
+    }
+    case 'wallet_showCallsStatus':
+      return null;
   }
   if (SIGN_METHODS.includes(method)) {
     if (!accountsFor(origin).length) throw new RpcError(4100, 'Connect first');
