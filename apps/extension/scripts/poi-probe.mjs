@@ -31,5 +31,6 @@ const out = await corePage.evaluate(async () => {
   );
 });
 console.log(out.slice(0, 4000));
+await Bun.write(new URL('../.cache/poi-probe.json', import.meta.url).pathname, out);
 await browser.close();
 process.exit(0);

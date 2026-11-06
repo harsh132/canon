@@ -14,6 +14,7 @@ import {
   POINodeRequest,
   POIValidator,
   getRailgunTransactionsForTxid,
+  walletForID,
   ByteLength,
   ByteUtils,
 } from '@railgun-community/wallet';
@@ -66,6 +67,33 @@ export const assurePOI = async (p: {
         pois: p.pois,
       });
       log('submitted single commitment proof for', p.txHash);
+
+      // A single commitment proof clears only the output it names. A broadcaster
+      // needs only its fee note; we need the payment and the change too. Every
+      // output this wallet received from the send gets its own submission, with
+      // its note key and position from the wallet's synced notes.
+      await sync();
+      const sameTx = (a: string) => a.replace(/^0x/, '').toLowerCase() === p.txHash.replace(/^0x/, '').toLowerCase();
+      const txos = await walletForID(currentWalletId()).TXOs(V2, CHAIN);
+      for (const txo of txos) {
+        if (!sameTx(txo.txid) || txo.tree !== tx.utxoTreeOut) continue;
+        const index = txo.position - tx.utxoBatchStartPositionOut;
+        if (index <= 0 || index >= tx.commitments.length) continue; // 0 is the one already sent
+        await node
+          .submitSingleCommitmentProof(V2, CHAIN, {
+            commitment: tx.commitments[index],
+            npk: ByteUtils.nToHex(txo.note.notePublicKey, ByteLength.UINT_256, true),
+            utxoTreeIn: Number(first.utxoTreeIn),
+            utxoTreeOut: tx.utxoTreeOut,
+            utxoPositionOut: txo.position,
+            railgunTxid: first.railgunTxid,
+            pois: p.pois,
+          })
+          .then(
+            () => log('submitted output', index),
+            (e: unknown) => log('output', index, 'rejected:', (e as Error).message),
+          );
+      }
       await sleep(15_000);
       await sync();
       return;
