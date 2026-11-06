@@ -9,6 +9,7 @@ const TRUST: Record<Verification, { text: string; cls: string }> = {
   UNKNOWN: { text: 'Unverified', cls: 'text-muted' },
   INVALID: { text: 'Mismatch', cls: 'text-danger' },
   SCAM: { text: 'Scam', cls: 'text-danger' },
+  BROWSER: { text: 'This tab', cls: 'text-accent' },
 };
 
 export const ConnectPrompt = ({ s }: { s: CoreState }) => {
