@@ -74,6 +74,16 @@ export type WcRequestView = {
   account: { index: number; address: string; label: string } | null;
 };
 
+export type RpcState = {
+  mode: 'nox' | 'direct';
+  status: 'off' | 'booting' | 'ready' | 'error';
+  error?: string;
+  bootMs?: number;
+  /** mixed: through Nox. clear: RPC sent directly. bootstrap: the worker's own specifier reads.
+   *  sync / artifacts: bulk public downloads that name no one. */
+  counts: { mixed: number; clear: number; bootstrap: number; sync: number; artifacts: number };
+};
+
 export type CoreState = {
   vault: VaultStatus;
   chainId: number;
@@ -84,6 +94,7 @@ export type CoreState = {
   accounts: PublicAccount[];
   activity: Activity[];
   proof: { label: string; progress: number } | null;
+  rpc: RpcState;
   wc: {
     configured: boolean;
     ready: boolean;
@@ -127,6 +138,7 @@ export type Commands = {
   'accounts.create': { params: { label: string }; result: PublicAccount };
   'send.plan': { params: SendIntent; result: SendPlan };
   'send.execute': { params: SendIntent; result: { hash: string } };
+  'rpc.setMode': { params: { mode: 'nox' | 'direct' }; result: null };
   'wc.pair': { params: { uri: string }; result: null };
   'wc.chooseAccount': { params: { index: number | 'new' }; result: null };
   'wc.approve': { params: null; result: null };

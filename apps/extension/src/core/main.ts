@@ -10,6 +10,7 @@ import { executeSend, planSend } from './send';
 import { emit, onState, state } from './state';
 import { createVault, newMnemonic, normaliseMnemonic, unlockVault, vaultExists, wipeVault, type Unlocked } from './vault';
 import * as wc from './wc';
+import { installTransport, setRpcMode } from './transport';
 
 let session: Unlocked | null = null;
 let lockTimer: ReturnType<typeof setTimeout> | null = null;
@@ -131,6 +132,10 @@ const handlers: Handlers = {
     void refreshPublic();
     return r;
   },
+  'rpc.setMode': async ({ mode }) => {
+    await setRpcMode(mode);
+    return null;
+  },
   'wc.pair': async ({ uri }) => {
     await wc.pair(uri);
     return null;
@@ -205,6 +210,8 @@ chrome.runtime.onConnect.addListener((port) => {
 wc.configureWc({ isUnlocked: () => session != null, prompt: () => void sw({ type: 'prompt' }) });
 
 void (async () => {
+  // Before anything touches the network.
+  await installTransport();
   state.vault = (await vaultExists()) ? 'locked' : 'none';
   emit();
   void bootEngine().catch((e) => console.error('[core] engine', e));
