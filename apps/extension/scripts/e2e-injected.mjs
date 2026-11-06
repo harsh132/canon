@@ -5,7 +5,7 @@
 // through the core; eth_requestAccounts prompts and returns a fresh address;
 // personal_sign recovers to it; a second origin gets a different address;
 // reloading the first origin returns the same address without a prompt.
-import { HDNodeWallet, verifyMessage } from 'ethers';
+import { HDNodeWallet, keccak256, toUtf8Bytes, verifyMessage } from 'ethers';
 import { launch } from './smoke.mjs';
 
 const PORT = 8791;
@@ -52,7 +52,10 @@ await waitText('saved it');
 const phrase = await popup.evaluate(() =>
   [...document.querySelectorAll('ol li')].map((li) => li.textContent.replace(/^\d+/, '').trim()).join(' '),
 );
-const appAddress = (i) => HDNodeWallet.fromPhrase(phrase, undefined, `m/44'/60'/1984'/7702'/0'/0'/${i}'`).address.toLowerCase();
+// Same rule as core/vault.ts dappPurposeId, restated here so the test is independent.
+const purposeOf = (key) => Number.parseInt(keccak256(toUtf8Bytes(key)).slice(2, 10), 16) & 0x7fffffff;
+const dappPath = (key) => `m/44'/60'/1984'/7702'/0'/${purposeOf(key)}'/0'`;
+const dappAddress = (key) => HDNodeWallet.fromPhrase(phrase, undefined, dappPath(key)).address.toLowerCase();
 await click('saved it');
 await waitText('Private balance');
 log('wallet ready');
@@ -91,8 +94,9 @@ log('prompt:', (await text()).slice(0, 160));
 await click('^connect$');
 const [addr1] = await req1;
 log('PASS 127.0.0.1 sees', addr1);
-if (addr1.toLowerCase() !== appAddress(0)) fail(`127.0.0.1 address is not m/44'/60'/1984'/7702'/0'/0'/0'`);
-log("PASS it is m/44'/60'/1984'/7702'/0'/0'/0'");
+const key1 = `http://127.0.0.1:${PORT}`;
+if (addr1.toLowerCase() !== dappAddress(key1)) fail(`127.0.0.1 address is not ${dappPath(key1)}`);
+log('PASS it is', dappPath(key1));
 
 const sig = await (async () => {
   const p = d1.evaluate((a) => window.ethereum.request({ method: 'personal_sign', params: ['0x68656c6c6f', a] }), addr1);
@@ -111,8 +115,9 @@ await click('^connect$');
 const [addr2] = await req2;
 if (addr2.toLowerCase() === addr1.toLowerCase()) fail('two origins share an address');
 log('PASS localhost sees a different address', addr2);
-if (addr2.toLowerCase() !== appAddress(1)) fail(`localhost address is not m/44'/60'/1984'/7702'/0'/0'/1'`);
-log("PASS it is m/44'/60'/1984'/7702'/0'/0'/1'");
+const key2 = `http://localhost:${PORT}`;
+if (addr2.toLowerCase() !== dappAddress(key2)) fail(`localhost address is not ${dappPath(key2)}`);
+log('PASS it is', dappPath(key2));
 
 // Reload origin 1: same address, no prompt.
 await d1.reload();
