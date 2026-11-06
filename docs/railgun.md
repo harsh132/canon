@@ -65,3 +65,15 @@ Measured 2026-11-06 with `e2e-sepolia.mjs`:
 | Send privately with Main paying gas | Not cleared after 40+ minutes |
 
 After the self-paid private send, both new notes sat in `MissingExternalPOI`, and the engine listed the send in `getChainTxidsStillPendingSpentPOIs`. The wallet has to generate the proof itself, which needs the send in RAILGUN's TXID tree first. `sync()` now calls `generatePOIsForWallet` after every scan so the proof is built while the wallet is open. A broadcaster send attaches its proofs up front instead. `scripts/poi-probe.mjs` prints this state from a dev build.
+
+## Sponsored relay (default on Sepolia)
+
+Private sends default to Pangolin's sponsor paying gas (`apps/sponsor/src/relay.ts`, `POST /relay`). The wallet proves in broadcaster mode with no fee output and posts `{ to, data, minGasPrice }`; the sponsor sends it from its own address.
+
+- The sponsor accepts only the RAILGUN proxy and Relay Adapt as `to`, simulates at the real gas price first (RAILGUN checks `tx.gasprice >= minGasPrice`), caps gas at 4M and sends at most 60 an hour.
+- It prices legacy gas from the latest base fee ×2 plus a tip. A node's `eth_gasPrice` lagged the base fee on Sepolia (17 wei against 18) and left the first relayed transaction unmineable; `scripts/replace-stuck.ts` rebroadcast it.
+- No fee is charged, so this is testnet-only as written. On mainnet it must charge a private-token fee covering gas, and running a relayer there has legal exposure.
+- Proof-of-innocence clearance is the same as with Main paying: the sponsor does not yet forward the transaction's pre-attached proofs.
+- The wallet caps its wait for a send to settle at 10 minutes, because a relayed transaction can be replaced under a new hash.
+
+Verified 2026-11-06: Send privately 0.001 WETH to `alice.pangolin.eth`, name resolved through Nox, sponsor as sender ([tx](https://sepolia.etherscan.io/tx/0xc4864297530c07547a3b5448bee9f987cceb8a2bd6daee27312699e6b1df74d2)). Main does not appear.

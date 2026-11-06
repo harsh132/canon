@@ -32,3 +32,4 @@ Newest last. Each entry: what, why, and what would change it.
 | 2026-11-06 | Default private-send gas back to Main | Sepolia broadcasters rejected every send on proof of innocence. Broadcaster stays one tap away |
 | 2026-11-06 | Names owned by an unfunded app-path address, not Main | Main is the visible sender of shields; owning the name from it would link the two |
 | 2026-11-06 | Parent registered for 1 year | The 10 test USDC covered one year (8 USDC). Anyone can renew |
+| 2026-11-06 | Sponsor relays private sends by default on Sepolia | Closes the gas link from Main while Sepolia broadcasters reject; no fee on testnet |

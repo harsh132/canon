@@ -14,6 +14,7 @@ Updated 2026-11-06.
 | Send privately on real Sepolia, Main paying gas | Landed; its new notes still await proof of innocence |
 | Make public on real Sepolia, Main paying gas | Landed; proof and submit 38 s |
 | ENS: claim `<label>.pangolin.eth`, pay a name privately | `e2e-sepolia.mjs name` on Sepolia |
+| Sponsored private send (sponsor pays gas, Main not involved) | `e2e-sepolia.mjs private` on Sepolia |
 | Broadcaster discovery over Waku in the extension | `e2e-sepolia.mjs broadcasters`: connected, 1 Sepolia broadcaster |
 | Public accounts, balances on demand | Manual |
 | Privacy screen with read counts and a Nox/direct switch | `e2e-create.mjs` output |

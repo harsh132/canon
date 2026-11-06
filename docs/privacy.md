@@ -9,7 +9,8 @@
 | Chain, on Make private | The public address that funded it, once | A shield is a public transaction from that address |
 | Chain, on Send privately | A proof, no amounts, no parties | RAILGUN |
 | Chain, on Make public | Recipient and amount | An unshield pays a public address |
-| Chain, on a private send's gas | That Main paid for some RAILGUN transaction | Main pays by default, because Sepolia broadcasters reject our sends. Choosing "Broadcaster" makes the broadcaster the sender instead. **Open leak** |
+| Chain, on a private send's gas | Only that Pangolin's sponsor sent it | The sponsor relays by default. Choosing "Main" makes Main the sender, which links it |
+| Pangolin's sponsor, on a relayed send | Calldata that goes on-chain anyway; the IP unless reached through Nox | Local development sponsor is called directly |
 | Waku peers | The IP of a browser using RAILGUN broadcasters | Broadcaster discovery and requests travel over Waku, not Nox. Requests are encrypted to the broadcaster |
 | RAILGUN QuickSync (Subsquid) | The IP of someone syncing, and from which block | Bulk public data fetched directly, about 13 MB pages. Names no address |
 | PPOI aggregator | Blinded commitments of this wallet's notes, not the IP | Sent through Nox in Nox mode; verified |
