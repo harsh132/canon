@@ -209,7 +209,12 @@ const prepare = async (intent: SendIntent, u: Unlocked): Promise<Prepared> => {
                   useRelayAdapt,
                   pois: populated.preTransactionPOIsPerTxidLeafPerList,
                 })
-              : await sponsorRelay(populated.transaction.to as string, populated.transaction.data as string, minGas);
+              : await sponsorRelay(
+                  populated.transaction.to as string,
+                  populated.transaction.data as string,
+                  minGas,
+                  (populated.transaction as { authorizationList?: Parameters<typeof sponsorRelay>[3] }).authorizationList,
+                );
             if (!b) {
               void assurePOI({
                 txHash: hash,

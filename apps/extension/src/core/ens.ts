@@ -62,11 +62,31 @@ export const claimName = async (label: string): Promise<string> => {
 };
 
 /** Submits a proved RAILGUN transaction through the sponsor, which pays the gas. */
-export const sponsorRelay = async (to: string, data: string, minGasPrice: bigint): Promise<string> => {
+type Authorization = { address: string; chainId: bigint | number | string; nonce: bigint | number | string; signature: { r: string; s: string; yParity: number } };
+
+/**
+ * `authorizationList`: RAILGUN's 7702 actions (unshield to ETH on Sepolia) go
+ * to a one-off ephemeral address that delegates to RelayAdapt7702 in the same
+ * type-4 transaction. The sponsor checks and forwards that authorization.
+ */
+export const sponsorRelay = async (to: string, data: string, minGasPrice: bigint, authorizationList?: Authorization[] | null): Promise<string> => {
   const out = await call('/relay', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ chainId: 11155111, to, data, minGasPrice: minGasPrice.toString() }),
+    body: JSON.stringify({
+      chainId: 11155111,
+      to,
+      data,
+      minGasPrice: minGasPrice.toString(),
+      authorizationList: authorizationList?.map((a) => ({
+        address: a.address,
+        chainId: a.chainId.toString(),
+        nonce: a.nonce.toString(),
+        r: a.signature.r,
+        s: a.signature.s,
+        yParity: String(a.signature.yParity),
+      })),
+    }),
   });
   return String(out.hash);
 };
