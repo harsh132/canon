@@ -6,7 +6,7 @@
 // same address as before; personal_sign from A recovers to A's address.
 import { readFileSync } from 'node:fs';
 import { SignClient } from '@walletconnect/sign-client';
-import { hexlify, toUtf8Bytes, verifyMessage } from 'ethers';
+import { hexlify, toUtf8Bytes, verifyMessage, verifyTypedData } from 'ethers';
 import { launch } from './smoke.mjs';
 
 const projectId =
@@ -16,6 +16,11 @@ const PASSWORD = 'correct horse battery';
 const CHAIN = 'eip155:11155111';
 
 const { browser, popup } = await launch();
+// Hard stop: a hung wait must still end the run and close Chromium.
+setTimeout(() => {
+  console.error('[wc] watchdog: no finish in 150 s');
+  browser.close().finally(() => process.exit(1));
+}, 150_000).unref();
 const t0 = Date.now();
 const log = (...a) => console.log(`[wc ${Math.round((Date.now() - t0) / 1000)}s]`, ...a);
 const text = async () => (await popup.evaluate(() => document.body.innerText)).replace(/\s+/g, ' ');
@@ -78,12 +83,38 @@ const pending = A.request({
   chainId: CHAIN,
   request: { method: 'personal_sign', params: [hexlify(toUtf8Bytes(message)), a1.address] },
 });
+log('sent personal_sign');
 await waitText('Sign message', 30000);
+log('prompt shown');
 await click('^sign$');
 const signature = await pending;
 const recovered = verifyMessage(message, signature);
 if (recovered.toLowerCase() !== a1.address.toLowerCase()) throw new Error(`signature recovered ${recovered}`);
 log('PASS personal_sign recovers to A');
+
+// eth_signTypedData_v4 from B
+const typed = {
+  domain: { name: 'Pangolin e2e', version: '1', chainId: 11155111 },
+  types: {
+    EIP712Domain: [{ name: 'name', type: 'string' }, { name: 'version', type: 'string' }, { name: 'chainId', type: 'uint256' }],
+    Mail: [{ name: 'contents', type: 'string' }],
+  },
+  primaryType: 'Mail',
+  message: { contents: 'hello' },
+};
+const pendingTyped = B.request({
+  topic: b1.session.topic,
+  chainId: CHAIN,
+  request: { method: 'eth_signTypedData_v4', params: [b1.address, JSON.stringify(typed)] },
+});
+await waitText('Sign Mail', 30000);
+await click('^sign$');
+const typedSig = await pendingTyped;
+const { EIP712Domain: _drop, ...types } = typed.types;
+if (verifyTypedData(typed.domain, types, typed.message, typedSig).toLowerCase() !== b1.address.toLowerCase()) {
+  throw new Error('typed signature does not recover to B');
+}
+log('PASS signTypedData_v4 recovers to B');
 
 // A disconnects and reconnects with a new pairing: same address.
 await A.disconnect({ topic: a1.session.topic, reason: { code: 6000, message: 'bye' } });

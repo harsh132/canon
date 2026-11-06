@@ -24,6 +24,14 @@ export const launch = async ({ headful = process.argv.includes('--headful') } = 
   const corePage = await core.asPage();
   corePage.on('console', (m) => console.log(`[core:${m.type()}]`, m.text().slice(0, 400)));
   corePage.on('pageerror', (e) => console.log('[core:pageerror]', String(e).slice(0, 400)));
+  // A failed script must not leave Chromium holding the terminal.
+  const bail = async (e) => {
+    console.error('[smoke] failed:', e?.message ?? e);
+    await browser.close().catch(() => {});
+    process.exit(1);
+  };
+  process.on('uncaughtException', bail);
+  process.on('unhandledRejection', bail);
   const popup = await browser.newPage();
   await popup.setViewport({ width: 380, height: 640 });
   popup.on('console', (m) => console.log(`[popup:${m.type()}]`, m.text().slice(0, 300)));
