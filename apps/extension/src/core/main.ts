@@ -219,8 +219,9 @@ chrome.runtime.onConnect.addListener(browser.attachDappPort);
 // Open UI surfaces (side panel, popup window, test tabs). While one is open it
 // shows dapp prompts itself, so no prompt window is needed.
 let openUis = 0;
-const prompt = () => {
-  if (openUis === 0) void sw({ type: 'prompt' });
+// windowId: the browser window of the requesting tab, so the popup opens there.
+const prompt = (windowId?: number) => {
+  if (openUis === 0) void sw({ type: 'prompt', windowId });
 };
 
 chrome.runtime.onConnect.addListener((port) => {

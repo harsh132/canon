@@ -179,4 +179,4 @@ export type Push = { event: 'state'; state: CoreState };
 export type CoreMessage = Response | Push;
 
 /** Messages to the service worker. */
-export type SwMessage = { type: 'ensure-core' } | { type: 'prompt' } | { type: 'prompt-clear' };
+export type SwMessage = { type: 'ensure-core' } | { type: 'prompt'; windowId?: number } | { type: 'prompt-clear' };
