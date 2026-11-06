@@ -55,8 +55,14 @@ const afterUnlock = async (u: Unlocked, imported: boolean): Promise<void> => {
   rebuildAccounts();
   wc.refreshWc();
   touch();
-  await openRailgunWallet(u, imported);
-  void sync();
+  // The engine can take a while on first boot; the vault is usable before it is.
+  void openRailgunWallet(u, imported)
+    .then(() => sync())
+    .catch((e) => {
+      console.error('[core] railgun', e);
+      state.engine = { status: 'error', error: (e as Error).message };
+      emit();
+    });
 };
 
 const need = (): Unlocked => {
