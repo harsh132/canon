@@ -1,7 +1,7 @@
 import type { HDNodeWallet } from 'ethers';
 import type { Activity, Verification } from '../shared/protocol';
 import { store } from './store';
-import { ALL_CHAINS, PURPOSE, accountPath, appPath, deriveAt, open, seal, type Unlocked } from './vault';
+import { ALL_CHAINS, accountPath, appPath, dappPurposeId, deriveAt, open, seal, type Unlocked } from './vault';
 
 // The public-address book and which dapp sees which address. Encrypted at
 // rest: a readable list of the sites someone uses is the disclosure that
@@ -70,13 +70,18 @@ export const signerFor = (index: number): HDNodeWallet => {
   return s;
 };
 
-/** Where the next account of a kind would live, and its address, without creating it. */
-export const previewAccount = (kind: 'dapp' | 'user'): { index: number; path: string; address: string } => {
+/**
+ * Where the next account would live, and its address, without creating it.
+ * Pass a dapp key for a dapp account: m/44'/60'/1984'/7702'/0'/<purpose(dapp)>'/i'.
+ * Without one it is a user account on the standard path.
+ */
+export const previewAccount = (dappKey?: string | null): { index: number; path: string; address: string } => {
   if (!session) throw new Error('Wallet is locked');
   const book = need();
   const paths = new Set(book.accounts.map((a) => a.path));
   let i = 0;
-  const pathFor = (n: number) => (kind === 'dapp' ? appPath(ALL_CHAINS, PURPOSE.dapp, n) : accountPath(n));
+  const purpose = dappKey ? dappPurposeId(dappKey) : null;
+  const pathFor = (n: number) => (purpose != null ? appPath(ALL_CHAINS, purpose, n) : accountPath(n));
   while (paths.has(pathFor(i))) i += 1;
   const path = pathFor(i);
   return { index: nextIndex(), path, address: deriveAt(session.mnemonic, path).address };
@@ -100,7 +105,7 @@ export const nextIndex = (): number => {
 };
 
 /** Creates an account at a previewed spot. User-made accounts use the standard path; dapp ones the RAILGUN app path. */
-export const createAccount = async (label: string, at: { index: number; path: string } = previewAccount('user')): Promise<AccountRecord> => {
+export const createAccount = async (label: string, at: { index: number; path: string } = previewAccount()): Promise<AccountRecord> => {
   const book = need();
   const existing = book.accounts.find((a) => a.index === at.index || a.path === at.path);
   if (existing) return existing;

@@ -1,4 +1,4 @@
-import { HDNodeWallet, Mnemonic, randomBytes } from 'ethers';
+import { HDNodeWallet, Mnemonic, keccak256, randomBytes, toUtf8Bytes } from 'ethers';
 import { store } from './store';
 
 // One mnemonic, encrypted with a key stretched from the password.
@@ -109,7 +109,17 @@ export const accountPath = (index: number): string => `m/44'/60'/0'/0/${index}`;
  * never show up as ordinary accounts when the phrase is restored elsewhere.
  */
 export const ALL_CHAINS = 0;
-export const PURPOSE = { dapp: 0, temp: 1 } as const;
+/** Purpose for temporary single-chain accounts (on a chain-specific subtree). */
+export const PURPOSE_TEMP = 1;
+
+/**
+ * Each dapp is its own purpose: keccak256 of the dapp key's UTF-8 bytes
+ * (e.g. "app.uniswap.org", see dapp-origin.ts), first 4 bytes big-endian,
+ * top bit cleared to fit a hardened segment. Deterministic, so restoring the
+ * phrase and revisiting a site gives the same address with no saved list.
+ */
+export const dappPurposeId = (dappKey: string): number =>
+  Number.parseInt(keccak256(toUtf8Bytes(dappKey)).slice(2, 10), 16) & 0x7fffffff;
 export const appPath = (chainId: number, purpose: number, index: number): string =>
   `m/44'/60'/1984'/7702'/${chainId}'/${purpose}'/${index}'`;
 

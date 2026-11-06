@@ -151,7 +151,7 @@ export const proposalView = (): WcProposalView | null => {
     const bound = bindingFor(item.origin);
     const pick = chosen ?? (bound && accounts().some((a) => a.index === bound.index) ? bound.index : 'new');
     if (pick === 'new') {
-      const next = previewAccount('dapp');
+      const next = previewAccount(item.origin);
       account = { index: next.index, address: next.address, label: hostOf(item.origin).slice(0, 32), isNew: true };
     } else {
       const rec = accounts().find((a) => a.index === pick);
@@ -205,13 +205,13 @@ export const chooseAccount = (index: number | 'new'): void => {
 export const approveConnect = async (): Promise<void> => {
   const view = proposalView();
   if (!view?.account) throw new Error('Unlock first');
-  const item = take('connect');
   if (view.account.isNew) {
     // Recomputed, not trusted from the view: the book may have changed since it rendered.
-    const next = previewAccount('dapp');
+    const next = previewAccount(view.origin);
     if (next.address !== view.account.address) throw new Error('Address changed; review again');
     await createAccount(view.account.label, next);
   }
+  const item = take('connect');
   await bind(item.origin, { index: view.account.index, name: view.name, icon: null, verification: 'BROWSER', browser: true });
   chosen = null;
   item.resolve(accountsFor(item.origin));

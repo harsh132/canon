@@ -67,9 +67,10 @@ const proposalView = (): WcProposalView | null => {
   let account: WcProposalView['account'] = null;
   if (isUnlocked()) {
     const bound = id.key ? bindingFor(id.key) : null;
-    const pick = chosen ?? (bound && accounts().some((a) => a.index === bound.index) ? bound.index : 'new');
-    if (pick === 'new') {
-      const next = previewAccount('dapp');
+    // No origin means no stable dapp id to derive from; offer Main instead of minting.
+    const pick = chosen ?? (bound && accounts().some((a) => a.index === bound.index) ? bound.index : id.key ? 'new' : 0);
+    if (pick === 'new' && id.key) {
+      const next = previewAccount(id.key);
       account = { index: next.index, address: next.address, label: id.name.slice(0, 32), isNew: true };
     } else {
       const rec = accounts().find((a) => a.index === pick);
@@ -208,7 +209,7 @@ export const approveProposal = async (): Promise<void> => {
   // Mint before approving: a live session must never sign as an address the book lacks.
   if (view.account.isNew) {
     // Recomputed, not trusted from the view: the book may have changed since it rendered.
-    const next = previewAccount('dapp');
+    const next = previewAccount(view.origin);
     if (next.address !== view.account.address) throw new Error('Address changed; review again');
     await createAccount(view.account.label, next);
   }
