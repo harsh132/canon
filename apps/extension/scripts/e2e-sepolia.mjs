@@ -3,6 +3,7 @@
 //   bun scripts/e2e-sepolia.mjs shield    Make private AMOUNT (default 0.01) from Main
 //   bun scripts/e2e-sepolia.mjs status    sync and print private balance (spendable / pending)
 //   bun scripts/e2e-sepolia.mjs broadcasters  wait for Waku to find Sepolia broadcasters
+//   bun scripts/e2e-sepolia.mjs name      claim LABEL.pangolin.eth, then pay it from Main by name
 //   bun scripts/e2e-sepolia.mjs spend     Send privately 0.002 to self
 //   bun scripts/e2e-sepolia.mjs public    Make public 0.002 to Main (after the new notes clear POI)
 // The profile and the test phrase live in .cache/sepolia (gitignored). Test funds only.
@@ -108,7 +109,7 @@ const send = async ({ from, to, amount, expect }) => {
   await amountInput.type(amount);
   await click('^review$');
   await waitText(`This will\\s*${expect}`, 180000);
-  log('review:', (await text()).match(/THIS WILL.*?(?=Home Send)/i)?.[0]?.slice(0, 200));
+  log('review:', (await text()).match(/THIS WILL.*?(?=Home Send)/i)?.[0]?.slice(0, 260));
   const started = Date.now();
   await click(`^${expect}$`);
   await popup.waitForFunction(() => /submitted|more than|error|failed|insufficient/i.test(document.body.innerText), { timeout: 900000, polling: 1000 });
@@ -140,6 +141,25 @@ if (phase === 'setup') {
   log('balances:', await balances());
 } else if (phase === 'status') {
   log('balances:', await balances());
+} else if (phase === 'name') {
+  // Claim LABEL.pangolin.eth through the sponsor, then pay it from Main by name.
+  const label = process.env.LABEL ?? 'alice';
+  await click('get a name|pangolin\\.eth');
+  await waitText('Your name');
+  if (!/Yours/i.test(await text())) {
+    const input = await popup.$('input[aria-label="Name label"]');
+    await input.type(label);
+    const started = Date.now();
+    await click('^claim ');
+    await waitText('Yours|Name taken|Sponsor error|failed', 300000);
+    log(`claim took ${Math.round((Date.now() - started) / 1000)}s:`, (await text()).slice(0, 200));
+  } else {
+    log('already named:', (await text()).slice(0, 120));
+  }
+  const name = (await text()).match(/([a-z0-9-]+\.pangolin\.eth)/i)?.[1];
+  if (!name) throw new Error('no name on screen');
+  await nav('home');
+  await send({ from: 0, to: name, amount: process.env.AMOUNT ?? '0.001', expect: 'Make private' });
 } else if (phase === 'broadcasters') {
   // Waku discovery takes a while; read the Privacy screen until one shows up.
   await popup.evaluate(() => [...document.querySelectorAll('button')].find((b) => /clear ·/.test(b.textContent)).click());
