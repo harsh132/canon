@@ -4,6 +4,8 @@ import type { Tab } from '../App';
 import { call } from '../client';
 import { Button, Card, Header, Slug, etherscan } from '../ui';
 import { SiteCard } from './SiteCard';
+import { Fund } from './Fund';
+import { useState } from 'react';
 
 const ago = (t?: number) => {
   if (!t) return '';
@@ -12,6 +14,7 @@ const ago = (t?: number) => {
 };
 
 export const Home = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
+  const [funding, setFunding] = useState<{ address: string; origin: string } | null>(null);
   const [weth, ...others] = s.privateBalances;
   const main = s.accounts.find((a) => a.index === 0);
   const sync =
@@ -26,6 +29,8 @@ export const Home = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
             : s.sync.status === 'done'
               ? { text: `Synced ${ago(s.sync.at)}`, cls: 'text-accent' }
               : { text: 'Sync', cls: 'text-accent' };
+
+  if (funding) return <Fund s={s} address={funding.address} origin={funding.origin} onDone={() => setFunding(null)} />;
 
   return (
     <div>
@@ -46,7 +51,7 @@ export const Home = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
           </div>
         }
       />
-      <SiteCard s={s} />
+      <SiteCard s={s} onFund={(address, origin) => setFunding({ address, origin })} />
       <div className="mx-[18px] flex items-baseline justify-between rule-dash pt-1.5 pb-2.5">
         <Slug>{s.rpc.mode === 'nox' ? 'Reads via Nox' : 'Reads direct'}</Slug>
         <button onClick={() => go('privacy')} className={`font-mono text-[11px] ${s.rpc.mode === 'nox' && s.rpc.counts.clear === 0 ? 'text-accent' : 'text-warn'}`}>
