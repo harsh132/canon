@@ -5,10 +5,23 @@
   "version": "0.1.0",
   "description": "A private Ethereum wallet on RAILGUN.",
   "minimum_chrome_version": "120",
-  "action": { "default_popup": "popup.html", "default_title": "Pangolin" },
-  "background": { "service_worker": "background.js", "type": "module" },
-  "permissions": ["offscreen"],
-  "icons": { "16": "icons/16.png", "48": "icons/48.png", "128": "icons/128.png" },
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqISDN/Lh8f795XZ6/3Gts/mxEYUwU7g8T1KUB8887xbUIhaFXWKrsAjwUFavlVN+qA4AfK+LHftSILyCGorzXG7PpL2adlimGOfniIGDAn4u7cM93w7JEspqf5hDN5A3FufyZK2V8Pp70seY+qOV/CQ9iS7JzaapgA5bNkcT4z8Amc2y+rZzumMmthoMBU5qF2Yv/OXryanysamxiRyIUmICtBQBIOgV1hrso5n8Eq1rx/Y5TNah/6EFQxplSfizHmXr1JMOTarUeKaKVI14ZGtKskpvYIalxpfEQ/zhAAjA1Om4D1S5U1mluZF5aYq7XQNVcK3T/C3kqr8B/2S6rwIDAQAB",
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Pangolin"
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "permissions": [
+    "offscreen"
+  ],
+  "icons": {
+    "16": "icons/16.png",
+    "48": "icons/48.png",
+    "128": "icons/128.png"
+  },
   "content_security_policy": {
     "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
   }
