@@ -4,7 +4,7 @@ import type { Commands, CoreMessage, Method, Request, SwMessage } from '../share
 import { PORT_NAME, type UiKind } from '../shared/protocol';
 import { decode, encode } from '../shared/codec';
 import { accounts, activity, bindings, closeBook, createAccount, loadBook, myName, signerFor } from './book';
-import { AUTO_LOCK_MS, DEV, WETH, getProvider } from './config';
+import { AUTO_LOCK_MS, DEV, PRIVATE_NET_KEY, PRIVATE_TX, getProvider, netOf, providerFor } from './config';
 import { bootEngine, closeRailgunWallet, openRailgunWallet, sync } from './railgun';
 import { executeSend, planSend } from './send';
 import { emit, onState, state } from './state';
@@ -26,7 +26,7 @@ import { installTransport, setRpcMode } from './transport';
 import { startBroadcasters } from './broadcaster';
 import { claimName } from './ens';
 import { fundSite } from './fund';
-import { USDC, executeSwap, quoteSwap } from './swap';
+import { executeSwap, quoteSwap } from './swap';
 import { Contract, parseEther } from 'ethers';
 import { FORK } from './config';
 
@@ -49,6 +49,7 @@ const rebuildAccounts = (): void => {
   state.activity = activity();
   state.sites = browser.connectedSites();
   state.tabs = browser.tabSites();
+  state.siteChains = browser.knownChains();
   state.name = myName();
   emit();
 };
@@ -97,6 +98,11 @@ const afterUnlock = async (u: Unlocked, imported: boolean): Promise<void> => {
 const need = (): Unlocked => {
   if (!session) throw new Error('Wallet is locked');
   return session;
+};
+
+/** Wallet-built transactions run on Sepolia only for now; Arbitrum's private balance is view-only. */
+const txHere = (): void => {
+  if (!PRIVATE_TX) throw new Error('Sepolia only for now');
 };
 
 const refreshPublic = async (): Promise<void> => {
@@ -171,8 +177,9 @@ const handlers: Handlers = {
     rebuildAccounts();
     return state.accounts.find((a) => a.index === rec.index)!;
   },
-  'send.plan': async (intent) => planSend(intent, need()),
+  'send.plan': async (intent) => (txHere(), planSend(intent, need())),
   'send.execute': async (intent) => {
+    txHere();
     const r = await executeSend(intent, need());
     void refreshPublic();
     return r;
@@ -182,26 +189,35 @@ const handlers: Handlers = {
     return null;
   },
   'swap.quote': async ({ amount }) => {
+    txHere();
     need();
     const q = await quoteSwap(parseEther(amount || '0'));
     return { swapped: q.swapped, out: q.out, minOut: q.minOut };
   },
   'swap.execute': async ({ amount }) => {
+    txHere();
     const { hash } = await executeSwap(parseEther(amount || '0'), need());
     return { hash };
   },
-  'site.balances': async ({ address }) => {
+  'site.balances': async ({ address, chainId }) => {
     need();
-    const p = getProvider();
+    const p = providerFor(chainId);
     const erc20 = (t: string) => new Contract(t, ['function balanceOf(address) view returns (uint256)'], p);
-    const known = [
-      { symbol: 'WETH', decimals: 18, token: WETH },
-      { symbol: 'USDC', decimals: 6, token: USDC },
-    ];
+    const known = netOf(chainId)!.tokens.map((k) => ({ symbol: k.symbol, decimals: k.decimals, token: k.address }));
     const [eth, ...amounts] = await Promise.all([p.getBalance(address), ...known.map((k) => erc20(k.token).balanceOf(address) as Promise<bigint>)]);
     return { eth, tokens: known.map((k, i) => ({ symbol: k.symbol, decimals: k.decimals, amount: amounts[i] })) };
   },
-  'site.fund': async (p) => fundSite(p, need()),
+  'site.fund': async (p) => (txHere(), fundSite(p, need())),
+  'site.setChain': async ({ origin, chainId }) => {
+    await browser.setSiteChain(origin, chainId);
+    return null;
+  },
+  'net.setPrivate': async ({ net }) => {
+    // The private network is fixed for the core's lifetime: switch, then restart (which locks).
+    localStorage.setItem(PRIVATE_NET_KEY, net);
+    setTimeout(() => location.reload(), 50);
+    return null;
+  },
   'ens.claim': async ({ label }) => {
     need();
     const name = await claimName(label);
@@ -317,6 +333,7 @@ browser.configureDapp({
   prompt,
   changed: () => {
     state.tabs = browser.tabSites();
+    state.siteChains = browser.knownChains();
     wc.refreshWc();
     if (session) rebuildAccounts();
     if (!wc.hasPending()) void sw({ type: 'prompt-clear' });

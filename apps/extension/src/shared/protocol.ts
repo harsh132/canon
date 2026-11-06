@@ -42,6 +42,8 @@ export type Activity = {
   hash?: string;
   at: number;
   status: 'pending' | 'done' | 'failed';
+  /** Absent on entries made before networks: Sepolia. */
+  chainId?: number;
 };
 
 /** icon fields on these views are data: URLs fetched by the core, never remote URLs. */
@@ -84,6 +86,8 @@ export type WcRequestView = {
   detail: string;
   isTransaction: boolean;
   account: { index: number; address: string; label: string } | null;
+  /** The network the request runs on. */
+  network?: string;
 };
 
 export type RpcState = {
@@ -98,6 +102,10 @@ export type RpcState = {
 
 export type CoreState = {
   vault: VaultStatus;
+  /** RAILGUN's network for this core session. */
+  privateNet: 'sepolia' | 'arbitrum';
+  /** Each known site's network (chain id). */
+  siteChains: Record<string, number>;
   /** How the wallet on this device unlocks; null before one exists. */
   unlockWith: { kind: 'phrase' | 'passkey'; credentialId: string | null } | null;
   chainId: number;
@@ -176,8 +184,12 @@ export type Commands = {
   'rpc.setMode': { params: { mode: 'nox' | 'direct' }; result: null };
   'swap.quote': { params: { amount: string }; result: { swapped: bigint; out: bigint; minOut: bigint } };
   'swap.execute': { params: { amount: string }; result: { hash: string } };
-  'site.balances': { params: { address: string }; result: { eth: bigint; tokens: { symbol: string; decimals: number; amount: bigint }[] } };
+  'site.balances': { params: { address: string; chainId: number }; result: { eth: bigint; tokens: { symbol: string; decimals: number; amount: bigint }[] } };
   'site.fund': { params: { address: string; token: string; amount: bigint }; result: { hash: string } };
+  /** A site's network, as a dapp's wallet_switchEthereumChain would set it. */
+  'site.setChain': { params: { origin: string; chainId: number }; result: null };
+  /** RAILGUN's network. Restarts the core, which locks the wallet. */
+  'net.setPrivate': { params: { net: 'sepolia' | 'arbitrum' }; result: null };
   'ens.claim': { params: { label: string }; result: { name: string } };
   'dapp.disconnect': { params: { origin: string }; result: null };
   'wc.pair': { params: { uri: string }; result: null };

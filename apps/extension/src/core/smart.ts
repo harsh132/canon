@@ -13,7 +13,7 @@
 // into the account itself or to address(0) are refused: as the root key they
 // could register new keys on the account.
 import { AbiCoder, Contract, ZeroHash, getAddress, zeroPadValue, type HDNodeWallet } from 'ethers';
-import { CHAIN_ID, getProvider } from './config';
+import { SEPOLIA_ID, sepolia } from './config';
 import { privateFetch } from './transport';
 
 export const CALIBUR = '0x000000009B1D0aF20D8C6d0A44e162d11F9b8f00';
@@ -42,7 +42,7 @@ const TYPES = {
 };
 
 export const isDelegated = async (address: string): Promise<boolean> => {
-  const code = (await getProvider().getCode(address)).toLowerCase();
+  const code = (await sepolia().getCode(address)).toLowerCase();
   return code === `0xef0100${CALIBUR.slice(2).toLowerCase()}`;
 };
 
@@ -73,7 +73,7 @@ const checkCalls = (account: string, calls: Call[]): void => {
 export const sponsoredExecute = async (signer: HDNodeWallet, calls: Call[]): Promise<string> => {
   const account = signer.address;
   checkCalls(account, calls);
-  const provider = getProvider();
+  const provider = sepolia();
   const delegated = await isDelegated(account);
   const executor = await sponsor();
 
@@ -84,7 +84,7 @@ export const sponsoredExecute = async (signer: HDNodeWallet, calls: Call[]): Pro
   const deadline = BigInt(Math.floor(Date.now() / 1000) + 30 * 60);
   // Calibur's EIP-712 domain: the account itself is the verifying contract, and
   // the salt packs a prefix (0 until updateSalt) with the implementation address.
-  const domain = { name: 'Calibur', version: '1.0.0', chainId: CHAIN_ID, verifyingContract: account, salt: zeroPadValue(CALIBUR, 32) };
+  const domain = { name: 'Calibur', version: '1.0.0', chainId: SEPOLIA_ID, verifyingContract: account, salt: zeroPadValue(CALIBUR, 32) };
   const value = {
     batchedCall: { calls: calls.map((c) => ({ to: getAddress(c.to), value: c.value, data: c.data || '0x' })), revertOnFailure: true },
     nonce,
@@ -97,7 +97,7 @@ export const sponsoredExecute = async (signer: HDNodeWallet, calls: Call[]): Pro
 
   let authorization: Record<string, string> | undefined;
   if (!delegated) {
-    const auth = await signer.authorize({ address: CALIBUR, chainId: CHAIN_ID, nonce: await provider.getTransactionCount(account) });
+    const auth = await signer.authorize({ address: CALIBUR, chainId: SEPOLIA_ID, nonce: await provider.getTransactionCount(account) });
     authorization = {
       address: auth.address,
       chainId: auth.chainId.toString(),
@@ -112,7 +112,7 @@ export const sponsoredExecute = async (signer: HDNodeWallet, calls: Call[]): Pro
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({
-      chainId: CHAIN_ID,
+      chainId: SEPOLIA_ID,
       account,
       calls: value.batchedCall.calls.map((c) => ({ to: c.to, value: c.value.toString(), data: c.data })),
       nonce: nonce.toString(),

@@ -3,7 +3,7 @@
 // Every lookup goes through the core's provider, so through Nox.
 import { AbiCoder, Contract, Interface, dnsEncode, getAddress, namehash } from 'ethers';
 import { createAccount, previewAccount, setName, signerFor, accounts } from './book';
-import { getProvider } from './config';
+import { sepolia } from './config';
 import { privateFetch } from './transport';
 import { emit, state } from './state';
 
@@ -15,7 +15,7 @@ const LABEL = /^[a-z0-9](?:[a-z0-9-]{1,30}[a-z0-9])$/;
 
 const textIface = new Interface(['function text(bytes32 node, string key) view returns (string)']);
 const addrIface = new Interface(['function addr(bytes32 node) view returns (address)']);
-const ur = () => new Contract(UNIVERSAL_RESOLVER, ['function resolve(bytes name, bytes data) view returns (bytes, address)'], getProvider());
+const ur = () => new Contract(UNIVERSAL_RESOLVER, ['function resolve(bytes name, bytes data) view returns (bytes, address)'], sepolia());
 
 export const isName = (s: string): boolean => /^[a-z0-9-]+(\.[a-z0-9-]+)*\.eth$/i.test(s.trim());
 

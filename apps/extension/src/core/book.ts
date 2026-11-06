@@ -25,6 +25,8 @@ type BookData = {
   activity: Activity[];
   /** This wallet's issued name, e.g. alice.pangolin.eth. */
   name?: string;
+  /** Each site's network (chain id), as the dapp last switched it. */
+  chains?: Record<string, number>;
 };
 
 const KEY = 'book';
@@ -148,6 +150,15 @@ export const revokeBrowser = async (origin: string): Promise<void> => {
 export const myName = (): string | null => data?.name ?? null;
 export const setName = async (name: string): Promise<void> => {
   need().name = name;
+  await persist();
+};
+
+/** Every site's saved network. Empty while locked. */
+export const siteChains = (): Record<string, number> => ({ ...(data?.chains ?? {}) });
+
+export const saveSiteChain = async (origin: string, chainId: number): Promise<void> => {
+  if (!data) return;
+  data.chains = { ...(data.chains ?? {}), [origin]: chainId };
   await persist();
 };
 

@@ -1,8 +1,10 @@
 import type { CoreState } from '../shared/protocol';
-import { CHAIN_ID, WC_PROJECT_ID } from './config';
+import { CHAIN_ID, PRIVATE, WC_PROJECT_ID } from './config';
 
 export const state: CoreState = {
   vault: 'unknown',
+  privateNet: PRIVATE,
+  siteChains: {},
   unlockWith: null,
   chainId: CHAIN_ID,
   railgunAddress: null,
