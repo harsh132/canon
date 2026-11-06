@@ -68,6 +68,10 @@ const shieldKey = async (index: number): Promise<string> =>
 
 type Prepared = SendPlan & { run: () => Promise<string> };
 
+// A private send spends notes. Until it is mined and re-scanned, the engine
+// still sees them as unspent and would build a second proof over them.
+let settling: Promise<unknown> = Promise.resolve();
+
 const prepare = async (intent: SendIntent, u: Unlocked): Promise<Prepared> => {
   const to = intent.to.trim();
   const kind = kindOf(intent.from, to);
@@ -83,16 +87,17 @@ const prepare = async (intent: SendIntent, u: Unlocked): Promise<Prepared> => {
     await recordActivity(entry);
     state.activity = [entry, ...state.activity.filter((a) => a.id !== entry.id)];
     emit();
-    void sent.wait().then(
+    const settled = sent.wait().then(
       async (r) => {
         const done = { ...entry, status: r?.status === 1 ? ('done' as const) : ('failed' as const) };
         await recordActivity(done).catch(() => {});
         state.activity = state.activity.map((a) => (a.id === done.id ? done : a));
         emit();
-        if (kind !== 'send') void sync();
+        if (kind !== 'send') await sync();
       },
       () => {},
     );
+    if (kind === 'transfer' || kind === 'unshield') settling = settled;
     return sent.hash;
   };
 
@@ -135,6 +140,7 @@ const prepare = async (intent: SendIntent, u: Unlocked): Promise<Prepared> => {
 
     case 'transfer':
     case 'unshield': {
+      await settling;
       if (amount > spendable()) throw new Error('More than your spendable private balance');
       const id = currentWalletId();
       const og = await gasDetails(0n);
