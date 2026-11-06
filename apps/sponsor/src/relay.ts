@@ -16,6 +16,20 @@ const MAX_PER_HOUR = 60;
 
 const sent: number[] = [];
 
+/**
+ * Legacy gas price that RAILGUN accepts (>= the proof's minGasPrice) and the
+ * chain accepts (>= base fee). A node's eth_gasPrice can lag the base fee (seen
+ * on Sepolia: 17 wei offered against an 18 wei base fee), so price from the
+ * latest block with 2x headroom plus a priority fee.
+ */
+export const priceFor = async (provider: NonNullable<Wallet['provider']>, minGasPrice: bigint): Promise<bigint> => {
+  const block = await provider.getBlock('latest');
+  const base = block?.baseFeePerGas ?? 0n;
+  const tip = BigInt(await (provider as unknown as { send: (m: string, p: unknown[]) => Promise<string> }).send('eth_maxPriorityFeePerGas', []).catch(() => '0x0'));
+  const price = base * 2n + tip;
+  return price > minGasPrice ? price : minGasPrice;
+};
+
 export class RelayError extends Error {
   constructor(public status: number, message: string) {
     super(message);
@@ -44,11 +58,9 @@ export const relay = async (
   if (sent.length >= MAX_PER_HOUR) throw new RelayError(429, 'Relay busy; try later');
 
   const provider = sponsor.provider!;
-  const network = (await provider.getFeeData()).gasPrice ?? minGasPrice;
-  // Legacy gas price: RAILGUN checks tx.gasprice >= the proof's minGasPrice.
-  const gasPrice = network > minGasPrice ? network : minGasPrice;
   // Simulate first, at the real gas price (the contract checks it): never pay for a revert.
   let gas: bigint;
+  const gasPrice = await priceFor(provider, minGasPrice);
   try {
     gas = await provider.estimateGas({ from: sponsor.address, to, data, gasPrice });
   } catch (e) {
