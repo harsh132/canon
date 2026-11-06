@@ -4,6 +4,7 @@
 //   bun scripts/e2e-sepolia.mjs status    sync and print private balance (spendable / pending)
 //   bun scripts/e2e-sepolia.mjs broadcasters  wait for Waku to find Sepolia broadcasters
 //   bun scripts/e2e-sepolia.mjs private   Send privately AMOUNT to TO (default alice.pangolin.eth) with VIA gas
+//   bun scripts/e2e-sepolia.mjs swap      private swap AMOUNT (default 0.001) WETH -> USDC on Uniswap v4
 //   bun scripts/e2e-sepolia.mjs name      claim LABEL.pangolin.eth, then pay it from Main by name
 //   bun scripts/e2e-sepolia.mjs spend     Send privately 0.002 to self
 //   bun scripts/e2e-sepolia.mjs public    Make public 0.002 to Main (after the new notes clear POI)
@@ -174,6 +175,32 @@ if (phase === 'setup') {
     const b = await balances();
     log(`+${Math.round((Date.now() - t1) / 60000)}m`, b);
     if (b.pending === '0' || b.pending === '0.0000') break;
+  }
+} else if (phase === 'swap') {
+  // Private swap WETH -> USDC on Uniswap v4 through Relay Adapt, sponsor paying gas.
+  const amount = process.env.AMOUNT ?? '0.001';
+  log('before:', await balances());
+  await click('^swap$');
+  await waitText('Uniswap v4');
+  const input = await popup.$('input[inputmode=decimal]');
+  await input.type(amount);
+  await click('^quote$');
+  await waitText('Swap privately', 120000);
+  log('review:', (await text()).match(/THIS WILL.*?(?=SWAP PRIVATELY)/i)?.[0]?.slice(0, 260));
+  const started = Date.now();
+  await click('^swap privately$');
+  await popup.waitForFunction(() => /submitted|error|failed|more than|revert/i.test(document.body.innerText), { timeout: 900000, polling: 1000 });
+  const after = await text();
+  if (!/submitted/i.test(after)) throw new Error(`swap failed: ${after.slice(0, 300)}`);
+  log(`swap submitted in ${Math.round((Date.now() - started) / 1000)}s`, await popup.evaluate(() => document.querySelector('a[href*="etherscan"]')?.href));
+  await click('^done$');
+  // Stay open: the wallet submits the swap's POIs in the background.
+  for (let i = 0; i < 20; i += 1) {
+    await new Promise((r) => setTimeout(r, 60_000));
+    await resync();
+    const t = await text();
+    log(`+${i + 1}m`, await balances(), 'USDC row:', t.match(/USDC [\d.]+[^A-Z]*/)?.[0] ?? '—');
+    if (/USDC [\d.]+/.test(t) && !/PENDING/i.test(t.match(/USDC.{0,40}/)?.[0] ?? '')) break;
   }
 } else if (phase === 'broadcasters') {
   // Waku discovery takes a while; read the Privacy screen until one shows up.
