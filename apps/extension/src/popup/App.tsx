@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useCore } from './client';
-import { Onboard } from './screens/Onboard';
+import { Backup, Onboard } from './screens/Onboard';
 import { Unlock } from './screens/Unlock';
 import { Home } from './screens/Home';
 import { Send } from './screens/Send';
@@ -21,9 +21,12 @@ const NAV: { tab: Tab; label: string }[] = [
 export const App = () => {
   const s = useCore();
   const [tab, setTab] = useState<Tab>('home');
+  // Held here, not in Onboard: the vault flips to unlocked before the phrase is acknowledged.
+  const [backup, setBackup] = useState<string | null>(null);
 
   if (!s) return <div className="grid h-[600px] place-items-center"><span className="slug">Starting</span></div>;
-  if (s.vault === 'none') return <Onboard />;
+  if (backup) return <Backup phrase={backup} onDone={() => setBackup(null)} />;
+  if (s.vault === 'none') return <Onboard onBackup={setBackup} />;
   if (s.wc.proposal) return <ConnectPrompt s={s} />;
   if (s.vault === 'locked') return <Unlock s={s} />;
   if (s.wc.request) return <RequestPrompt s={s} />;

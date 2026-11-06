@@ -2,22 +2,19 @@ import { useState } from 'react';
 import { call, useAction } from '../client';
 import { Button, Card, ErrorLine, Field, Header, Input, Slug } from '../ui';
 
-export const Onboard = () => {
+export const Onboard = ({ onBackup }: { onBackup: (phrase: string) => void }) => {
   const [mode, setMode] = useState<'create' | 'import'>('create');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [phrase, setPhrase] = useState('');
-  const [backup, setBackup] = useState<string | null>(null);
   const a = useAction();
-
-  if (backup) return <Backup phrase={backup} onDone={() => setBackup(null)} />;
 
   const submit = () =>
     a.run(async () => {
       if (password !== confirm) throw new Error('Passwords differ');
       if (mode === 'create') {
         const { mnemonic } = await call('vault.create', { password });
-        setBackup(mnemonic);
+        onBackup(mnemonic);
       } else {
         await call('vault.import', { password, mnemonic: phrase });
       }
@@ -60,7 +57,7 @@ export const Onboard = () => {
   );
 };
 
-const Backup = ({ phrase, onDone }: { phrase: string; onDone: () => void }) => (
+export const Backup = ({ phrase, onDone }: { phrase: string; onDone: () => void }) => (
   <div className="flex min-h-[600px] flex-col">
     <Header title="Recovery phrase" />
     <div className="flex flex-1 flex-col gap-4 px-[18px] pt-4">
