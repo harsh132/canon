@@ -35,7 +35,7 @@ const stretch = async (password: string, salt: Uint8Array<ArrayBuffer>, iteratio
   const bits = new Uint8Array(
     await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt, iterations }, base, 96 * 8),
   );
-  const aes = (slice: Uint8Array) =>
+  const aes = (slice: Uint8Array<ArrayBuffer>) =>
     crypto.subtle.importKey('raw', slice, 'AES-GCM', false, ['encrypt', 'decrypt']);
   return {
     vaultKey: await aes(bits.slice(0, 32)),
