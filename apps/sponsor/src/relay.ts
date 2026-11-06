@@ -5,10 +5,13 @@
 //
 // Testnet only as written: no fee is charged, so abuse is held back by caps.
 // A mainnet version must take a fee in private tokens that covers gas.
-import type { Wallet } from 'ethers';
+import { Signature, getAddress, verifyAuthorization, type Wallet } from 'ethers';
 
 // RAILGUN proxy and Relay Adapt on Sepolia (shared-models NETWORK_CONFIG).
 const ALLOWED_TO = new Set(['0xecfcf3b4ec647c4ca6d49108b311b7a7c9543fea', '0x7e3d929ebd5bdc84d02bd3205c777578f33a214d']);
+// RAILGUN's EIP-7702 Relay Adapt on Sepolia. The SDK sends base-token unshields
+// to a one-off ephemeral address that delegates to it in the same transaction.
+const RELAY_ADAPT_7702 = '0x05ae73c5925d843864ae6F261f3175De2ebCd963';
 const CHAIN_ID = 11155111;
 const MAX_GAS = 4_000_000n;
 const MAX_MIN_GAS_PRICE = 100_000_000_000n; // 100 gwei
@@ -38,11 +41,32 @@ export class RelayError extends Error {
 
 export const relay = async (
   sponsor: Wallet,
-  body: { chainId?: number; to?: string; data?: string; minGasPrice?: string },
+  body: {
+    chainId?: number;
+    to?: string;
+    data?: string;
+    minGasPrice?: string;
+    authorizationList?: { address: string; chainId: string; nonce: string; r: string; s: string; yParity: string }[];
+  },
 ): Promise<{ hash: string; gasLimit: string }> => {
   if (body.chainId !== CHAIN_ID) throw new RelayError(400, 'Sepolia only');
   const to = String(body.to ?? '').toLowerCase();
-  if (!ALLOWED_TO.has(to)) throw new RelayError(400, 'Only RAILGUN contracts');
+  const provider = sponsor.provider!;
+  // Either a RAILGUN contract, or an ephemeral that brings its own authorization
+  // to RelayAdapt7702, signed by itself, so the code that runs is RAILGUN's.
+  let authorizationList: { address: string; nonce: bigint; chainId: bigint; signature: Signature }[] | undefined;
+  if (!ALLOWED_TO.has(to)) {
+    const list = body.authorizationList ?? [];
+    if (list.length !== 1) throw new RelayError(400, 'Only RAILGUN contracts');
+    const a = list[0];
+    const auth = { address: getAddress(a.address), nonce: BigInt(a.nonce), chainId: BigInt(a.chainId) };
+    if (auth.address !== getAddress(RELAY_ADAPT_7702) || auth.chainId !== BigInt(CHAIN_ID)) throw new RelayError(400, 'Only RelayAdapt7702 authorizations');
+    const signature = Signature.from({ r: a.r, s: a.s, yParity: Number(a.yParity) as 0 | 1 });
+    if (getAddress(verifyAuthorization(auth, signature)) !== getAddress(to)) throw new RelayError(400, 'Authorization not signed by the target');
+    const code = (await provider.getCode(to)).toLowerCase();
+    if (code !== '0x' && code !== `0xef0100${RELAY_ADAPT_7702.slice(2).toLowerCase()}`) throw new RelayError(400, 'Target has other code');
+    authorizationList = [{ ...auth, signature }];
+  }
   const data = String(body.data ?? '');
   if (!/^0x[0-9a-f]+$/i.test(data) || data.length < 10) throw new RelayError(400, 'Bad calldata');
   let minGasPrice: bigint;
@@ -57,19 +81,23 @@ export const relay = async (
   while (sent.length && sent[0] < now - 3_600_000) sent.shift();
   if (sent.length >= MAX_PER_HOUR) throw new RelayError(429, 'Relay busy; try later');
 
-  const provider = sponsor.provider!;
   // Simulate first, at the real gas price (the contract checks it): never pay for a revert.
   let gas: bigint;
   const gasPrice = await priceFor(provider, minGasPrice);
+  // Type 4 is EIP-1559 priced. Tip = cap, so the effective price is exactly gasPrice,
+  // which RAILGUN checks against the proof's minimum.
+  const priced = authorizationList
+    ? { type: 4, authorizationList, maxFeePerGas: gasPrice, maxPriorityFeePerGas: gasPrice }
+    : { type: 0, gasPrice };
   try {
-    gas = await provider.estimateGas({ from: sponsor.address, to, data, gasPrice });
+    gas = await provider.estimateGas({ from: sponsor.address, to, data, ...priced });
   } catch (e) {
     throw new RelayError(400, `Would revert: ${((e as { shortMessage?: string }).shortMessage ?? (e as Error).message).slice(0, 160)}`);
   }
   if (gas > MAX_GAS) throw new RelayError(400, 'Too much gas');
 
   const gasLimit = (gas * 12n) / 10n;
-  const tx = await sponsor.sendTransaction({ to, data, gasLimit, gasPrice, type: 0 });
+  const tx = await sponsor.sendTransaction({ to, data, gasLimit, ...priced });
   sent.push(now);
   return { hash: tx.hash, gasLimit: gasLimit.toString() };
 };
