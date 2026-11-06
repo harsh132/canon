@@ -8,10 +8,10 @@ import puppeteer from 'puppeteer-core';
 
 const app = join(dirname(fileURLToPath(import.meta.url)), '..');
 const dist = join(app, 'dist');
-const profile = process.env.PANGOLIN_PROFILE ?? join(app, '.cache', 'profile');
-mkdirSync(profile, { recursive: true });
-
 export const launch = async ({ headful = process.argv.includes('--headful') } = {}) => {
+  // Read at call time: importers may set it after this module has loaded.
+  const profile = process.env.PANGOLIN_PROFILE ?? join(app, '.cache', 'profile');
+  mkdirSync(profile, { recursive: true });
   const browser = await puppeteer.launch({
     executablePath: process.env.CHROME ?? '/usr/bin/chromium',
     headless: !headful,
