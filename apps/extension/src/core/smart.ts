@@ -12,7 +12,8 @@
 // CALIBUR. Dapp-requested delegations are still refused (sign.ts). Calls back
 // into the account itself or to address(0) are refused: as the root key they
 // could register new keys on the account.
-import { AbiCoder, Contract, ZeroHash, getAddress, zeroPadValue, type HDNodeWallet } from 'ethers';
+import { AbiCoder, Contract, ZeroHash, getAddress, zeroPadValue } from 'ethers';
+import type { AccountSigner } from './book';
 import { SEPOLIA_ID, sepolia } from './config';
 import { privateFetch } from './transport';
 
@@ -70,7 +71,7 @@ const checkCalls = (account: string, calls: Call[]): void => {
  * Returns the transaction hash. Delegates the address to Calibur first if needed,
  * in the same transaction.
  */
-export const sponsoredExecute = async (signer: HDNodeWallet, calls: Call[]): Promise<string> => {
+export const sponsoredExecute = async (signer: AccountSigner, calls: Call[]): Promise<string> => {
   const account = signer.address;
   checkCalls(account, calls);
   const provider = sepolia();

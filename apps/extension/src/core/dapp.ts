@@ -5,7 +5,7 @@
 import type { WcProposalView, WcRequestView } from '../shared/protocol';
 import { DAPP_PORT_NAME } from '../shared/protocol';
 import { decode, encode } from '../shared/codec';
-import { accounts, bind, bindingFor, bindings, createAccount, isSiteAccount, previewAccount, revokeBrowser, saveSiteChain, signerFor, siteChains } from './book';
+import { accounts, bind, bindingFor, bindings, createAccount, isSiteAccount, prefetchPreview, previewAccount, revokeBrowser, saveSiteChain, signerFor, siteChains } from './book';
 import { SEPOLIA_ID, hexChain, netOf, providerFor, sepolia } from './config';
 import { dappKeyFor } from './dapp-origin';
 import { RpcError, SIGN_METHODS, execute, isDelegation, summarize } from './sign';
@@ -239,6 +239,7 @@ export const proposalView = (): WcProposalView | null => {
     const pick = chosen ?? (bound && accounts().some((a) => a.index === bound.index) ? bound.index : 'new');
     if (pick === 'new') {
       const next = previewAccount(item.origin);
+      prefetchPreview(item.origin, changed);
       account = { index: next.index, address: next.address, label: hostOf(item.origin).slice(0, 32), isNew: true };
     } else {
       const rec = accounts().find((a) => a.index === pick);
@@ -323,7 +324,9 @@ export const approveRequest = async (): Promise<void> => {
   try {
     item.resolve(await execute(view.account.index, item.method, item.params, view.dapp, item.chainId));
   } catch (e) {
-    item.reject(e instanceof RpcError ? e : new RpcError(-32603, (e as Error).message));
+    // A press of reject on the hardware wallet is the user's reject: 4001, like ours.
+    const code = e instanceof RpcError ? e.code : (e as { code?: unknown }).code === 4001 ? 4001 : -32603;
+    item.reject(e instanceof RpcError ? e : new RpcError(code, (e as Error).message));
   }
   changed();
 };

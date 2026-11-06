@@ -15,7 +15,7 @@ import { EVMGasType, TXIDVersion, calculateGasPrice, type TransactionGasDetails 
 import { getAddress, keccak256, parseEther, type TransactionRequest } from 'ethers';
 import type { SendIntent, SendKind, SendPlan } from '../shared/protocol';
 import { isHexAddress, isZk } from '../shared/format';
-import { recordActivity, signerFor } from './book';
+import { recordActivity, signerFor, isHardware } from './book';
 import { NETWORK, WETH, getProvider } from './config';
 import { currentWalletId, spendable, sync } from './railgun';
 import { pickBroadcaster, submitViaBroadcaster } from './broadcaster';
@@ -81,6 +81,8 @@ const prepare = async (intent: SendIntent, u: Unlocked): Promise<Prepared> => {
   const resolved = isName(typed) ? await resolveName(typed) : null;
   const to = resolved?.address ?? typed;
   const kind = kindOf(intent.from, to);
+  // RAILGUN unshields ETH through RelayAdapt7702, whose throwaway keys would have to live on the device.
+  if (kind === 'unshield' && intent.from === 'private' && isHardware()) throw new Error('Making ETH public is not supported on a hardware wallet yet');
   const amount = parseAmount(intent.amount);
   const gasFrom = intent.from === 'private' ? (intent.gasFrom ?? 0) : intent.from;
   const payer = signerFor(gasFrom).connect(getProvider());

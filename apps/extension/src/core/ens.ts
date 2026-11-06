@@ -2,7 +2,7 @@
 // unfunded identity address, with an org.railgun record holding the 0zk.
 // Every lookup goes through the core's provider, so through Nox.
 import { AbiCoder, Contract, Interface, dnsEncode, getAddress, namehash } from 'ethers';
-import { createAccount, previewAccount, setName, signerFor, accounts } from './book';
+import { createAccount, ensurePreview, setName, signerFor, accounts } from './book';
 import { sepolia } from './config';
 import { privateFetch } from './transport';
 import { emit, state } from './state';
@@ -23,7 +23,7 @@ export const isName = (s: string): boolean => /^[a-z0-9-]+(\.[a-z0-9-]+)*\.eth$/
 const identity = async () => {
   const existing = accounts().find((a) => a.label === 'Name owner');
   if (existing) return signerFor(existing.index).address;
-  const spot = previewAccount(PARENT);
+  const spot = await ensurePreview(PARENT);
   await createAccount('Name owner', spot);
   return spot.address;
 };

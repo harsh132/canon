@@ -41,8 +41,9 @@ export const encodeFrame = (msg: HwRequest | HwResponse): Uint8Array => {
 };
 
 /**
- * Pulls whole frames out of a byte stream. Bytes before a magic header are
- * skipped, so stray output on the port cannot wedge the parser.
+ * Pulls whole frames out of a byte stream. The device's log lines and console
+ * output share the port, so anything that is not a frame is skipped, and a bad
+ * CRC resyncs one byte later.
  */
 export class FrameReader {
   #buf = new Uint8Array(0);
@@ -70,8 +71,13 @@ export class FrameReader {
       if (this.#buf.length < HEADER + len + TRAILER) return out;
       const json = this.#buf.slice(HEADER, HEADER + len);
       const crc = new DataView(this.#buf.buffer, this.#buf.byteOffset).getUint32(HEADER + len, true);
+      if (crc !== crc32(json)) {
+        // Not a real frame (or a damaged one): skip one byte and rescan, so a real
+        // frame inside the bytes we would have consumed is still found.
+        this.#buf = this.#buf.slice(1);
+        continue;
+      }
       this.#buf = this.#buf.slice(HEADER + len + TRAILER);
-      if (crc !== crc32(json)) continue;
       try {
         out.push(JSON.parse(new TextDecoder().decode(json)));
       } catch {

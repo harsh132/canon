@@ -9,7 +9,9 @@ import { bootEngine, closeRailgunWallet, openRailgunWallet, sync } from './railg
 import { executeSend, planSend } from './send';
 import { emit, onState, state } from './state';
 import {
+  createHardwareVault,
   createPasskeyVault,
+  unlockHardwareVault,
   createVault,
   newMnemonic,
   normaliseMnemonic,
@@ -29,6 +31,8 @@ import { fundSite } from './fund';
 import { executeSwap, quoteSwap } from './swap';
 import { Contract, parseEther } from 'ethers';
 import { FORK } from './config';
+import { deviceRequest } from './hw/device';
+import { accountPath } from './vault';
 
 let session: Unlocked | null = null;
 let lockTimer: ReturnType<typeof setTimeout> | null = null;
@@ -143,8 +147,24 @@ const handlers: Handlers = {
     await afterUnlock(await unlockPasskeyVault(prf), false);
     return null;
   },
+  'vault.hardware': async () => {
+    if (await vaultExists()) throw new Error('A wallet already exists');
+    // Three approvals on the device: the viewing key, Main's address, and the vault key.
+    const { shareableViewingKey } = await deviceRequest<{ shareableViewingKey: string }>('getViewingKey', { account: 0 }, 'Let Pangolin see your private balance');
+    const { addresses } = await deviceRequest<{ addresses: string[] }>('getAddresses', { paths: [accountPath(0)] }, 'Share addresses with Pangolin');
+    const { signature } = await deviceRequest<{ signature: string }>('vaultKey', {}, 'Unlock Pangolin');
+    // The device may hold an existing wallet, so RAILGUN scans from deployment.
+    await afterUnlock(await createHardwareVault(signature, { shareableViewingKey, mainAddress: addresses[0] }), true);
+    return null;
+  },
+  'vault.unlockHardware': async () => {
+    const { signature } = await deviceRequest<{ signature: string }>('vaultKey', {}, 'Unlock Pangolin');
+    await afterUnlock(await unlockHardwareVault(signature), false);
+    return null;
+  },
   'vault.reveal': async ({ password, prf }) => {
     need();
+    if (session?.hardware) throw new Error('The recovery phrase stays on your device');
     // Checked against the stored vault, not the open session: being unlocked is not enough.
     const u = prf ? await unlockPasskeyVault(prf) : await unlockVault(password ?? '');
     return { mnemonic: u.mnemonic };

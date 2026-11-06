@@ -1,4 +1,6 @@
 import type { HDNodeWallet } from 'ethers';
+import { DeviceSigner } from './hw/signer';
+import { deviceRequest } from './hw/device';
 import type { Activity, Verification } from '../shared/protocol';
 import { store } from './store';
 import { ALL_CHAINS, accountPath, appPath, dappPurposeId, deriveAt, open, seal, type Unlocked } from './vault';
@@ -8,7 +10,9 @@ import { ALL_CHAINS, accountPath, appPath, dappPurposeId, deriveAt, open, seal, 
 // per-dapp addresses exist to prevent.
 
 /** `index` is the book's own id for the account; `path` is where its key lives. */
-export type AccountRecord = { index: number; label: string; createdAt: number; path: string };
+export type AccountRecord = { index: number; label: string; createdAt: number; path: string; /** Hardware wallets: the address the device reported for `path`. */ address?: string };
+/** A software key or one on the hardware wallet; both sign the same way. */
+export type AccountSigner = HDNodeWallet | DeviceSigner;
 export type Binding = {
   index: number;
   name: string | null;
@@ -33,16 +37,19 @@ const KEY = 'book';
 
 let session: Unlocked | null = null;
 let data: BookData | null = null;
-const signers = new Map<number, HDNodeWallet>();
+const signers = new Map<number, AccountSigner>();
+/** Hardware wallets: path → address, as the device reported it this session. */
+const addresses = new Map<string, string>();
 
 export const loadBook = async (unlocked: Unlocked): Promise<void> => {
   session = unlocked;
   const sealed = await store.getItem<{ iv: string; data: string }>(KEY);
   data = sealed
     ? await open<BookData>(unlocked.bookKey, sealed)
-    : { accounts: [{ index: 0, label: 'Main', createdAt: Date.now(), path: accountPath(0) }], bindings: {}, activity: [] };
+    : { accounts: [{ index: 0, label: 'Main', createdAt: Date.now(), path: accountPath(0), address: unlocked.hardware?.mainAddress }], bindings: {}, activity: [] };
   // Books written before paths were stored used the standard path by index.
   for (const a of data.accounts) a.path ??= accountPath(a.index);
+  for (const a of data.accounts) if (a.address) addresses.set(a.path, a.address);
   if (!sealed) await persist();
 };
 
@@ -50,6 +57,7 @@ export const closeBook = (): void => {
   session = null;
   data = null;
   signers.clear();
+  addresses.clear();
 };
 
 const persist = async (): Promise<void> => {
@@ -62,16 +70,51 @@ const need = (): BookData => {
   return data;
 };
 
-export const signerFor = (index: number): HDNodeWallet => {
+export const signerFor = (index: number): AccountSigner => {
   if (!session) throw new Error('Wallet is locked');
   let s = signers.get(index);
   if (!s) {
     const rec = data?.accounts.find((a) => a.index === index);
     if (!rec) throw new Error(`No account ${index}`);
-    s = deriveAt(session.mnemonic, rec.path);
+    if (session.hardware) {
+      const address = rec.address ?? addresses.get(rec.path);
+      if (!address) throw new Error('Address not read from the device yet');
+      s = new DeviceSigner(address, rec.path);
+    } else {
+      s = deriveAt(session.mnemonic, rec.path);
+    }
     signers.set(index, s);
   }
   return s;
+};
+
+export const isHardware = (): boolean => !!session?.hardware;
+
+/** Hardware wallets: read addresses for these paths from the device, once each. */
+export const ensureAddresses = async (paths: string[]): Promise<void> => {
+  if (!session?.hardware) return;
+  const missing = paths.filter((p) => !addresses.has(p));
+  if (!missing.length) return;
+  const { addresses: got } = await deviceRequest<{ addresses: string[] }>('getAddresses', { paths: missing }, 'Share addresses with Pangolin');
+  missing.forEach((p, i) => addresses.set(p, got[i]));
+};
+
+const fetching = new Set<string>();
+/** Hardware wallets: start reading a preview's address; `then` runs when it arrives. */
+export const prefetchPreview = (dappKey: string | null | undefined, then: () => void): void => {
+  if (!session?.hardware) return;
+  const { path, address } = previewAccount(dappKey);
+  if (address || fetching.has(path)) return;
+  fetching.add(path);
+  void ensureAddresses([path])
+    .then(then, () => {})
+    .finally(() => fetching.delete(path));
+};
+
+/** previewAccount, after making sure the device has reported its address. */
+export const ensurePreview = async (dappKey?: string | null) => {
+  if (session?.hardware) await ensureAddresses([previewAccount(dappKey).path]);
+  return previewAccount(dappKey);
 };
 
 /**
@@ -88,7 +131,8 @@ export const previewAccount = (dappKey?: string | null): { index: number; path: 
   const pathFor = (n: number) => (purpose != null ? appPath(ALL_CHAINS, purpose, n) : accountPath(n));
   while (paths.has(pathFor(i))) i += 1;
   const path = pathFor(i);
-  return { index: nextIndex(), path, address: deriveAt(session.mnemonic, path).address };
+  const address = session.hardware ? (addresses.get(path) ?? '') : deriveAt(session.mnemonic, path).address;
+  return { index: nextIndex(), path, address };
 };
 
 /** The derivation path of an account in the book. */
@@ -120,7 +164,8 @@ export const createAccount = async (label: string, at: { index: number; path: st
   const existing = book.accounts.find((a) => a.index === at.index || a.path === at.path);
   if (existing) return existing;
   const index = at.index;
-  const record = { index, path: at.path, label: label.trim().slice(0, 32) || `Account ${index + 1}`, createdAt: Date.now() };
+  if (session?.hardware) await ensureAddresses([at.path]);
+  const record: AccountRecord = { index, path: at.path, label: label.trim().slice(0, 32) || `Account ${index + 1}`, createdAt: Date.now(), ...(session?.hardware ? { address: addresses.get(at.path) } : {}) };
   book.accounts.push(record);
   await persist();
   return record;

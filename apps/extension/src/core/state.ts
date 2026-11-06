@@ -4,6 +4,7 @@ import { CHAIN_ID, PRIVATE, WC_PROJECT_ID } from './config';
 export const state: CoreState = {
   vault: 'unknown',
   privateNet: PRIVATE,
+  device: { connected: false, waiting: null },
   siteChains: {},
   unlockWith: null,
   chainId: CHAIN_ID,

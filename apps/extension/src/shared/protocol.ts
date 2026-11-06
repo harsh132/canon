@@ -102,12 +102,14 @@ export type RpcState = {
 
 export type CoreState = {
   vault: VaultStatus;
+  /** The hardware wallet: connected, and what it is waiting for the user to approve. */
+  device: { connected: boolean; waiting: string | null };
   /** RAILGUN's network for this core session. */
   privateNet: 'sepolia' | 'arbitrum';
   /** Each known site's network (chain id). */
   siteChains: Record<string, number>;
   /** How the wallet on this device unlocks; null before one exists. */
-  unlockWith: { kind: 'phrase' | 'passkey'; credentialId: string | null } | null;
+  unlockWith: { kind: 'phrase' | 'passkey' | 'hardware'; credentialId: string | null } | null;
   chainId: number;
   railgunAddress: string | null;
   /** This wallet's name, if claimed. */
@@ -172,6 +174,9 @@ export type Commands = {
   /** A passkey wallet from the passkey's PRF output; `existing` restores one (full rescan). */
   'vault.passkey': { params: { prf: string; credentialId: string; existing: boolean }; result: { mnemonic: string } };
   'vault.unlockPasskey': { params: { prf: string }; result: null };
+  /** A hardware wallet: viewing key, Main's address and the vault key, each approved on the device. */
+  'vault.hardware': { params: null; result: null };
+  'vault.unlockHardware': { params: null; result: null };
   /** The recovery phrase, after the password or passkey is checked again. */
   'vault.reveal': { params: { password?: string; prf?: string }; result: { mnemonic: string } };
   'vault.lock': { params: null; result: null };

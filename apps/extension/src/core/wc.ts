@@ -2,7 +2,7 @@ import { Core } from '@walletconnect/core';
 import { WalletKit, type IWalletKit, type WalletKitTypes } from '@reown/walletkit';
 import { buildApprovedNamespaces, getSdkError } from '@walletconnect/utils';
 import type { Verification, WcProposalView, WcRequestView } from '../shared/protocol';
-import { bind, bindingFor, createAccount, indexOfAddress, previewAccount, signerFor, accounts } from './book';
+import { bind, bindingFor, createAccount, indexOfAddress, prefetchPreview, previewAccount, signerFor, accounts } from './book';
 import { SIGN_METHODS, execute, isDelegation, summarize } from './sign';
 import { DEV, NETS, SEPOLIA_ID, WC_PROJECT_ID, netOf } from './config';
 
@@ -76,6 +76,7 @@ const proposalView = (): WcProposalView | null => {
     const pick = chosen ?? (bound && accounts().some((a) => a.index === bound.index) ? bound.index : id.key ? 'new' : 0);
     if (pick === 'new' && id.key) {
       const next = previewAccount(id.key);
+      prefetchPreview(id.key, () => refreshWc());
       account = { index: next.index, address: next.address, label: id.name.slice(0, 32), isNew: true };
     } else {
       const rec = accounts().find((a) => a.index === pick);
@@ -246,7 +247,17 @@ export const approveRequest = async (): Promise<void> => {
   if (!r || !view) throw new Error('Nothing to approve');
   if (!view.account) throw new Error('Unlock first');
   const { method, params } = r.params.request as { method: string; params: unknown[] };
-  const result = await execute(view.account.index, method, params, view.dapp, chainIdOf(r.params.chainId));
+  let result: unknown;
+  try {
+    result = await execute(view.account.index, method, params, view.dapp, chainIdOf(r.params.chainId));
+  } catch (e) {
+    // Rejected on the hardware wallet: answer the dapp as a user reject.
+    if ((e as { code?: unknown }).code !== 4001) throw e;
+    requests.shift();
+    await respondError(r, 4001, 'Rejected on device');
+    refreshWc();
+    return;
+  }
   await k.respondSessionRequest({ topic: r.topic, response: { id: r.id, jsonrpc: '2.0', result } });
   requests.shift();
   refreshWc();
