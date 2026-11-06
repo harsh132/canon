@@ -3,7 +3,7 @@
 
 export const PORT_NAME = 'pangolin-popup';
 /** What kind of UI a port belongs to: `${PORT_NAME}:${UiKind}`. */
-export type UiKind = 'panel' | 'popup' | 'window';
+export type UiKind = 'panel' | 'popup' | 'window' | 'tab';
 export const DAPP_PORT_NAME = 'pangolin-dapp';
 
 /** 'unknown' until the core has read storage; the popup must not offer onboarding before then. */
@@ -98,6 +98,8 @@ export type RpcState = {
 
 export type CoreState = {
   vault: VaultStatus;
+  /** How the wallet on this device unlocks; null before one exists. */
+  unlockWith: { kind: 'phrase' | 'passkey'; credentialId: string | null } | null;
   chainId: number;
   railgunAddress: string | null;
   /** This wallet's name, if claimed. */
@@ -159,6 +161,9 @@ export type Commands = {
   'vault.create': { params: { password: string }; result: { mnemonic: string } };
   'vault.import': { params: { password: string; mnemonic: string }; result: null };
   'vault.unlock': { params: { password: string }; result: null };
+  /** A passkey wallet from the passkey's PRF output; `existing` restores one (full rescan). */
+  'vault.passkey': { params: { prf: string; credentialId: string; existing: boolean }; result: { mnemonic: string } };
+  'vault.unlockPasskey': { params: { prf: string }; result: null };
   'vault.lock': { params: null; result: null };
   'vault.reset': { params: null; result: null };
   'railgun.sync': { params: null; result: null };

@@ -4,9 +4,19 @@ import { store } from './store';
 // One mnemonic, encrypted with a key stretched from the password.
 // The same stretch yields the RAILGUN encryption key and the key for the
 // account book, so nothing but ciphertext is ever at rest.
+//
+// Passkey wallets: the passkey's WebAuthn PRF output (32 bytes, the same on
+// every device the passkey syncs to) is the wallet. HKDF turns it into the
+// mnemonic's entropy and, separately, the same three keys. No password.
+
+export type VaultKind = 'phrase' | 'passkey';
 
 type VaultRecord = {
   v: 1;
+  /** Absent on vaults made before passkeys: a phrase vault. */
+  kind?: VaultKind;
+  /** Passkey vaults: the credential to ask for on unlock (base64url). */
+  credentialId?: string;
   salt: string;
   iv: string;
   data: string;
@@ -35,14 +45,29 @@ const stretch = async (password: string, salt: Uint8Array<ArrayBuffer>, iteratio
   const bits = new Uint8Array(
     await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt, iterations }, base, 96 * 8),
   );
+  return keysFrom(bits);
+};
+
+const keysFrom = async (bits: Uint8Array<ArrayBuffer>) => {
   const aes = (slice: Uint8Array<ArrayBuffer>) =>
     crypto.subtle.importKey('raw', slice, 'AES-GCM', false, ['encrypt', 'decrypt']);
-  return {
-    vaultKey: await aes(bits.slice(0, 32)),
-    railgunKey: hex(bits.slice(32, 64)),
-    bookKey: await aes(bits.slice(64, 96)),
-  };
+  return { vaultKey: await aes(bits.slice(0, 32)), railgunKey: hex(bits.slice(32, 64)), bookKey: await aes(bits.slice(64, 96)) };
 };
+
+const hkdf = async (secret: Uint8Array<ArrayBuffer>, info: string, bytes: number): Promise<Uint8Array<ArrayBuffer>> => {
+  const base = await crypto.subtle.importKey('raw', secret, 'HKDF', false, ['deriveBits']);
+  const salt = new TextEncoder().encode('pangolin');
+  return new Uint8Array(await crypto.subtle.deriveBits({ name: 'HKDF', hash: 'SHA-256', salt, info: new TextEncoder().encode(info) }, base, bytes * 8));
+};
+
+const prfBytes = (prfHex: string): Uint8Array<ArrayBuffer> => {
+  if (!/^[0-9a-f]{64}$/i.test(prfHex)) throw new Error('Passkey gave no wallet secret');
+  return Uint8Array.from(prfHex.match(/../g)!.map((b) => parseInt(b, 16)));
+};
+
+/** The wallet a passkey's PRF output stands for: a 12-word phrase. */
+export const passkeyMnemonic = async (prfHex: string): Promise<string> =>
+  Mnemonic.fromEntropy(await hkdf(prfBytes(prfHex), 'pangolin/wallet/v1', 16)).phrase;
 
 export const seal = async (key: CryptoKey, value: unknown): Promise<{ iv: string; data: string }> => {
   const iv = crypto.getRandomValues(new Uint8Array(12));
@@ -77,9 +102,39 @@ export const createVault = async (password: string, mnemonic: string): Promise<U
   return { mnemonic, railgunKey: keys.railgunKey, bookKey: keys.bookKey, record };
 };
 
+export const createPasskeyVault = async (prfHex: string, credentialId: string): Promise<Unlocked> => {
+  const mnemonic = await passkeyMnemonic(prfHex);
+  const keys = await keysFrom(await hkdf(prfBytes(prfHex), 'pangolin/vault/v1', 96));
+  const sealed = await seal(keys.vaultKey, { mnemonic });
+  const record: VaultRecord = { v: 1, kind: 'passkey', credentialId, salt: '', ...sealed, iterations: 0, railgunWalletId: null };
+  await store.setItem(KEY, record);
+  return { mnemonic, railgunKey: keys.railgunKey, bookKey: keys.bookKey, record };
+};
+
+export const unlockPasskeyVault = async (prfHex: string): Promise<Unlocked> => {
+  const record = await store.getItem<VaultRecord>(KEY);
+  if (!record) throw new Error('No wallet on this device');
+  if (record.kind !== 'passkey') throw new Error('This wallet uses a password');
+  const keys = await keysFrom(await hkdf(prfBytes(prfHex), 'pangolin/vault/v1', 96));
+  let mnemonic: string;
+  try {
+    ({ mnemonic } = await open<{ mnemonic: string }>(keys.vaultKey, record));
+  } catch {
+    throw new Error('Not this wallet\'s passkey');
+  }
+  return { mnemonic, railgunKey: keys.railgunKey, bookKey: keys.bookKey, record };
+};
+
+/** How this device's wallet unlocks, for the unlock screen. */
+export const vaultInfo = async (): Promise<{ kind: VaultKind; credentialId: string | null } | null> => {
+  const record = await store.getItem<VaultRecord>(KEY);
+  return record ? { kind: record.kind ?? 'phrase', credentialId: record.credentialId ?? null } : null;
+};
+
 export const unlockVault = async (password: string): Promise<Unlocked> => {
   const record = await store.getItem<VaultRecord>(KEY);
   if (!record) throw new Error('No wallet on this device');
+  if (record.kind === 'passkey') throw new Error('This wallet unlocks with its passkey');
   const keys = await stretch(password, unb64(record.salt), record.iterations);
   let mnemonic: string;
   try {

@@ -8,7 +8,18 @@ import { AUTO_LOCK_MS, DEV, WETH, getProvider } from './config';
 import { bootEngine, closeRailgunWallet, openRailgunWallet, sync } from './railgun';
 import { executeSend, planSend } from './send';
 import { emit, onState, state } from './state';
-import { createVault, newMnemonic, normaliseMnemonic, unlockVault, vaultExists, wipeVault, type Unlocked } from './vault';
+import {
+  createPasskeyVault,
+  createVault,
+  newMnemonic,
+  normaliseMnemonic,
+  unlockPasskeyVault,
+  unlockVault,
+  vaultExists,
+  vaultInfo,
+  wipeVault,
+  type Unlocked,
+} from './vault';
 import * as wc from './wc';
 import * as browser from './dapp';
 import { installTransport, setRpcMode } from './transport';
@@ -64,6 +75,7 @@ const lock = (): void => {
 
 const afterUnlock = async (u: Unlocked, imported: boolean): Promise<void> => {
   session = u;
+  state.unlockWith = await vaultInfo();
   await loadBook(u);
   state.vault = 'unlocked';
   rebuildAccounts();
@@ -115,6 +127,16 @@ const handlers: Handlers = {
     await afterUnlock(await unlockVault(password), false);
     return null;
   },
+  'vault.passkey': async ({ prf, credentialId, existing }) => {
+    if (await vaultExists()) throw new Error('A wallet already exists');
+    const u = await createPasskeyVault(prf, credentialId);
+    await afterUnlock(u, existing);
+    return { mnemonic: u.mnemonic };
+  },
+  'vault.unlockPasskey': async ({ prf }) => {
+    await afterUnlock(await unlockPasskeyVault(prf), false);
+    return null;
+  },
   'vault.lock': async () => {
     lock();
     return null;
@@ -123,6 +145,7 @@ const handlers: Handlers = {
     lock();
     await wipeVault();
     state.vault = 'none';
+    state.unlockWith = null;
     emit();
     return null;
   },
@@ -241,7 +264,8 @@ const prompt = (windowId?: number) => {
 chrome.runtime.onConnect.addListener((port) => {
   if (!port.name.startsWith(PORT_NAME)) return;
   const kind = port.name.slice(PORT_NAME.length + 1) as UiKind;
-  if (kind !== 'panel') {
+  // The panel and the onboarding tab do not show prompts in full; only these do.
+  if (kind === 'popup' || kind === 'window') {
     openPrompts += 1;
     port.onDisconnect.addListener(() => {
       openPrompts -= 1;
@@ -297,6 +321,7 @@ void (async () => {
   // Before anything touches the network.
   await installTransport();
   state.vault = (await vaultExists()) ? 'locked' : 'none';
+  state.unlockWith = await vaultInfo();
   emit();
   void bootEngine().catch((e) => console.error('[core] engine', e));
   void wc.startWc();

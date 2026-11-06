@@ -3,6 +3,7 @@ import { CHAIN_ID, WC_PROJECT_ID } from './config';
 
 export const state: CoreState = {
   vault: 'unknown',
+  unlockWith: null,
   chainId: CHAIN_ID,
   railgunAddress: null,
   name: null,
