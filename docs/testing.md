@@ -7,6 +7,7 @@ End-to-end scripts in `apps/extension/scripts`. Each launches Chromium with `dis
 | `smoke.mjs` | The extension loads, the core boots, the popup renders | A build |
 | `e2e-create.mjs` | New wallet, backup screen, first RAILGUN sync | A build; network |
 | `e2e-fork.mjs` | Make private 1 ETH, Send privately 0.2, Make public 0.3 to a fresh address | Anvil fork and a fork build |
+| `e2e-injected.mjs` | EIP-6963, chain id, a read through Nox, connect, personal_sign, a second origin, reload keeps the address | A build; serves its own page on port 8791 |
 | `e2e-wc.mjs` | Two dapps get two addresses; personal_sign recovers to the right one; a reconnect keeps its address | A WalletConnect project id that allows the extension origin |
 
 ## Fork setup
@@ -28,6 +29,7 @@ PANGOLIN_PROFILE=$PWD/.cache/<new> bun scripts/e2e-fork.mjs
 | 2026-11-06 | `e2e-create.mjs` | Sepolia, Nox | Synced in 50 s; 18 RPC via Nox, 0 clear |
 | 2026-11-06 | `e2e-create.mjs` | Sepolia, direct | Synced in 36 s |
 | 2026-11-06 | `e2e-fork.mjs` | Anvil fork | Make private 1 s; private send proof 12 s; make public 31 s; recipient got 0.29925 ETH |
+| 2026-11-06 | `e2e-injected.mjs` | Sepolia, Nox | All checks pass in 7 s |
 | 2026-11-06 | `e2e-wc.mjs` | Sepolia, Pangolin project id | Distinct addresses, personal_sign, reconnect all pass. A later run with typed data stalled once; under watch |
 
 ## Bugs these caught

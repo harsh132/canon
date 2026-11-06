@@ -23,3 +23,5 @@ Newest last. Each entry: what, why, and what would change it.
 | 2026-11-06 | Bulk sync data stays direct | 13 MB QuickSync pages through a mixnet are impractical, and they name no address. Counted and documented |
 | 2026-11-06 | Block WalletConnect analytics | A privacy wallet should not send usage telemetry |
 | 2026-11-06 | Fail closed when Nox is down | A silent fallback to direct RPC would leak exactly what the feature hides |
+| 2026-11-06 | Injected provider alongside WalletConnect, same per-site binding | User request. One origin key for both, so a site sees one address however it connects |
+| 2026-11-06 | Do not take `window.ethereum` from another wallet | EIP-6963 lets dapps pick; overwriting would break the user's existing wallet |

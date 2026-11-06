@@ -12,6 +12,7 @@ Updated 2026-11-06.
 | Make private, Send privately, Make public | `e2e-fork.mjs` on an anvil fork |
 | Public accounts, balances on demand | Manual |
 | Privacy screen with read counts and a Nox/direct switch | `e2e-create.mjs` output |
+| Injected provider (`window.ethereum`, EIP-6963) with per-site addresses | `e2e-injected.mjs` |
 | Per-dapp WalletConnect addresses: two dapps get two fresh addresses, personal_sign recovers to the right one, a reconnect keeps its address | `e2e-wc.mjs`, Pangolin project id |
 
 ## Built, not yet verified
