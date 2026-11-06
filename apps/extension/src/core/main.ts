@@ -216,8 +216,19 @@ const handlers: Handlers = {
 
 chrome.runtime.onConnect.addListener(browser.attachDappPort);
 
+// Open UI surfaces (side panel, popup window, test tabs). While one is open it
+// shows dapp prompts itself, so no prompt window is needed.
+let openUis = 0;
+const prompt = () => {
+  if (openUis === 0) void sw({ type: 'prompt' });
+};
+
 chrome.runtime.onConnect.addListener((port) => {
   if (port.name !== PORT_NAME) return;
+  openUis += 1;
+  port.onDisconnect.addListener(() => {
+    openUis -= 1;
+  });
   const push = () => port.postMessage(encode({ event: 'state', state } satisfies CoreMessage));
   const off = onState(push);
   push();
@@ -249,10 +260,10 @@ chrome.runtime.onConnect.addListener((port) => {
   });
 });
 
-wc.configureWc({ isUnlocked: () => session != null, prompt: () => void sw({ type: 'prompt' }) });
+wc.configureWc({ isUnlocked: () => session != null, prompt });
 browser.configureDapp({
   isUnlocked: () => session != null,
-  prompt: () => void sw({ type: 'prompt' }),
+  prompt,
   changed: () => {
     wc.refreshWc();
     if (session) rebuildAccounts();
