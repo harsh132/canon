@@ -1,0 +1,34 @@
+import type { CoreState } from '../shared/protocol';
+import { CHAIN_ID, WC_PROJECT_ID } from './config';
+
+export const state: CoreState = {
+  vault: 'none',
+  chainId: CHAIN_ID,
+  railgunAddress: null,
+  engine: { status: 'off' },
+  sync: { status: 'idle', progress: 0 },
+  privateBalances: [],
+  accounts: [],
+  activity: [],
+  proof: null,
+  wc: { configured: Boolean(WC_PROJECT_ID), ready: false, sessions: [], proposal: null, request: null },
+};
+
+type Listener = (s: CoreState) => void;
+const listeners = new Set<Listener>();
+let queued = false;
+
+export const onState = (fn: Listener): (() => void) => {
+  listeners.add(fn);
+  return () => listeners.delete(fn);
+};
+
+/** Coalesces bursts (scan progress fires often) into one push per tick. */
+export const emit = (): void => {
+  if (queued) return;
+  queued = true;
+  setTimeout(() => {
+    queued = false;
+    for (const fn of listeners) fn(state);
+  }, 30);
+};
