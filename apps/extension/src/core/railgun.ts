@@ -1,6 +1,8 @@
 import {
   ArtifactStore,
   createRailgunWallet,
+  generatePOIsForWallet,
+  setOnWalletPOIProofProgressCallback,
   getProver,
   loadProvider,
   loadWalletByID,
@@ -103,6 +105,10 @@ export const bootEngine = (): Promise<void> =>
     });
     setOnTXIDMerkletreeScanCallback(() => {});
     setOnBalanceUpdateCallback(onBalances);
+    setOnWalletPOIProofProgressCallback((e) => {
+      state.proof = e.progress >= 100 || e.status === 'AllProofsCompleted' ? null : { label: 'Proof of innocence', progress: e.progress / 100 };
+      emit();
+    });
 
     await loadProvider(
       // A single provider needs weight 2 to meet the fallback quorum.
@@ -226,6 +232,11 @@ export const sync = (): Promise<void> =>
         scanIncomplete = false;
         await refreshBalances(CHAIN, [id]);
         if (scanIncomplete) throw new Error('Scan stopped early');
+        // Notes from our own private sends stay pending until this wallet proves
+        // them clean and submits that to the PPOI node. Do it now, while open,
+        // rather than waiting on the engine's background trigger.
+        await generatePOIsForWallet(NETWORK, id).catch((e) => console.warn('[railgun] POI generation', describe(e)));
+        await refreshBalances(CHAIN, [id]);
         state.sync = { status: 'done', progress: 1, at: Date.now() };
         emit();
         return;
