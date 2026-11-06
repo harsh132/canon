@@ -1,13 +1,14 @@
 import type { HDNodeWallet } from 'ethers';
 import type { Activity, Verification } from '../shared/protocol';
 import { store } from './store';
-import { deriveAccount, open, seal, type Unlocked } from './vault';
+import { ALL_CHAINS, PURPOSE, accountPath, appPath, deriveAt, open, seal, type Unlocked } from './vault';
 
 // The public-address book and which dapp sees which address. Encrypted at
 // rest: a readable list of the sites someone uses is the disclosure that
 // per-dapp addresses exist to prevent.
 
-export type AccountRecord = { index: number; label: string; createdAt: number };
+/** `index` is the book's own id for the account; `path` is where its key lives. */
+export type AccountRecord = { index: number; label: string; createdAt: number; path: string };
 export type Binding = {
   index: number;
   name: string | null;
@@ -35,7 +36,9 @@ export const loadBook = async (unlocked: Unlocked): Promise<void> => {
   const sealed = await store.getItem<{ iv: string; data: string }>(KEY);
   data = sealed
     ? await open<BookData>(unlocked.bookKey, sealed)
-    : { accounts: [{ index: 0, label: 'Main', createdAt: Date.now() }], bindings: {}, activity: [] };
+    : { accounts: [{ index: 0, label: 'Main', createdAt: Date.now(), path: accountPath(0) }], bindings: {}, activity: [] };
+  // Books written before paths were stored used the standard path by index.
+  for (const a of data.accounts) a.path ??= accountPath(a.index);
   if (!sealed) await persist();
 };
 
@@ -59,10 +62,24 @@ export const signerFor = (index: number): HDNodeWallet => {
   if (!session) throw new Error('Wallet is locked');
   let s = signers.get(index);
   if (!s) {
-    s = deriveAccount(session.mnemonic, index);
+    const rec = data?.accounts.find((a) => a.index === index);
+    if (!rec) throw new Error(`No account ${index}`);
+    s = deriveAt(session.mnemonic, rec.path);
     signers.set(index, s);
   }
   return s;
+};
+
+/** Where the next account of a kind would live, and its address, without creating it. */
+export const previewAccount = (kind: 'dapp' | 'user'): { index: number; path: string; address: string } => {
+  if (!session) throw new Error('Wallet is locked');
+  const book = need();
+  const paths = new Set(book.accounts.map((a) => a.path));
+  let i = 0;
+  const pathFor = (n: number) => (kind === 'dapp' ? appPath(ALL_CHAINS, PURPOSE.dapp, n) : accountPath(n));
+  while (paths.has(pathFor(i))) i += 1;
+  const path = pathFor(i);
+  return { index: nextIndex(), path, address: deriveAt(session.mnemonic, path).address };
 };
 
 export const accounts = (): AccountRecord[] => (data ? [...data.accounts].sort((a, b) => a.index - b.index) : []);
@@ -82,11 +99,13 @@ export const nextIndex = (): number => {
   return i;
 };
 
-export const createAccount = async (label: string, index = nextIndex()): Promise<AccountRecord> => {
+/** Creates an account at a previewed spot. User-made accounts use the standard path; dapp ones the RAILGUN app path. */
+export const createAccount = async (label: string, at: { index: number; path: string } = previewAccount('user')): Promise<AccountRecord> => {
   const book = need();
-  const existing = book.accounts.find((a) => a.index === index);
+  const existing = book.accounts.find((a) => a.index === at.index || a.path === at.path);
   if (existing) return existing;
-  const record = { index, label: label.trim().slice(0, 32) || `Account ${index + 1}`, createdAt: Date.now() };
+  const index = at.index;
+  const record = { index, path: at.path, label: label.trim().slice(0, 32) || `Account ${index + 1}`, createdAt: Date.now() };
   book.accounts.push(record);
   await persist();
   return record;

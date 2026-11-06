@@ -99,7 +99,18 @@ export const wipeVault = async (): Promise<void> => {
   await store.clear();
 };
 
+/** MetaMask's standard path. Main is index 0, so the phrase restores Main anywhere. */
 export const accountPath = (index: number): string => `m/44'/60'/0'/0/${index}`;
 
-export const deriveAccount = (mnemonic: string, index: number): HDNodeWallet =>
-  HDNodeWallet.fromPhrase(mnemonic, undefined, accountPath(index));
+/**
+ * RAILGUN's layout for app- and use-case-specific accounts:
+ * m/44'/60'/1984'/7702'/chain_id'/purpose_id'/index'. Chain 0 means one
+ * account for every network. Kept apart from the standard path, so these
+ * never show up as ordinary accounts when the phrase is restored elsewhere.
+ */
+export const ALL_CHAINS = 0;
+export const PURPOSE = { dapp: 0, temp: 1 } as const;
+export const appPath = (chainId: number, purpose: number, index: number): string =>
+  `m/44'/60'/1984'/7702'/${chainId}'/${purpose}'/${index}'`;
+
+export const deriveAt = (mnemonic: string, path: string): HDNodeWallet => HDNodeWallet.fromPhrase(mnemonic, undefined, path);

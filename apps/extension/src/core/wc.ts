@@ -2,7 +2,7 @@ import { Core } from '@walletconnect/core';
 import { WalletKit, type IWalletKit, type WalletKitTypes } from '@reown/walletkit';
 import { buildApprovedNamespaces, getSdkError } from '@walletconnect/utils';
 import type { Verification, WcProposalView, WcRequestView } from '../shared/protocol';
-import { bind, bindingFor, createAccount, indexOfAddress, nextIndex, signerFor, accounts } from './book';
+import { bind, bindingFor, createAccount, indexOfAddress, previewAccount, signerFor, accounts } from './book';
 import { SIGN_METHODS, execute, isDelegation, summarize } from './sign';
 import { CAIP_CHAIN, DEV, WC_PROJECT_ID } from './config';
 import { dappKeyFor } from './dapp-origin';
@@ -69,8 +69,8 @@ const proposalView = (): WcProposalView | null => {
     const bound = id.key ? bindingFor(id.key) : null;
     const pick = chosen ?? (bound && accounts().some((a) => a.index === bound.index) ? bound.index : 'new');
     if (pick === 'new') {
-      const index = nextIndex();
-      account = { index, address: signerFor(index).address, label: id.name.slice(0, 32), isNew: true };
+      const next = previewAccount('dapp');
+      account = { index: next.index, address: next.address, label: id.name.slice(0, 32), isNew: true };
     } else {
       const rec = accounts().find((a) => a.index === pick);
       if (rec) account = { index: rec.index, address: signerFor(rec.index).address, label: rec.label, isNew: false };
@@ -206,7 +206,12 @@ export const approveProposal = async (): Promise<void> => {
     },
   });
   // Mint before approving: a live session must never sign as an address the book lacks.
-  if (view.account.isNew) await createAccount(view.account.label, view.account.index);
+  if (view.account.isNew) {
+    // Recomputed, not trusted from the view: the book may have changed since it rendered.
+    const next = previewAccount('dapp');
+    if (next.address !== view.account.address) throw new Error('Address changed; review again');
+    await createAccount(view.account.label, next);
+  }
   await k.approveSession({ id: proposal.id, namespaces });
   if (view.origin) {
     await bind(view.origin, { index: view.account.index, name: view.name, icon: view.icon, verification: view.verification }).catch(

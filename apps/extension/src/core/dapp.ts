@@ -5,7 +5,7 @@
 import type { WcProposalView, WcRequestView } from '../shared/protocol';
 import { DAPP_PORT_NAME } from '../shared/protocol';
 import { decode, encode } from '../shared/codec';
-import { accounts, bind, bindingFor, bindings, createAccount, nextIndex, revokeBrowser, signerFor } from './book';
+import { accounts, bind, bindingFor, bindings, createAccount, previewAccount, revokeBrowser, signerFor } from './book';
 import { CHAIN_ID, getProvider } from './config';
 import { dappKeyFor } from './dapp-origin';
 import { RpcError, SIGN_METHODS, execute, isDelegation, summarize } from './sign';
@@ -151,8 +151,8 @@ export const proposalView = (): WcProposalView | null => {
     const bound = bindingFor(item.origin);
     const pick = chosen ?? (bound && accounts().some((a) => a.index === bound.index) ? bound.index : 'new');
     if (pick === 'new') {
-      const index = nextIndex();
-      account = { index, address: signerFor(index).address, label: hostOf(item.origin).slice(0, 32), isNew: true };
+      const next = previewAccount('dapp');
+      account = { index: next.index, address: next.address, label: hostOf(item.origin).slice(0, 32), isNew: true };
     } else {
       const rec = accounts().find((a) => a.index === pick);
       if (rec) account = { index: rec.index, address: signerFor(rec.index).address, label: rec.label, isNew: false };
@@ -206,7 +206,12 @@ export const approveConnect = async (): Promise<void> => {
   const view = proposalView();
   if (!view?.account) throw new Error('Unlock first');
   const item = take('connect');
-  if (view.account.isNew) await createAccount(view.account.label, view.account.index);
+  if (view.account.isNew) {
+    // Recomputed, not trusted from the view: the book may have changed since it rendered.
+    const next = previewAccount('dapp');
+    if (next.address !== view.account.address) throw new Error('Address changed; review again');
+    await createAccount(view.account.label, next);
+  }
   await bind(item.origin, { index: view.account.index, name: view.name, icon: null, verification: 'BROWSER', browser: true });
   chosen = null;
   item.resolve(accountsFor(item.origin));
