@@ -137,6 +137,12 @@ const handlers: Handlers = {
     await afterUnlock(await unlockPasskeyVault(prf), false);
     return null;
   },
+  'vault.reveal': async ({ password, prf }) => {
+    need();
+    // Checked against the stored vault, not the open session: being unlocked is not enough.
+    const u = prf ? await unlockPasskeyVault(prf) : await unlockVault(password ?? '');
+    return { mnemonic: u.mnemonic };
+  },
   'vault.lock': async () => {
     lock();
     return null;

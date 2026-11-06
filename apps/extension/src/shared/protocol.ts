@@ -164,6 +164,8 @@ export type Commands = {
   /** A passkey wallet from the passkey's PRF output; `existing` restores one (full rescan). */
   'vault.passkey': { params: { prf: string; credentialId: string; existing: boolean }; result: { mnemonic: string } };
   'vault.unlockPasskey': { params: { prf: string }; result: null };
+  /** The recovery phrase, after the password or passkey is checked again. */
+  'vault.reveal': { params: { password?: string; prf?: string }; result: { mnemonic: string } };
   'vault.lock': { params: null; result: null };
   'vault.reset': { params: null; result: null };
   'railgun.sync': { params: null; result: null };
