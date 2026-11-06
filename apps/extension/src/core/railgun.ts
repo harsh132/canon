@@ -2,6 +2,9 @@ import {
   ArtifactStore,
   createRailgunWallet,
   generatePOIsForWallet,
+  getTXOsSpentPOIStatusInfoForWallet,
+  getTXOsReceivedPOIStatusInfoForWallet,
+  getChainTxidsStillPendingSpentPOIs,
   setOnWalletPOIProofProgressCallback,
   getProver,
   loadProvider,
@@ -14,7 +17,7 @@ import {
   startRailgunEngine,
 } from '@railgun-community/wallet';
 import { POI, WalletBalanceBucket, type SnarkJSGroth16 } from '@railgun-community/engine';
-import { NETWORK_CONFIG, RailgunWalletBalanceBucket, type RailgunBalancesEvent } from '@railgun-community/shared-models';
+import { NETWORK_CONFIG, RailgunWalletBalanceBucket, TXIDVersion, type RailgunBalancesEvent } from '@railgun-community/shared-models';
 import leveljs from 'level-js';
 import localforage from 'localforage';
 import { groth16 } from 'snarkjs';
@@ -182,6 +185,17 @@ const rebuildBalances = async (): Promise<void> => {
   state.privateBalances = list.sort((a, b) => (a.token === WETH.toLowerCase() ? -1 : b.token === WETH.toLowerCase() ? 1 : 0));
   emit();
 };
+
+// Dev-only window into proof-of-innocence state, for scripts/poi-probe.mjs.
+if (DEV) {
+  (globalThis as Record<string, unknown>).__railgunDebug = {
+    buckets: () => Object.fromEntries([...buckets].map(([k, v]) => [k, Object.fromEntries([...v].map(([t, a]) => [t, a.toString()]))])),
+    spent: () => getTXOsSpentPOIStatusInfoForWallet(TXIDVersion.V2_PoseidonMerkle, NETWORK, currentWalletId()),
+    received: () => getTXOsReceivedPOIStatusInfoForWallet(TXIDVersion.V2_PoseidonMerkle, NETWORK, currentWalletId()),
+    pendingTxids: () => getChainTxidsStillPendingSpentPOIs(TXIDVersion.V2_PoseidonMerkle, NETWORK, currentWalletId()),
+    generate: () => generatePOIsForWallet(NETWORK, currentWalletId()),
+  };
+}
 
 export const spendable = (token = WETH): bigint =>
   state.privateBalances.find((b) => b.token === token.toLowerCase())?.spendable ?? 0n;

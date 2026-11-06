@@ -2,6 +2,7 @@
 //   bun scripts/e2e-sepolia.mjs setup     create the wallet (once), print Main and 0zk
 //   bun scripts/e2e-sepolia.mjs shield    Make private AMOUNT (default 0.01) from Main
 //   bun scripts/e2e-sepolia.mjs status    sync and print private balance (spendable / pending)
+//   bun scripts/e2e-sepolia.mjs broadcasters  wait for Waku to find Sepolia broadcasters
 //   bun scripts/e2e-sepolia.mjs spend     Send privately 0.002 to self
 //   bun scripts/e2e-sepolia.mjs public    Make public 0.002 to Main (after the new notes clear POI)
 // The profile and the test phrase live in .cache/sepolia (gitignored). Test funds only.
@@ -139,6 +140,15 @@ if (phase === 'setup') {
   log('balances:', await balances());
 } else if (phase === 'status') {
   log('balances:', await balances());
+} else if (phase === 'broadcasters') {
+  // Waku discovery takes a while; read the Privacy screen until one shows up.
+  await popup.evaluate(() => [...document.querySelectorAll('button')].find((b) => /clear ·/.test(b.textContent)).click());
+  for (let i = 0; i < 36; i += 1) {
+    const row = (await text()).match(/BROADCASTERS (\S+)( · \d+)?/i)?.[0];
+    log(row);
+    if (/connected · [1-9]/i.test(row ?? '')) break;
+    await new Promise((r) => setTimeout(r, 5000));
+  }
 } else if (phase === 'spend') {
   const b = await balances();
   log('balances:', b);
