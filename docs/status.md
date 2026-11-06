@@ -16,6 +16,8 @@ Updated 2026-11-06.
 | ENS: claim `<label>.pangolin.eth`, pay a name privately | `e2e-sepolia.mjs name` on Sepolia |
 | Sponsored private send (sponsor pays gas, Main not involved) | `e2e-sepolia.mjs private` on Sepolia |
 | Fast proof of innocence after a sponsored send: the wallet submits a proof per output it owns | `e2e-sepolia.mjs private`: spendable again 7 min after sending |
+| Private swap WETH → USDC on Uniswap v4, sponsor paying gas | `e2e-sepolia.mjs swap`: 0.001 WETH → 24.95 USDC ([tx](https://sepolia.etherscan.io/tx/0x270b85b24a68c6e2986bc670d20f69e3a7f085edb9ef23da1a1d629436ee3fe3)) |
+| Side panel from the toolbar icon | `check-panel.mjs`: fits 320–560 px wide, tab bar pinned |
 | Broadcaster discovery over Waku in the extension | `e2e-sepolia.mjs broadcasters`: connected, 1 Sepolia broadcaster |
 | Public accounts, balances on demand | Manual |
 | Privacy screen with read counts and a Nox/direct switch | `e2e-create.mjs` output |
@@ -24,7 +26,6 @@ Updated 2026-11-06.
 
 ## Built, not yet verified
 
-- **Private swap on Uniswap v4** (`core/swap.ts`, Swap screen). Calldata verified by a simulated swap on Sepolia (`scripts/v4-probe.mjs`); not yet run as a private transaction.
 
 - **Typed-data signing over WalletConnect.** Added to `e2e-wc.mjs`; a re-run stalled once at the personal_sign step after passing it the run before, so treat the script as flaky until it passes twice.
 - **eth_sendTransaction from a dapp.** Needs a funded address.
@@ -38,6 +39,7 @@ Updated 2026-11-06.
 
 ## Next
 
-1. Finish the broadcaster test on real Sepolia (built; discovery works).
-2. Private swap on Uniswap through RAILGUN cross-contract calls.
-4. Submission write-up for the Anon-RPC track, and FEEDBACK.md for Uniswap.
+1. Host the sponsor on https, so claims and sponsored sends work off this machine and go through Nox.
+2. Submissions: make the repo public, fill the Uniswap feedback form, record the demo.
+3. Ask the RAILGUN team why Sepolia broadcasters reject on proof of innocence.
+4. WalletConnect signing stall (parked).

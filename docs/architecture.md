@@ -6,7 +6,7 @@
 |---|---|---|---|
 | Core | Offscreen document | `apps/extension/src/core` | Vault, RAILGUN engine, Anon-RPC worker, WalletConnect client, account book |
 | Service worker | MV3 background | `src/background/sw.ts` | Nothing. Creates the offscreen document, sets the badge, opens prompts |
-| Popup | Action popup, or a popup window for dapp prompts | `src/popup` | Nothing secret. Renders pushed state, sends commands |
+| UI | Chrome side panel (`panel.html`, opened by the toolbar icon), or a small window for dapp prompts when the panel is closed (`popup.html?window=1`) | `src/popup` | Nothing secret. Renders pushed state, sends commands |
 | Inpage provider | Each http(s) page's own world | `src/inpage/provider.ts` | Nothing. EIP-1193 provider, EIP-6963 announcement |
 | Bridge | Each page, isolated world | `src/inpage/bridge.ts` | Nothing. Relays calls to the core over a port Chrome stamps with the tab's origin |
 | Anon-RPC sandbox | Null-origin iframe inside the core | `dist/anon-rpc/<ver>/sandbox.html` | The hash-pinned Nox worker bundle |
@@ -16,7 +16,7 @@ The core lives in the offscreen document because the service worker is killed wh
 ## Messages
 
 ```
-popup ──port "pangolin-popup"──▶ core          commands (whitelist), JSON with tagged bigints
+panel ──port "pangolin-popup"──▶ core          commands (whitelist), JSON with tagged bigints
 popup ◀─────── state push ─────── core          whole CoreState after every change, coalesced per tick
 core  ──runtime.sendMessage────▶ service worker "prompt" / "prompt-clear"
 page  ─postMessage─▶ bridge ─port "pangolin-dapp"─▶ core   EIP-1193 calls; origin from Chrome

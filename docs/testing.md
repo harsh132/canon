@@ -9,6 +9,8 @@ End-to-end scripts in `apps/extension/scripts`. Each launches Chromium with `dis
 | `e2e-fork.mjs` | Make private 1 ETH, Send privately 0.2, Make public 0.3 to a fresh address | Anvil fork and a fork build |
 | `e2e-injected.mjs` | EIP-6963, chain id, a read through Nox, connect, personal_sign, a second origin, reload keeps the address | A build; serves its own page on port 8791 |
 | `e2e-sepolia.mjs` | Real Sepolia through Nox in a persistent profile: `setup`, `shield`, `status`, `spend` | Sepolia ETH in the test wallet's Main |
+| `check-focus.mjs` | Every field on every screen shows one focus border and no outline (dark mode) | A build |
+| `check-panel.mjs` | Side panel behaviour and layout at several widths | A build |
 | `e2e-wc.mjs` | Two dapps get two addresses; personal_sign recovers to the right one; a reconnect keeps its address | A WalletConnect project id that allows the extension origin |
 
 ## Fork setup
@@ -34,6 +36,8 @@ PANGOLIN_PROFILE=$PWD/.cache/<new> bun scripts/e2e-fork.mjs
 | 2026-11-06 | `e2e-sepolia.mjs broadcasters` | Sepolia, Waku | Connected; 1 broadcaster |
 | 2026-11-06 | `e2e-sepolia.mjs public` | Sepolia, Nox, Main pays gas | Made 0.002 public to Main ([tx](https://sepolia.etherscan.io/tx/0xe41b989c800e8124bb32155a8c0fb102d65797a19ba6e73b57459fff6a7faad9)), 1,763,370 gas, 38 s. 89 reads via Nox, 0 clear |
 | 2026-11-06 | `e2e-sepolia.mjs name` | Sepolia, Nox, sponsor | Claimed alice.pangolin.eth; paid it by name, resolved via org.railgun |
+| 2026-11-06 | `e2e-sepolia.mjs swap` | Sepolia, Nox, sponsor relay, Uniswap v4 | 0.001 WETH → 24.95 USDC, no inner-call error ([tx](https://sepolia.etherscan.io/tx/0x270b85b24a68c6e2986bc670d20f69e3a7f085edb9ef23da1a1d629436ee3fe3)). WETH change spendable within minutes; USDC returns as a shield and waits RAILGUN's shield hold. 137 reads via Nox, 0 clear |
+| 2026-11-06 | `check-panel.mjs` | Chromium | Panel opens on icon click (`openPanelOnActionClick`); layout fits 320, 420, 560 px wide and a 520 px tall panel |
 | 2026-11-06 | `e2e-sepolia.mjs private`, per-output POI | Sepolia, Nox, sponsor relay | Indexed at +4 min, proofs submitted for all three outputs at +5 min, payment and change spendable at +7 min ([tx](https://sepolia.etherscan.io/tx/0xee18095652ffd2d62765804cec0c60420cd8bd3b489e531741d9880b7ec51991)) |
 | 2026-11-06 | `e2e-sepolia.mjs private`, first output only | Sepolia, Nox, sponsor relay | Only the 1-wei first output cleared; payment and change stayed Missing |
 | 2026-11-06 | `e2e-sepolia.mjs private` | Sepolia, Nox, sponsor relay | Sent privately to alice.pangolin.eth; sponsor was the sender. First attempt priced below the base fee and stuck; replaced |

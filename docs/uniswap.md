@@ -44,6 +44,10 @@ Rules carried over from Ender's `private-swap.ts`:
 
 Gas goes through the sponsored relay like other private sends (`useRelayAdapt` is true). `amountOutMinimum` comes from QuoterV2 with slippage, read through Nox.
 
+## Verified on Sepolia
+
+2026-11-06, `e2e-sepolia.mjs swap`: 0.001 private WETH became 24.95 private USDC through the v4 ETH/USDC 0.3% pool, sponsor paying gas, no inner-call error ([tx](https://sepolia.etherscan.io/tx/0x270b85b24a68c6e2986bc670d20f69e3a7f085edb9ef23da1a1d629436ee3fe3)). The leftover WETH was spendable within minutes after the wallet's proof submissions. The USDC comes back through the Relay Adapt re-shield, so it waits RAILGUN's normal shield hold (about 12 minutes on Sepolia).
+
 ## Prize requirements
 
 Public GitHub repo, a `FEEDBACK.md`, and the Uniswap Developer Feedback Form linking it. The repo is private today.
