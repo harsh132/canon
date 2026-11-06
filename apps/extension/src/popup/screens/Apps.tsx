@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { CoreState } from '../../shared/protocol';
 import { short } from '../../shared/format';
 import { call, useAction } from '../client';
-import { Button, ErrorLine, Field, Header, Input, Slug, AppIcon, faviconFor } from '../ui';
+import { Button, ErrorLine, Field, Input, Meta, Slug, AppIcon, faviconFor } from '../ui';
 
 export const Apps = ({ s }: { s: CoreState }) => {
   const [uri, setUri] = useState('');
@@ -11,7 +11,9 @@ export const Apps = ({ s }: { s: CoreState }) => {
 
   return (
     <div>
-      <Header title="Apps" right={<Slug>WalletConnect</Slug>} />
+      <Meta>
+        <Slug>WalletConnect</Slug>
+      </Meta>
       <div className="flex flex-col gap-3 px-[18px] pt-2.5">
         {!s.wc.configured ? (
           <Slug className="text-warn">No project id in this build</Slug>

@@ -2,84 +2,32 @@ import type { CoreState } from '../../shared/protocol';
 import { amount, short } from '../../shared/format';
 import type { Tab } from '../App';
 import { call } from '../client';
-import { Button, Card, Header, Slug, etherscan } from '../ui';
+import { Button, Card, Slug, etherscan } from '../ui';
 import { SiteCard } from './SiteCard';
 import { Fund } from './Fund';
 import { useState } from 'react';
-
-const ago = (t?: number) => {
-  if (!t) return '';
-  const m = Math.round((Date.now() - t) / 60_000);
-  return m < 1 ? 'now' : m < 60 ? `${m}m` : `${Math.round(m / 60)}h`;
-};
 
 export const Home = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
   const [funding, setFunding] = useState<{ address: string; origin: string } | null>(null);
   const [weth, ...others] = s.privateBalances;
   const main = s.accounts.find((a) => a.index === 0);
-  const sync =
-    s.engine.status === 'error'
-      ? { text: 'Engine error', cls: 'text-danger' }
-      : s.engine.status !== 'ready'
-        ? { text: 'Starting engine', cls: 'text-muted' }
-        : s.sync.status === 'syncing'
-          ? { text: `Syncing ${Math.round(s.sync.progress * 100)}%`, cls: 'text-warn' }
-          : s.sync.status === 'error'
-            ? { text: 'Sync failed · retry', cls: 'text-danger' }
-            : s.sync.status === 'done'
-              ? { text: `Synced ${ago(s.sync.at)}`, cls: 'text-accent' }
-              : { text: 'Sync', cls: 'text-accent' };
 
   if (funding) return <Fund s={s} address={funding.address} origin={funding.origin} onDone={() => setFunding(null)} />;
 
   return (
-    <div>
-      <Header
-        title="Pangolin"
-        right={
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => go('name')}
-              className="inline-flex items-center gap-2 rounded-sm border border-rule bg-sheet px-2.5 py-1.5 font-mono text-[11px] text-ink"
-            >
-              <span className={`inline-block h-1.5 w-1.5 rounded-full ${s.name ? 'bg-accent' : 'bg-rule-strong'}`} />
-              {s.name ?? 'Get a name'}
-            </button>
-            <Button variant="link" className="text-muted" onClick={() => void call('vault.lock', null)}>
-              Lock
-            </Button>
-          </div>
-        }
-      />
+    <div className="pt-3">
       <SiteCard s={s} onFund={(address, origin) => setFunding({ address, origin })} />
-      <div className="mx-[18px] flex items-baseline justify-between rule-dash pt-1.5 pb-2.5">
-        <Slug>{s.rpc.mode === 'nox' ? 'Reads via Nox' : 'Reads direct'}</Slug>
-        <button onClick={() => go('privacy')} className={`font-mono text-[11px] ${s.rpc.mode === 'nox' && s.rpc.counts.clear === 0 ? 'text-accent' : 'text-warn'}`}>
-          {s.rpc.status === 'error' ? 'Nox down' : `${s.rpc.counts.clear} clear · ${s.rpc.counts.mixed} mixed`}
-        </button>
-      </div>
-      <div className="mx-[18px] flex items-baseline justify-between rule-dash pt-2.5 pb-2.5">
-        <Slug>Private · Sepolia{process.env.PANGOLIN_FORK === '1' ? ' fork' : ''}</Slug>
-        <button
-          title={s.sync.error ?? s.engine.error}
-          onClick={() => void call('railgun.sync', null)}
-          disabled={s.sync.status === 'syncing' || s.engine.status !== 'ready'}
-          className={`font-mono text-[11px] ${sync.cls}`}
-        >
-          {sync.text}
-        </button>
-      </div>
 
       <Card edge className="mx-[18px] mt-4 px-[18px] pt-[18px]">
         <Slug>Private balance</Slug>
         <div className="mt-2.5 flex items-baseline gap-2 font-mono tnum">
           <span className="text-[38px] leading-none font-bold tracking-tight">{amount(weth?.spendable ?? 0n)}</span>
-          <span className="text-sm text-second">WETH</span>
+          <span className="text-sm text-second">ETH</span>
         </div>
         {(weth?.pending ?? 0n) > 0n && (
           <div className="mt-3 flex items-baseline justify-between border-t border-dashed border-rule pt-2.5 text-[13px]">
             <Slug>Pending</Slug>
-            <span className="font-mono tnum text-warn">{amount(weth!.pending)} WETH</span>
+            <span className="font-mono tnum text-warn">{amount(weth!.pending)} ETH</span>
           </div>
         )}
         {others.map((t) => (
@@ -91,18 +39,26 @@ export const Home = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
             </span>
           </div>
         ))}
-        <div className="flex items-baseline justify-between pt-2 text-[13px]">
-          <Slug>Public</Slug>
-          <button className="font-mono tnum text-second" onClick={() => void call('accounts.refresh', null)}>
-            {main?.balance == null ? 'Check' : `${amount(main.balance)} ETH`}
-          </button>
-        </div>
       </Card>
 
-      <div className="grid grid-cols-3 gap-2 px-[18px] pt-[18px]">
-        <Button onClick={() => go('send')}>Send</Button>
-        <Button variant="ghost" onClick={() => go('receive')}>Receive</Button>
-        <Button variant="ghost" onClick={() => go('swap')}>Swap</Button>
+      {main && (
+        <div className="mx-[18px] flex items-baseline justify-between rule-dash pt-3 pb-2.5 text-[13px]">
+          <span className="flex items-baseline gap-2">
+            <Slug>Public</Slug>
+            <span className="font-mono text-[11px] text-muted">
+              {main.label} · {short(main.address, 6, 4)}
+            </span>
+          </span>
+          <button className="font-mono tnum text-second" onClick={() => void call('accounts.refresh', null)}>
+            {main.balance == null ? 'Check' : `${amount(main.balance)} ETH`}
+          </button>
+        </div>
+      )}
+
+      <div className="px-[18px] pt-4">
+        <Button variant="ghost" className="w-full" onClick={() => go('receive')}>
+          Receive
+        </Button>
       </div>
 
       <div className="px-[18px] pt-5">

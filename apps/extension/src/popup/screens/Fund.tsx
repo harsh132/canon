@@ -37,7 +37,7 @@ export const Fund = ({ s, address, origin, onDone }: { s: CoreState; address: st
   }
 
   return (
-    <div className="flex min-h-[calc(var(--app-h)-44px)] flex-col">
+    <div className="flex min-h-[calc(var(--app-h)-var(--chrome-h))] flex-col">
       <Header title="Fund" onBack={onDone} right={<Slug>From private</Slug>} />
       <div className="flex items-center gap-3 px-[18px] pt-1">
         <AppIcon name={origin} src={faviconFor(origin)} size={28} />

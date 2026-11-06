@@ -28,16 +28,11 @@ export const SiteCard = ({ s, onFund }: { s: CoreState; onFund?: (address: strin
   }, [account?.address]);
 
   if (!panelTab || s.vault !== 'unlocked') return null;
-  if (!origin) {
-    return (
-      <div className="mx-[18px] mt-3 rule-dash pb-2.5">
-        <Slug>No dapp in this tab</Slug>
-      </div>
-    );
-  }
+  // No dapp in this tab: nothing to show.
+  if (!origin) return null;
 
   return (
-    <Card className="mx-[18px] mt-3 px-[18px] py-3.5">
+    <Card className="mx-[18px] px-[18px] py-3.5">
       <div className="flex items-center gap-3">
         <AppIcon name={origin} src={faviconFor(origin)} size={32} />
         <div className="min-w-0 flex-1">

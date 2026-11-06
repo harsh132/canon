@@ -83,6 +83,9 @@ export const Header = ({ title, onBack, right }: { title: string; onBack?: () =>
   </div>
 );
 
+/** A tab screen's context line (the tab bar already names the screen). */
+export const Meta = ({ children }: { children: ReactNode }) => <div className="flex justify-end px-[18px] pt-3 pb-1">{children}</div>;
+
 export const Copy = ({ value, label = 'Copy' }: { value: string; label?: string }) => (
   <Button variant="link" onClick={() => void navigator.clipboard.writeText(value)}>
     {label}

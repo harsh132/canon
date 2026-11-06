@@ -3,7 +3,7 @@ import type { CoreState, SendIntent, SendKind, SendPlan } from '../../shared/pro
 import { amount, isZk, short } from '../../shared/format';
 import type { Tab } from '../App';
 import { call, useAction } from '../client';
-import { Button, Card, ErrorLine, Field, Header, Input, Row, Slug, etherscan } from '../ui';
+import { Button, Card, ErrorLine, Field, Header, Input, Meta, Row, Slug, etherscan } from '../ui';
 
 const VERB: Record<SendKind, string> = {
   send: 'Send publicly',
@@ -32,7 +32,7 @@ export const Send = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
   const intent: SendIntent = { from, to, amount: value, gasFrom: 0, via };
   const priv = s.privateBalances[0]?.spendable ?? 0n;
   const fromBalance = from === 'private' ? priv : (s.accounts.find((x) => x.index === from)?.balance ?? null);
-  const unit = from === 'private' ? 'WETH' : 'ETH';
+  const unit = 'ETH'; // Private WETH is shown as ETH; it leaves as ETH.
   const gasLabel = (i: number | null) => (i == null ? '' : (s.accounts.find((x) => x.index === i)?.label ?? `#${i}`));
 
   if (hash) {
@@ -51,8 +51,12 @@ export const Send = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
   }
 
   return (
-    <div className="flex min-h-[calc(var(--app-h)-44px)] flex-col">
-      <Header title="Send" onBack={() => go('home')} right={<Slug>{unit} · {amount(fromBalance)}</Slug>} />
+    <div className="flex min-h-[calc(var(--app-h)-var(--chrome-h))] flex-col">
+      <Meta>
+        <Slug>
+          {unit} · {amount(fromBalance)}
+        </Slug>
+      </Meta>
       <div className="flex flex-col gap-4 px-[18px] pt-2.5">
         <Field label="From">
           <select
@@ -63,7 +67,7 @@ export const Send = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
             }}
             className="w-full rounded-sm border border-rule bg-sheet px-3 py-2.5 font-mono text-sm outline-none focus:border-accent"
           >
-            <option value="private">Private · {amount(priv)} WETH</option>
+            <option value="private">Private · {amount(priv)} ETH</option>
             {s.accounts.map((acc) => (
               <option key={acc.index} value={acc.index}>
                 {acc.label} · {short(acc.address)}
@@ -124,7 +128,7 @@ export const Send = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
             {plan.name && <Row label="Via">{plan.resolvedVia === 'org.railgun' ? 'org.railgun record' : 'ETH address record'}</Row>}
             <Row label="Seen">{SEEN[plan.kind]}</Row>
             {plan.broadcasterFee != null ? (
-              <Row label="Fee">{plan.broadcasterFee === 0n ? 'Sponsored' : `${amount(plan.broadcasterFee, 18, 6)} WETH · broadcaster`}</Row>
+              <Row label="Fee">{plan.broadcasterFee === 0n ? 'Sponsored' : `${amount(plan.broadcasterFee, 18, 6)} ETH · broadcaster`}</Row>
             ) : (
               <Row label="Fee">{plan.gasFee > 0n && plan.gasFee < 1_000_000_000_000n ? '< 0.000001' : amount(plan.gasFee, 18, 6)} ETH</Row>
             )}

@@ -46,7 +46,7 @@ html, body { margin: 0; background: var(--page); color: var(--text); }
 body { width: 380px; min-height: 600px; font-family: var(--font-sans); font-size: 14px; line-height: 1.4; -webkit-font-smoothing: antialiased; }
 body.window { width: auto; }
 /* Popup: a fixed 380 × 600 sheet. Side panel: whatever width Chrome gives, full height. */
-:root { --app-h: 600px; }
+:root { --app-h: 600px; --chrome-h: 120px; } /* chrome: header + tabs + status line */
 body.panel { width: auto; min-width: 320px; min-height: 100vh; --app-h: 100vh; }
 /* Onboarding tab: the popup's column, centred, full height. */
 body.tab { width: 420px; margin: 0 auto; min-height: 100vh; --app-h: 100vh; }

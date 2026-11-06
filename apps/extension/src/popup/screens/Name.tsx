@@ -33,7 +33,7 @@ export const Name = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
   }
 
   return (
-    <div className="flex min-h-[calc(var(--app-h)-44px)] flex-col">
+    <div className="flex min-h-[calc(var(--app-h)-var(--chrome-h))] flex-col">
       <Header title="Your name" onBack={() => go('home')} right={<Slug>ENSv2 · Sepolia</Slug>} />
       <div className="px-[18px] pt-2.5">
         <div className="flex items-center rounded-sm border border-rule bg-sheet px-3.5 py-2.5 focus-within:border-accent">

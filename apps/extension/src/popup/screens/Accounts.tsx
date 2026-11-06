@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import type { CoreState } from '../../shared/protocol';
 import { amount, short } from '../../shared/format';
+import type { Tab } from '../App';
 import { call, useAction } from '../client';
 import { Button, Copy, Header, Input, AppIcon, faviconFor } from '../ui';
 
-export const Accounts = ({ s }: { s: CoreState }) => {
+export const Accounts = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
   const [label, setLabel] = useState('');
   const a = useAction();
 
@@ -12,6 +13,7 @@ export const Accounts = ({ s }: { s: CoreState }) => {
     <div>
       <Header
         title="Addresses"
+        onBack={() => go('home')}
         right={<Button variant="link" busy={a.busy} onClick={() => a.run(() => call('accounts.refresh', null))}>Balances</Button>}
       />
       <div className="px-[18px]">

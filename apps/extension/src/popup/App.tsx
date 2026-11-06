@@ -11,15 +11,10 @@ import { Privacy } from './screens/Privacy';
 import { Name } from './screens/Name';
 import { Swap } from './screens/Swap';
 import { ConnectPrompt, RequestPrompt } from './screens/Prompts';
+import { Phrase, Reset } from './screens/Phrase';
+import { AppHeader, Footer } from './frame';
 
-export type Tab = 'home' | 'send' | 'receive' | 'apps' | 'accounts' | 'privacy' | 'name' | 'swap';
-
-const NAV: { tab: Tab; label: string }[] = [
-  { tab: 'home', label: 'Home' },
-  { tab: 'send', label: 'Send' },
-  { tab: 'apps', label: 'Apps' },
-  { tab: 'accounts', label: 'Addresses' },
-];
+export type Tab = 'home' | 'send' | 'receive' | 'apps' | 'accounts' | 'privacy' | 'name' | 'swap' | 'phrase' | 'reset';
 
 export const App = () => {
   const s = useCore();
@@ -30,6 +25,8 @@ export const App = () => {
   const [reviewing, setReviewing] = useState(false);
 
   if (!s || s.vault === 'unknown') return <div className="grid h-[var(--app-h)] place-items-center"><span className="slug">Starting</span></div>;
+  // Locking (or erasing) ends the visit: the next unlock starts at Home.
+  if (s.vault !== 'unlocked' && tab !== 'home') setTab('home');
   if (backup) return <Backup {...backup} onDone={() => setBackup(null)} />;
   if (s.vault === 'none') return <Onboard onBackup={setBackup} />;
   // Locked: always the unlock screen first; it names any waiting request.
@@ -54,28 +51,20 @@ export const App = () => {
           <span>Review</span>
         </button>
       )}
+      <AppHeader s={s} tab={tab} go={go} />
       <div className="flex-1">
         {tab === 'home' && <Home s={s} go={go} />}
         {tab === 'send' && <Send s={s} go={go} />}
         {tab === 'receive' && <Receive s={s} go={go} />}
         {tab === 'apps' && <Apps s={s} />}
-        {tab === 'accounts' && <Accounts s={s} />}
+        {tab === 'accounts' && <Accounts s={s} go={go} />}
         {tab === 'privacy' && <Privacy s={s} go={go} />}
         {tab === 'name' && <Name s={s} go={go} />}
         {tab === 'swap' && <Swap s={s} go={go} />}
+        {tab === 'phrase' && <Phrase s={s} go={go} />}
+        {tab === 'reset' && <Reset go={go} />}
       </div>
-      <nav aria-label="Main" className="sticky bottom-0 flex justify-between border-t border-rule bg-page px-[18px] pt-3 pb-3.5 font-mono text-[10px] tracking-[0.18em] uppercase">
-        {NAV.map((n) => (
-          <button
-            key={n.tab}
-            onClick={() => go(n.tab)}
-            aria-current={tab === n.tab ? 'page' : undefined}
-            className={tab === n.tab ? 'border-b-2 border-accent pb-0.5 text-accent' : 'pb-0.5 text-muted hover:text-ink'}
-          >
-            {n.label}
-          </button>
-        ))}
-      </nav>
+      <Footer s={s} go={go} />
     </div>
   );
 };

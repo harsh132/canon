@@ -3,7 +3,7 @@ import type { CoreState } from '../../shared/protocol';
 import { amount, short } from '../../shared/format';
 import type { Tab } from '../App';
 import { call, useAction } from '../client';
-import { Button, Card, ErrorLine, Field, Header, Row, Slug, etherscan } from '../ui';
+import { Button, Card, ErrorLine, Field, Header, Meta, Row, Slug, etherscan } from '../ui';
 
 export const Swap = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
   const [value, setValue] = useState('');
@@ -28,8 +28,10 @@ export const Swap = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
   }
 
   return (
-    <div className="flex min-h-[calc(var(--app-h)-44px)] flex-col">
-      <Header title="Swap" onBack={() => go('home')} right={<Slug>Uniswap v4</Slug>} />
+    <div className="flex min-h-[calc(var(--app-h)-var(--chrome-h))] flex-col">
+      <Meta>
+        <Slug>Uniswap v4</Slug>
+      </Meta>
       <div className="px-[18px] pt-2.5">
         <Field label="Pay" hint={`${amount(weth?.spendable ?? 0n)} private`}>
           <div className="flex items-center rounded-sm border border-rule bg-sheet px-3.5 py-2.5 focus-within:border-accent">
@@ -43,7 +45,7 @@ export const Swap = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
               placeholder="0.00"
               className="min-w-0 flex-1 bg-transparent font-mono text-[22px] font-bold outline-none"
             />
-            <span className="font-mono text-[13px] text-second">WETH</span>
+            <span className="font-mono text-[13px] text-second">ETH</span>
           </div>
         </Field>
       </div>
