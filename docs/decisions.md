@@ -44,6 +44,7 @@ Newest last. Each entry: what, why, and what would change it.
 | 2026-11-06 | Onboarding: new wallet, passkey, restore; hardware later | User request |
 | 2026-11-06 | A passkey wallet is derived from the passkey's PRF output | User's choice (option 1): a synced passkey restores the wallet with no phrase. The phrase is still shown, optionally, at setup |
 | 2026-11-06 | The extension is the passkey's relying party; no hosted page | Chrome allows WebAuthn and PRF from an extension page (checked with a virtual authenticator). A hosted page would add a server and attack surface |
+| 2026-11-07 | An open side panel takes its own tab's requests | A popup over an open panel showed the same wallet twice. Only the requesting tab's panel counts, since Chrome shows a tab's panel only while that tab is active |
 | 2026-11-06 | Onboarding opens in a tab on install | The toolbar popup can close while a passkey dialog has focus; the phrase screens need room |
 | 2026-11-06 | New wallets check three words of the phrase | Catches a phrase that was not written down |
 | 2026-11-06 | Sponsor relays RAILGUN's 7702 unshield (type 4) | User's choice. Keeps Fund one transaction and sponsored Make public working. Accepted only with one authorization to RelayAdapt7702 on Sepolia, signed by the transaction's own target |

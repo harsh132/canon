@@ -79,10 +79,10 @@ let nextItemId = 1;
 let chosen: number | 'new' | null = null;
 
 let isUnlocked = (): boolean => false;
-let prompt = (_windowId?: number): void => {};
+let prompt = (_windowId?: number, _tabId?: number): void => {};
 let changed = (): void => {};
 
-export const configureDapp = (opts: { isUnlocked: () => boolean; prompt: (windowId?: number) => void; changed: () => void }): void => {
+export const configureDapp = (opts: { isUnlocked: () => boolean; prompt: (windowId?: number, tabId?: number) => void; changed: () => void }): void => {
   ({ isUnlocked, prompt, changed } = opts);
 };
 
@@ -112,7 +112,7 @@ const enqueue = (item: Omit<Item, 'id' | 'resolve' | 'reject' | 'chainId'>): Pro
     queue.push({ ...item, chainId: chainOf(item.origin), id: nextItemId++, resolve, reject });
     if (item.kind === 'connect') chosen = null;
     changed();
-    prompt(item.port.sender?.tab?.windowId);
+    prompt(item.port.sender?.tab?.windowId, item.port.sender?.tab?.id);
   });
 
 const handle = async (port: chrome.runtime.Port, origin: string, method: string, params: unknown[]): Promise<unknown> => {

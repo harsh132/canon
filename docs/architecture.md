@@ -96,7 +96,10 @@ The panel is per tab; see [site-accounts.md](site-accounts.md#per-tab-panel).
 |---|---|
 | User clicks the toolbar icon | The side panel |
 | A dapp or WalletConnect request needs approval, no Canon UI open | The toolbar popup, on the requesting tab's window (`chrome.action.openPopup`, Chrome 127+) |
-| Same, with the panel or popup already open | The open UI shows it; nothing new opens |
+| Same, with a popup already open | The popup shows it; nothing new opens |
+| A site's request, with that tab's side panel open | The panel shows it in full; no popup, no badge |
+| A WalletConnect request, with any side panel open | The panel shows it in full; no popup |
+| A site's request, with only another tab's panel open | The toolbar popup; that panel shows a bar to review it too |
 | Chrome refuses to open the popup | A small separate window, as a last resort |
 
-The service worker attaches `popup.html` to the icon only while opening it, then detaches it, so the next icon click opens the panel again. The core tracks open UI ports to decide whether to ask at all.
+The service worker attaches `popup.html` to the icon only while opening it, then detaches it, so the next icon click opens the panel again. The core tracks open UI ports, and each panel's tab (from `panel.html?tab=N`), to decide whether to ask at all.

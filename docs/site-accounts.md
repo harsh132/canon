@@ -9,7 +9,7 @@ The toolbar icon opens the side panel for the current tab only (`panel.html?tab=
 - The core maps each tab to the dapp connected in it, from the `canon-dapp` port Chrome stamps with the tab id.
 - The panel's site card shows the dapp's icon, origin, its address and the address's ETH, WETH and USDC, read through Nox.
 - A tab with no dapp shows "No dapp in this tab".
-- Requests still open the toolbar popup unless the panel or popup is open ([architecture.md](architecture.md#where-prompts-appear)). In the panel, a waiting request shows as a bar at the top until reviewed.
+- With a tab's panel open, that tab's requests show in full in the panel and no popup opens ([architecture.md](architecture.md#where-prompts-appear)). Another site's waiting request shows as a bar at the top until reviewed.
 
 ## Fund
 

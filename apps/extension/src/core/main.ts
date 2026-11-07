@@ -295,23 +295,34 @@ const handlers: Handlers = {
 
 chrome.runtime.onConnect.addListener(browser.attachDappPort);
 
-// Open popups and prompt windows already show a request; side panels do not
-// (they show a "request waiting" bar instead), so only these suppress the popup.
+// Where a request can be answered without opening the toolbar popup:
+// - an open popup or prompt window shows every request;
+// - an open side panel shows its own tab's requests in full, and WalletConnect's.
 // windowId: the browser window of the requesting tab, so the popup opens there.
 let openPrompts = 0;
-const prompt = (windowId?: number) => {
-  if (openPrompts === 0) void sw({ type: 'prompt', windowId });
+/** Tab id of every open side panel (panel.html?tab=N), one entry per panel. */
+const panelTabs: number[] = [];
+const prompt = (windowId?: number, tabId?: number) => {
+  if (openPrompts > 0) return;
+  if (tabId == null ? panelTabs.length > 0 : panelTabs.includes(tabId)) return;
+  void sw({ type: 'prompt', windowId });
 };
 
 chrome.runtime.onConnect.addListener((port) => {
   if (!port.name.startsWith(PORT_NAME)) return;
   const kind = port.name.slice(PORT_NAME.length + 1) as UiKind;
-  // The panel and the onboarding tab do not show prompts in full; only these do.
   if (kind === 'popup' || kind === 'window') {
     openPrompts += 1;
     port.onDisconnect.addListener(() => {
       openPrompts -= 1;
     });
+  }
+  if (kind === 'panel') {
+    const tab = Number(new URL(port.sender?.url ?? 'x:').searchParams.get('tab'));
+    if (Number.isInteger(tab) && tab > 0) {
+      panelTabs.push(tab);
+      port.onDisconnect.addListener(() => panelTabs.splice(panelTabs.indexOf(tab), 1));
+    }
   }
   const push = () => port.postMessage(encode({ event: 'state', state } satisfies CoreMessage));
   const off = onState(push);

@@ -20,6 +20,7 @@ End-to-end scripts in `apps/extension/scripts`. Each launches Chromium with `dis
 | `check-panel.mjs` | Side panel behaviour and layout at several widths: tabs at the top, status line pinned to the bottom | A build |
 | `shot-frame.mjs` | Screenshots of Home, the menu, Send, Recovery phrase and a panel with a dapp, dark, into `.cache/frame-shots/` | A build; port 8797 |
 | `check-icons.mjs` | Favicon on browser connect/sign prompts and lists; WalletConnect metadata icon fetched and shown inline | A build; port 8794; WalletConnect project id |
+| `e2e-panel-prompt.mjs` | With the requesting tab's panel open, no popup and no badge, and the connect request shows in full in the panel; with the panel closed, the popup opens | A build; serves its own page on port 8801 |
 | `check-prompt.mjs` | With no UI open, a dapp connect opens the toolbar popup, not a window; the icon still opens the panel | A build; serves its own page on port 8793 |
 | `e2e-wc.mjs` | Two dapps get two addresses; personal_sign recovers to the right one; a reconnect keeps its address | A WalletConnect project id that allows the extension origin |
 

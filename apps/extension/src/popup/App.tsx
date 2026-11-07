@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { uiKind, useCore } from './client';
+import { panelTab, uiKind, useCore } from './client';
 import { Backup, Onboard, Ready, type BackupView } from './screens/Onboard';
 import { Unlock } from './screens/Unlock';
 import { Home } from './screens/Home';
@@ -21,7 +21,8 @@ export const App = () => {
   const [tab, setTab] = useState<Tab>('home');
   // Held here, not in Onboard: the vault flips to unlocked before the phrase is acknowledged.
   const [backup, setBackup] = useState<BackupView | null>(null);
-  // Side panel: a waiting request shows as a bar until the user chooses to review it.
+  // Side panel: its own site's requests (and WalletConnect's) show in full; another
+  // site's request shows as a bar until the user chooses to review it.
   const [reviewing, setReviewing] = useState(false);
 
   if (!s || s.vault === 'unknown') return <div className="grid h-[var(--app-h)] place-items-center"><span className="slug">Starting</span></div>;
@@ -35,7 +36,8 @@ export const App = () => {
   if (uiKind === 'tab') return <Ready />;
   const pending = s.wc.proposal ?? s.wc.request;
   if (!pending && reviewing) setReviewing(false);
-  const showPrompt = uiKind !== 'panel' || reviewing;
+  const mine = !!pending && (!pending.origin || pending.origin === (panelTab ? s.tabs[panelTab] : undefined));
+  const showPrompt = uiKind !== 'panel' || reviewing || mine;
   if (s.wc.proposal && showPrompt) return <ConnectPrompt s={s} />;
   if (s.wc.request && showPrompt) return <RequestPrompt s={s} />;
 
