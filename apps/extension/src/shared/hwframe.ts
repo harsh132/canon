@@ -8,6 +8,27 @@ const TRAILER = 4;
 /** Larger than any request we send (a typed-data payload or a clear-sign request). */
 export const MAX_FRAME_JSON = 64 * 1024;
 
+/** The Bluetooth link (docs/hardware-wallet.md, "Bluetooth (BLE)"). */
+export const BLE = {
+  service: '3dff3ba4-599b-4084-b915-020fd7c35f03',
+  requests: '3dff3ba5-599b-4084-b915-020fd7c35f03',
+  responses: '3dff3ba6-599b-4084-b915-020fd7c35f03',
+  name: 'Buddy',
+} as const;
+/** Largest piece Pangolin writes to the requests characteristic. */
+export const BLE_CHUNK = 180;
+
+/** Which link the user picked in a Pangolin page (localStorage, shared by the UI and the core). */
+export const LINK_KEY = 'pangolin.hwLink';
+export type HwLink = 'ble' | 'usb';
+
+/** A frame cut into pieces of at most `size` bytes, in order. */
+export const chunks = (bytes: Uint8Array, size: number): Uint8Array[] => {
+  const out: Uint8Array[] = [];
+  for (let i = 0; i < bytes.length; i += size) out.push(bytes.subarray(i, i + size));
+  return out;
+};
+
 export type HwRequest = { id: number; m: string; p?: unknown };
 export type HwResponse = { id: number; r?: unknown; e?: { code: number; message: string } };
 

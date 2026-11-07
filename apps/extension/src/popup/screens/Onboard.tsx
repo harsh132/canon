@@ -3,6 +3,7 @@ import { wordlists } from 'ethers';
 import { call, useAction } from '../client';
 import { createPasskey, getPasskey } from '../passkey';
 import { chooseDevice } from '../hardware';
+import type { HwLink } from '../../shared/hwframe';
 import { Button, Card, ErrorLine, Field, Header, Input, Slug } from '../ui';
 
 export type BackupView = { phrase: string; optional: boolean };
@@ -40,7 +41,7 @@ export const Onboard = ({ onBackup }: { onBackup: (b: BackupView) => void }) => 
         <Choice title="New wallet" hint="Recovery phrase" onClick={() => setStep('create')} />
         <Choice title="Passkey" hint="No phrase" onClick={() => setStep('passkey')} />
         <Choice title="Restore" hint="From a phrase" onClick={() => setStep('restore')} />
-        <Choice title="Hardware wallet" hint="USB device" onClick={() => setStep('hardware')} />
+        <Choice title="Hardware wallet" hint="Bluetooth or USB" onClick={() => setStep('hardware')} />
       </div>
     </div>
   );
@@ -132,9 +133,14 @@ const Passkey = ({ onBack, onBackup }: { onBack: () => void; onBackup: (b: Backu
   );
 };
 
-/** A hardware wallet: pick the USB port, then three approvals on the device. */
+/** A hardware wallet: pick the device (Bluetooth or USB), then three approvals on it. */
 const Hardware = ({ onBack }: { onBack: () => void }) => {
   const a = useAction();
+  const connect = (link: HwLink) =>
+    a.run(async () => {
+      await chooseDevice(link);
+      await call('vault.hardware', null);
+    });
   return (
     <div className="flex min-h-[var(--app-h)] flex-col">
       <Header title="Hardware wallet" onBack={onBack} />
@@ -142,17 +148,11 @@ const Hardware = ({ onBack }: { onBack: () => void }) => {
         <p className="text-[15px] leading-snug">Keys stay on the device. Pangolin can see your private balance; only the device can spend it.</p>
         <div className="flex-1" />
         <ErrorLine>{a.error}</ErrorLine>
-        <Button
-          className="mb-[18px]"
-          busy={a.busy}
-          onClick={() =>
-            a.run(async () => {
-              await chooseDevice();
-              await call('vault.hardware', null);
-            })
-          }
-        >
-          Connect device
+        <Button busy={a.busy} onClick={() => connect('ble')}>
+          Connect with Bluetooth
+        </Button>
+        <Button variant="ghost" className="mb-[18px]" disabled={a.busy} onClick={() => connect('usb')}>
+          Connect with USB
         </Button>
       </div>
     </div>

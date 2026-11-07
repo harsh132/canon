@@ -1,6 +1,8 @@
 // Hardware wallet, end to end against the JavaScript mock device (apps/hw-mock)
 // over its WebSocket. Needs a --dev build (the mock URL is honoured only there).
 //   PANGOLIN_PROFILE=/new/dir bun scripts/e2e-hardware.mjs
+// HW_LINK=ble (default) onboards with Bluetooth: requests go out in BLE-sized
+// pieces and the mock answers in 20-byte notifications. HW_LINK=usb: whole frames.
 import { spawn } from 'node:child_process';
 import { HDNodeWallet, Mnemonic, keccak256, randomBytes, toUtf8Bytes, verifyMessage, verifyTypedData } from 'ethers';
 import { deriveNodes, encodeAddress, WalletNode } from '../../hw-mock/src/engine.ts';
@@ -11,8 +13,9 @@ import { launch } from './smoke.mjs';
 const SEED = process.env.HW_SEED ?? Mnemonic.fromEntropy(randomBytes(16)).phrase;
 const MOCK = 8799;
 const PORT = 8800;
+const LINK = process.env.HW_LINK ?? 'ble';
 const mock = spawn('bun', [new URL('../../hw-mock/src/server.ts', import.meta.url).pathname], {
-  env: { ...process.env, HW_MOCK_SEED: SEED, HW_MOCK_PORT: String(MOCK), HW_MOCK_DELAY_MS: '700' },
+  env: { ...process.env, HW_MOCK_SEED: SEED, HW_MOCK_PORT: String(MOCK), HW_MOCK_DELAY_MS: '700', HW_MOCK_MTU: LINK === 'ble' ? '23' : '' },
   stdio: ['ignore', 'inherit', 'inherit'],
 });
 // Never leave the mock running, whatever ends this script.
@@ -60,7 +63,7 @@ const site = HDNodeWallet.fromPhrase(SEED, undefined, `m/44'/60'/1984'/7702'/0'/
 await popup.evaluate((url) => localStorage.setItem('pangolin.hwMock', url), `ws://127.0.0.1:${MOCK}`);
 await waitText('hardware wallet');
 await click('^hardware wallet');
-await click('^connect device$');
+await click(LINK === 'ble' ? '^connect with bluetooth$' : '^connect with usb$');
 check(await sawBanner(), 'banner: "Confirm on your device" while the device waits');
 await waitText('private balance', popup, 120000);
 check(true, 'onboarded with three approvals on the device');
@@ -155,6 +158,15 @@ if (process.env.SPONSORED) {
   }
   await setRpc('route through nox');
 }
+
+// Switch links on the unlock screen: the core drops the old link and opens the new one.
+await popup.bringToFront();
+await click('^lock$');
+await waitText('unlock with device');
+const other = LINK === 'ble' ? 'usb' : 'ble';
+await click(other === 'usb' ? '^use usb instead$' : '^use bluetooth instead$');
+await waitText('private balance');
+check((await popup.evaluate(() => localStorage.getItem('pangolin.hwLink'))) === other, `unlocked after switching to ${other}`);
 
 const log = await (await fetch(`http://127.0.0.1:${MOCK}/log`)).json();
 console.log('device screens:', log.map((s) => `${s.title}${s.approved ? '' : ' (rejected)'}`).join(' · '));

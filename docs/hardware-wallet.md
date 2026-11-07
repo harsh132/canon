@@ -8,6 +8,7 @@ Status (2026-11-07):
 |---|---|
 | Reference device and vectors (`apps/hw-mock`) | Done. `bun src/selftest.ts`: every secp256k1 message recovers, RAILGUN derivation matches a known 0zk, the engine's clear-sign verifier accepts every output and signature |
 | BuddyOS firmware (`~/Work/BuddyOS`, `components/wallet_core`, `components/app_wallet`) | C core reproduces all 10 vectors byte for byte on the host. Not yet flashed: waiting for the board on USB |
+| Bluetooth link (both sides) | In progress |
 | Pangolin: device link, signer, RAILGUN hardware wallet, onboarding, unlock, confirm banner | Done. `scripts/e2e-hardware.mjs` against the mock: all 13 checks pass, with a fresh seed each run |
 | A private send clear-signed end to end (real proof) | Not run: needs private funds on a device seed |
 | Gasless 7702 call signed on the device through the hosted sponsor | Done on Sepolia: Calibur batch and authorization signed on the mock device, sent by the Cloudflare sponsor in 14 s ([tx](https://sepolia.etherscan.io/tx/0x2e45d5be89ea22d1a600fc845970bfb954573689927ebd88f3a18e6143d39eda)) | Device app in `~/Work/BuddyOS` (`components/app_wallet`), Pangolin side in this repo.
@@ -26,9 +27,35 @@ Nothing that can spend leaves the device. A stolen browser profile can see the p
 
 ## Transport
 
+Two links carry the same frames. Pangolin remembers which one the user picked (`localStorage['pangolin.hwLink']`: `ble` or `usb`) and the user can switch on the unlock screen.
+
+### Bluetooth (BLE)
+
+A GATT service next to Buddy's keyboard service:
+
+| | UUID | Properties |
+|---|---|---|
+| Service | `3dff3ba4-599b-4084-b915-020fd7c35f03` | |
+| Requests (PC to device) | `3dff3ba5-599b-4084-b915-020fd7c35f03` | Write (with response), max length 512 |
+| Responses (device to PC) | `3dff3ba6-599b-4084-b915-020fd7c35f03` | Notify |
+
+- **Security.** Both characteristics and the notify descriptor need an encrypted, authenticated link (`ESP_GATT_PERM_*_ENC_MITM`): a bonded host paired with LE Secure Connections and numeric comparison confirmed on Buddy. Frames carry the vault key signature and the viewing key, so an unpaired link must never reach them.
+- **Chunks.** Pangolin writes each frame in pieces of at most 180 bytes, in order, each acknowledged. The device appends the pieces to one byte stream and pulls frames out with the same reader as USB. It sends responses as notifications of at most MTU − 3 bytes, in order, waiting out congestion. Buddy sets its local MTU to 517.
+- **One link per request.** The reply goes back on the link the request came in on. A dropped link discards a half-received frame.
+- **No logs** on BLE.
+- **Finding Buddy.** Pangolin's picker filters on the service UUID or the name `Buddy`, so the service UUID can sit in the scan response. Buddy only advertises to bonded hosts, so pair the PC first (Buddy's Bluetooth settings, then the OS's Bluetooth settings).
+- **Pairing on Linux** needs a BlueZ agent that can show a code. Without one, numeric comparison fails with "No agent available for request type 2". Pair from an interactive `bluetoothctl` (it registers its own agent): `scan on`, `pair <Buddy's address>`, confirm the code on both sides, `trust <address>`.
+- **Chrome flags** (checked on Chromium 155 on Linux, in the extension's offscreen core):
+  - `#enable-web-bluetooth`: Web Bluetooth itself. Linux only; Windows and macOS have it on.
+  - `#enable-web-bluetooth-new-permissions-backend`: `navigator.bluetooth.getDevices()` and `watchAdvertisements()`, which the core (no user gesture) uses to reconnect to the device picked in a Pangolin page. Needed on every platform.
+  - `#enable-web-bluetooth-confirm-pairing-support`: lets Chrome itself confirm the pairing code, instead of pairing in `bluetoothctl` first. Optional.
+  - `#enable-experimental-web-platform-features` turns on the first two as well.
+
+### USB
+
 USB serial (CDC-ACM, `303a:1001`) through Chrome's Web Serial. The user picks the device once in a Pangolin tab (`navigator.serial.requestPort` needs a click); the grant belongs to the extension's origin, so the core (offscreen document) reopens it with `getPorts()`. Right after `open()`, call `setSignals({ dataTerminalReady: false, requestToSend: false })`, or the board resets.
 
-The device sends no log lines on this port in wallet builds.
+The device's log lines may share this port; the frame reader skips them.
 
 ### Frames
 
@@ -124,7 +151,8 @@ The engine (`transaction/clear-sign-verify.js`) recomputes every commitment and 
 
 ## Pangolin side
 
-- **Onboarding:** "Hardware wallet" becomes the fourth choice. Pick the device, then `getViewingKey` and `vaultKey`, confirmed on the device.
+- **Onboarding:** "Hardware wallet" is the fourth choice. "Connect with Bluetooth" or "Connect with USB" picks the device, then `getViewingKey` and `vaultKey`, confirmed on the device.
+- **Unlock:** "Unlock with device" uses the remembered link; "Use USB instead" / "Use Bluetooth instead" switches it (the core drops the old link).
 - **Vault:** kind `hardware`. Vault keys come from HKDF over the `vaultKey` signature, as with a passkey's PRF output. Unlocking asks the device for `vaultKey` again. It stores the viewing key, never a seed.
 - **RAILGUN:** `createHardwareRailgunWallet` from the shareable viewing key, with a connector that sends `railgunClearSign`.
 - **Public accounts:** signers that forward to the device. Every approve in Pangolin is followed by "Confirm on device".

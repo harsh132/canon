@@ -1,8 +1,9 @@
 // The hardware wallet, as the core sees it: one request at a time over USB
-// serial (docs/hardware-wallet.md). The user grants the port once in a Pangolin
-// page; the grant belongs to the extension's origin, so the core reopens it here.
-// Dev builds can point at the JavaScript mock (apps/hw-mock) over a WebSocket.
-import { FrameReader, encodeFrame, type HwResponse } from '../../shared/hwframe';
+// Bluetooth or USB serial (docs/hardware-wallet.md). The user picks the device once
+// in a Pangolin page; the grant belongs to the extension's origin, so the core
+// reopens it here. Dev builds can point at the JavaScript mock (apps/hw-mock) over
+// a WebSocket.
+import { BLE, BLE_CHUNK, FrameReader, LINK_KEY, chunks, encodeFrame, type HwResponse } from '../../shared/hwframe';
 import { DEV } from '../config';
 import { emit, state } from '../state';
 
@@ -20,7 +21,7 @@ type Link = { write: (b: Uint8Array) => Promise<void>; close: () => Promise<void
 
 let link: Link | null = null;
 let opening: Promise<Link> | null = null;
-const reader = new FrameReader();
+let reader = new FrameReader();
 const waiting = new Map<number, { resolve: (r: HwResponse) => void; reject: (e: Error) => void }>();
 let nextId = 1;
 let queue: Promise<unknown> = Promise.resolve();
@@ -34,7 +35,9 @@ const onFrames = (bytes: Uint8Array) => {
   }
 };
 
-const dropped = (why: string) => {
+/** `l` went away. A link replaced by a newer one is ignored. */
+const dropped = (why: string, l: Link) => {
+  if (link !== l && link !== null) return;
   link = null;
   for (const [, w] of waiting) w.reject(new DeviceError(4900, why));
   waiting.clear();
@@ -46,9 +49,17 @@ const openMock = (url: string): Promise<Link> =>
   new Promise((resolve, reject) => {
     const ws = new WebSocket(url);
     ws.binaryType = 'arraybuffer';
-    ws.onopen = () => resolve({ write: async (b) => ws.send(new Uint8Array(b)), close: async () => ws.close() });
+    // With Bluetooth picked, write in BLE-sized pieces, as the real link does.
+    const piece = globalThis.localStorage?.getItem(LINK_KEY) === 'ble' ? BLE_CHUNK : Number.MAX_SAFE_INTEGER;
+    const self: Link = {
+      write: async (b) => {
+        for (const c of chunks(b, piece)) ws.send(new Uint8Array(c));
+      },
+      close: async () => ws.close(),
+    };
+    ws.onopen = () => resolve(self);
     ws.onerror = () => reject(new DeviceError(4900, 'Mock device unreachable'));
-    ws.onclose = () => dropped('Device disconnected');
+    ws.onclose = () => dropped('Device disconnected', self);
     ws.onmessage = (e) => onFrames(new Uint8Array(e.data as ArrayBuffer));
   });
 
@@ -63,6 +74,14 @@ const openSerial = async (): Promise<Link> => {
   await port.setSignals({ dataTerminalReady: false, requestToSend: false });
   const writer = port.writable.getWriter();
   const r = port.readable.getReader();
+  const self: Link = {
+    write: (b) => writer.write(b),
+    close: async () => {
+      r.releaseLock();
+      writer.releaseLock();
+      await port.close().catch(() => {});
+    },
+  };
   void (async () => {
     try {
       for (;;) {
@@ -73,16 +92,77 @@ const openSerial = async (): Promise<Link> => {
     } catch {
       // The device went away.
     }
-    dropped('Device disconnected');
+    dropped('Device disconnected', self);
   })();
-  return {
-    write: (b) => writer.write(b),
-    close: async () => {
-      r.releaseLock();
-      writer.releaseLock();
-      await port.close().catch(() => {});
-    },
+  return self;
+};
+
+// Web Bluetooth, as far as the core uses it.
+type Characteristic = EventTarget & {
+  value?: DataView;
+  startNotifications: () => Promise<unknown>;
+  stopNotifications: () => Promise<unknown>;
+  writeValueWithResponse: (b: Uint8Array) => Promise<void>;
+};
+type BleDevice = EventTarget & {
+  name?: string;
+  watchAdvertisements?: () => Promise<void>;
+  gatt?: {
+    connected: boolean;
+    connect: () => Promise<{ getPrimaryService: (u: string) => Promise<{ getCharacteristic: (u: string) => Promise<Characteristic> }> }>;
+    disconnect: () => void;
   };
+};
+
+const within = <T>(p: Promise<T>, ms: number, why: string): Promise<T> =>
+  Promise.race([p, new Promise<never>((_, reject) => setTimeout(() => reject(new DeviceError(4900, why)), ms))]);
+
+const openBle = async (): Promise<Link> => {
+  const bt = (navigator as Navigator & { bluetooth?: { getDevices?: () => Promise<BleDevice[]> } }).bluetooth;
+  if (!bt) throw new DeviceError(4900, 'Bluetooth needs chrome://flags/#enable-web-bluetooth');
+  if (!bt.getDevices) throw new DeviceError(4900, 'Bluetooth needs chrome://flags/#enable-web-bluetooth-new-permissions-backend');
+  const devices = await bt.getDevices();
+  const device = devices.find((d) => d.name === BLE.name) ?? devices[0];
+  if (!device?.gatt) throw new DeviceError(4900, 'Choose your device');
+  const gatt = device.gatt;
+  // A remembered device may need to be seen advertising before it can connect.
+  const server = await gatt.connect().catch(async () => {
+    if (!device.watchAdvertisements) throw new DeviceError(4900, 'Device not in range');
+    const seen = new Promise<void>((resolve) => device.addEventListener('advertisementreceived', () => resolve(), { once: true }));
+    await device.watchAdvertisements();
+    await within(seen, 15_000, 'Device not in range');
+    return gatt.connect();
+  });
+  try {
+    const svc = await server.getPrimaryService(BLE.service);
+    const rx = await svc.getCharacteristic(BLE.requests);
+    const tx = await svc.getCharacteristic(BLE.responses);
+    tx.addEventListener('characteristicvaluechanged', () => {
+      const v = tx.value;
+      if (v) onFrames(new Uint8Array(v.buffer.slice(v.byteOffset, v.byteOffset + v.byteLength)));
+    });
+    // The first encrypted access starts pairing if the computer is not bonded yet.
+    await tx.startNotifications();
+    const gone = () => dropped('Device disconnected', self);
+    device.addEventListener('gattserverdisconnected', gone, { once: true });
+    const self: Link = {
+      write: async (b) => {
+        for (const c of chunks(b, BLE_CHUNK)) await rx.writeValueWithResponse(c);
+      },
+      close: async () => {
+        device.removeEventListener('gattserverdisconnected', gone);
+        await tx.stopNotifications().catch(() => {});
+        gatt.disconnect();
+      },
+    };
+    return self;
+  } catch (e) {
+    gatt.disconnect();
+    const m = (e as Error).message ?? '';
+    if (/auth|encrypt|pair|insufficient/i.test(m)) throw new DeviceError(4900, 'Pair your device with this computer first');
+    if (/service|characteristic/i.test(m)) throw new DeviceError(4900, 'Update your device to use Bluetooth');
+    throw new DeviceError(4900, m || 'Bluetooth failed');
+  }
 };
 
 type SerialPortLike = {
@@ -94,12 +174,19 @@ type SerialPortLike = {
   writable: WritableStream<Uint8Array>;
 };
 
+let linkKind: string | null = null;
+
 const connect = async (): Promise<Link> => {
+  const kind = globalThis.localStorage?.getItem(LINK_KEY) === 'ble' ? 'ble' : 'usb';
+  // The user switched between Bluetooth and USB: drop the old link.
+  if (link && linkKind !== kind) await disconnectDevice();
   if (link) return link;
   opening ??= (async () => {
     const mock = DEV ? globalThis.localStorage?.getItem(MOCK_KEY) : null;
-    const l = mock ? await openMock(mock) : await openSerial();
+    reader = new FrameReader();
+    const l = mock ? await openMock(mock) : kind === 'ble' ? await openBle() : await openSerial();
     link = l;
+    linkKind = kind;
     state.device = { ...state.device, connected: true };
     emit();
     return l;

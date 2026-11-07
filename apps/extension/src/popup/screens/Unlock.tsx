@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { CoreState } from '../../shared/protocol';
 import { call, useAction } from '../client';
 import { getPasskey } from '../passkey';
-import { chooseDevice, hasDevice } from '../hardware';
+import { chooseDevice, hasDevice, hwLink } from '../hardware';
 import { Button, ErrorLine, Field, Header, Input, Slug } from '../ui';
 
 export const Unlock = ({ s }: { s: CoreState }) => {
@@ -47,6 +47,21 @@ export const Unlock = ({ s }: { s: CoreState }) => {
         )}
         <ErrorLine>{a.error}</ErrorLine>
         <Button busy={a.busy} onClick={unlock}>{hardware ? 'Unlock with device' : passkey ? 'Unlock with passkey' : 'Unlock'}</Button>
+        {hardware && (
+          <Button
+            variant="link"
+            className="self-center"
+            disabled={a.busy}
+            onClick={() =>
+              a.run(async () => {
+                await chooseDevice(hwLink() === 'ble' ? 'usb' : 'ble');
+                await call('vault.unlockHardware', null);
+              })
+            }
+          >
+            {hwLink() === 'ble' ? 'Use USB instead' : 'Use Bluetooth instead'}
+          </Button>
+        )}
         {reject && (
           <Button variant="link" className="self-center text-muted" onClick={reject}>
             Reject request
