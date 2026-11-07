@@ -2,7 +2,7 @@
 
 Canon's sponsor pays gas so that no address of the user's appears as a sender. Testnet only: it charges no fee, so hourly caps hold back abuse.
 
-Hosted at **https://canon-sponsor.prakashharsh32.workers.dev** (Cloudflare Worker). The extension's production build points there through `CANON_SPONSOR_URL` in `apps/extension/.env`.
+Hosted at **https://canon-sponsor.prakashharsh32.workers.dev** (Cloudflare Worker). The extension uses it by default (`SPONSOR_URL` in `src/core/config.ts`); `CANON_SPONSOR_URL` overrides it, and `CANON_FORK` builds use the local server.
 
 ## Endpoints
 
