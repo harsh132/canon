@@ -15,7 +15,7 @@
 import { AbiCoder, Contract, ZeroHash, getAddress, zeroPadValue } from 'ethers';
 import type { AccountSigner } from './book';
 import { SEPOLIA_ID, sepolia } from './config';
-import { privateFetch } from './transport';
+import { privateFetch, replyJson } from './transport';
 
 export const CALIBUR = '0x000000009B1D0aF20D8C6d0A44e162d11F9b8f00';
 const SPONSOR_URL = process.env.CANON_SPONSOR_URL || 'http://127.0.0.1:8792';
@@ -52,7 +52,7 @@ const sponsor = async (): Promise<string> => {
   if (sponsorAddress) return sponsorAddress;
   const res = await privateFetch(`${SPONSOR_URL}/health`);
   if (!res.ok) throw new Error('Sponsor unreachable');
-  sponsorAddress = getAddress(((await res.json()) as { sponsor: string }).sponsor);
+  sponsorAddress = getAddress((await replyJson<{ sponsor: string }>(res, 'Sponsor')).sponsor);
   return sponsorAddress;
 };
 
@@ -123,7 +123,7 @@ export const sponsoredExecute = async (signer: AccountSigner, calls: Call[]): Pr
       authorization,
     }),
   });
-  const body = (await res.json()) as { hash?: string; error?: string };
+  const body = await replyJson<{ hash?: string; error?: string }>(res, 'Sponsor');
   if (!res.ok || !body.hash) throw new Error(body.error ?? `Sponsor error ${res.status}`);
   return body.hash;
 };

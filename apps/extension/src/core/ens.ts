@@ -4,7 +4,7 @@
 import { AbiCoder, Contract, Interface, dnsEncode, getAddress, namehash } from 'ethers';
 import { createAccount, ensurePreview, setName, signerFor, accounts } from './book';
 import { sepolia } from './config';
-import { privateFetch } from './transport';
+import { privateFetch, replyJson } from './transport';
 import { emit, state } from './state';
 
 export const PARENT = 'canon.eth';
@@ -30,7 +30,7 @@ const identity = async () => {
 
 const call = async (path: string, init?: RequestInit) => {
   const res = await privateFetch(`${SPONSOR_URL}${path}`, init);
-  const body = (await res.json()) as Record<string, unknown>;
+  const body = await replyJson<Record<string, unknown>>(res, 'Sponsor');
   if (!res.ok) throw new Error(String(body.error ?? `Sponsor error ${res.status}`));
   return body;
 };

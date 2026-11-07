@@ -132,6 +132,16 @@ export const privateFetch = (url: string, init?: RequestInit): Promise<Response>
   return realFetch(url, init);
 };
 
+/** A JSON reply, or a short error when a service answers with anything else (an outage or proxy page). */
+export const replyJson = async <T>(res: Response, who: string): Promise<T> => {
+  const text = await res.text();
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    throw new Error(`${who} unavailable (HTTP ${res.status})`);
+  }
+};
+
 export const installTransport = async (): Promise<void> => {
   const saved = await store.getItem<RpcMode>(MODE_KEY);
   // A local fork is unreachable from a mixnet exit.
