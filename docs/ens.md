@@ -4,8 +4,8 @@ Every wallet can claim `<label>.canon.eth` for free. The name's `org.railgun` te
 
 | Item | Value |
 |---|---|
-| Parent | `canon.eth` on the live ENSv2 Sepolia deployment, registered 2026-11-06 for 1 year (8 USDC) |
-| Subregistry | `0x371c18e4B47B1183Ae4c4bE2018440871424bF61` (UserRegistry proxy) |
+| Parent | `canon.eth` on the live ENSv2 Sepolia deployment, registered 2026-11-07 for 1 year (8 USDC; [register tx](https://sepolia.etherscan.io/tx/0x0802709cdc1a75c9c100003cbe4ae319b88bc3d95166c3865b581d0b270c546b)). Names claimed before the rename live under `pangolin.eth` (subregistry `0x371c18e4B47B1183Ae4c4bE2018440871424bF61`) |
+| Subregistry | `0x8cA3Dc27639766aeC78e11cb9fB27443148FC639` (UserRegistry proxy) |
 | Sponsor | `0x254d9B9c09F113271fBC2f7DD84f17060A7d3141`: REGISTRAR + RENEW on the subregistry, nothing else |
 | Record key | `org.railgun` (ENSIP-5 style; same key as the Ender wallet) |
 | Server | `apps/sponsor` (`bun src/server.ts`, port 8792) |

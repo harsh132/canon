@@ -14,7 +14,7 @@ export default defineConfig({
     env: {
       SPONSOR: bindings.durableObject({ worker: 'canon-sponsor', exportName: 'Sponsor' }),
       SPONSOR_KEY: bindings.secret(),
-      SUBREGISTRY: bindings.text('0x371c18e4B47B1183Ae4c4bE2018440871424bF61'),
+      SUBREGISTRY: bindings.text('0x8cA3Dc27639766aeC78e11cb9fB27443148FC639'),
       SEPOLIA_RPC: bindings.text('https://ethereum-sepolia-rpc.publicnode.com'),
       PARENT_LABEL: bindings.text('canon'),
     },
