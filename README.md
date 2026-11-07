@@ -9,6 +9,8 @@ A privacy wallet for Ethereum, built as a Chrome extension.
 
 Built at ETHGlobal Mumbai, November 2026.
 
+> **Alpha.** Built and tested on Sepolia. Don't put real funds in it.
+
 ## Layout
 
 | path | what |
@@ -21,7 +23,9 @@ Built at ETHGlobal Mumbai, November 2026.
 
 ## Install
 
-You need Chrome or Chromium 127 or newer, and [bun](https://bun.sh).
+**Prebuilt:** download `canon-wallet-0.1.0-alpha.zip` from [Releases](https://github.com/harsh132/canon/releases), unzip it, and load the folder as below.
+
+**From source:** you need Chrome or Chromium 127 or newer, and [bun](https://bun.sh).
 
 ```bash
 git clone https://github.com/harsh132/canon
