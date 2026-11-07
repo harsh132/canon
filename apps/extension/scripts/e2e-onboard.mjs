@@ -4,7 +4,7 @@
 //   3. Restore: a pasted phrase fills the grid, a bad word is flagged, the wallet matches the phrase
 //   4. Passkey (virtual authenticator with PRF): create, lock, unlock with it,
 //      erase, then "Use existing passkey" brings back the same wallet
-//   PANGOLIN_PROFILE=/new/dir bun scripts/e2e-onboard.mjs
+//   CANON_PROFILE=/new/dir bun scripts/e2e-onboard.mjs
 import { HDNodeWallet, Mnemonic, randomBytes } from 'ethers';
 import { createWallet, launch } from './smoke.mjs';
 
@@ -84,7 +84,7 @@ await click('^done$');
 await waitText('private balance');
 check((await shownMain())?.toLowerCase() === mainOf(phrase1).toLowerCase(), 'new wallet: Main matches its phrase');
 if (onboardPage) {
-  await onboardPage.waitForFunction(() => /open pangolin from the toolbar/i.test(document.body.innerText), { timeout: 10000 }).then(
+  await onboardPage.waitForFunction(() => /open canon wallet from the toolbar/i.test(document.body.innerText), { timeout: 10000 }).then(
     () => check(true, 'onboarding tab shows Ready once the wallet exists'),
     () => check(false, 'onboarding tab shows Ready once the wallet exists'),
   );

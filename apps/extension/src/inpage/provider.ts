@@ -8,9 +8,9 @@
 type Listener = (...args: unknown[]) => void;
 type Reply = { target: string; id?: number; result?: unknown; error?: { code: number; message: string }; event?: string; data?: unknown };
 
-const TO_BRIDGE = 'pangolin:bridge';
-const FROM_BRIDGE = 'pangolin:inpage';
-// Each site has its own network in Pangolin; this starts at Sepolia and follows chainChanged.
+const TO_BRIDGE = 'canon:bridge';
+const FROM_BRIDGE = 'canon:inpage';
+// Each site has its own network in Canon; this starts at Sepolia and follows chainChanged.
 const START_CHAIN = '0xaa36a7';
 
 class ProviderRpcError extends Error {
@@ -19,8 +19,8 @@ class ProviderRpcError extends Error {
   }
 }
 
-class PangolinProvider {
-  readonly isPangolin = true;
+class CanonProvider {
+  readonly isCanon = true;
   chainId = START_CHAIN;
   networkVersion = String(Number.parseInt(START_CHAIN, 16));
   selectedAddress: string | null = null;
@@ -138,20 +138,20 @@ const ICON =
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect width="24" height="24" rx="4" fill="#ece9e0"/><g fill="none" stroke="#0d7150" stroke-width="2" stroke-linejoin="round"><path d="M12 2.5l8 4.5v10l-8 4.5-8-4.5v-10z"/><path d="M12 7l4.5 2.5v5L12 17l-4.5-2.5v-5z"/></g></svg>',
   );
 
-const provider = new PangolinProvider();
+const provider = new CanonProvider();
 const info = Object.freeze({
   uuid: crypto.randomUUID(),
-  name: 'Pangolin',
+  name: 'Canon Wallet',
   icon: ICON,
-  rdns: 'io.github.harsh132.pangolin',
+  rdns: 'io.github.harsh132.canon',
 });
 const announce = () =>
   window.dispatchEvent(new CustomEvent('eip6963:announceProvider', { detail: Object.freeze({ info, provider }) }));
 window.addEventListener('eip6963:requestProvider', announce);
 announce();
 
-const w = window as unknown as { ethereum?: unknown; pangolin?: unknown };
-w.pangolin = provider;
+const w = window as unknown as { ethereum?: unknown; canon?: unknown };
+w.canon = provider;
 if (!w.ethereum) {
   Object.defineProperty(window, 'ethereum', { value: provider, configurable: true, writable: true });
   window.dispatchEvent(new Event('ethereum#initialized'));

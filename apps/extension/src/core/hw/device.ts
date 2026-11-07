@@ -1,6 +1,6 @@
 // The hardware wallet, as the core sees it: one request at a time over USB
 // Bluetooth or USB serial (docs/hardware-wallet.md). The user picks the device once
-// in a Pangolin page; the grant belongs to the extension's origin, so the core
+// in a Canon page; the grant belongs to the extension's origin, so the core
 // reopens it here. Dev builds can point at the JavaScript mock (apps/hw-mock) over
 // a WebSocket.
 import { BLE, BLE_CHUNK, FrameReader, LINK_KEY, chunks, encodeFrame, type HwResponse } from '../../shared/hwframe';
@@ -9,7 +9,7 @@ import { emit, state } from '../state';
 
 const ESPRESSIF_VID = 0x303a;
 /** Dev only: ws://… of apps/hw-mock. */
-export const MOCK_KEY = 'pangolin.hwMock';
+export const MOCK_KEY = 'canon.hwMock';
 
 export class DeviceError extends Error {
   constructor(public code: number, message: string) {

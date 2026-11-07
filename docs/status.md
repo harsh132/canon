@@ -13,7 +13,7 @@ Updated 2026-11-06.
 | Make private on real Sepolia, through Nox | `e2e-sepolia.mjs shield`: spendable after about 12 min |
 | Send privately on real Sepolia, Main paying gas | Landed; its new notes still await proof of innocence |
 | Make public on real Sepolia, Main paying gas | Landed; proof and submit 38 s |
-| ENS: claim `<label>.pangolin.eth`, pay a name privately | `e2e-sepolia.mjs name` on Sepolia |
+| ENS: claim `<label>.canon.eth`, pay a name privately | `e2e-sepolia.mjs name` on Sepolia |
 | Sponsored private send (sponsor pays gas, Main not involved) | `e2e-sepolia.mjs private` on Sepolia |
 | Fast proof of innocence after a sponsored send: the wallet submits a proof per output it owns | `e2e-sepolia.mjs private`: spendable again 7 min after sending |
 | Private swap WETH → USDC on Uniswap v4, sponsor paying gas | `e2e-sepolia.mjs swap`: 0.001 WETH → 24.95 USDC ([tx](https://sepolia.etherscan.io/tx/0x270b85b24a68c6e2986bc670d20f69e3a7f085edb9ef23da1a1d629436ee3fe3)) |
@@ -28,7 +28,7 @@ Updated 2026-11-06.
 | Fund a site address from private WETH, arriving as ETH (sponsor relays RAILGUN's type-4 unshield) | `e2e-sepolia.mjs dapp` with `RPC_DIRECT=1` |
 | Hosted sponsor on Cloudflare (Worker + Durable Object) | `execute-probe.ts` against the live URL: delegate, then a two-call batch |
 | Per-tab side panel showing each tab's dapp and address | `check-site-panel.mjs` |
-| Per-dapp WalletConnect addresses: two dapps get two fresh addresses, personal_sign recovers to the right one, a reconnect keeps its address | `e2e-wc.mjs`, Pangolin project id |
+| Per-dapp WalletConnect addresses: two dapps get two fresh addresses, personal_sign recovers to the right one, a reconnect keeps its address | `e2e-wc.mjs`, Canon project id |
 
 ## Built, not yet verified
 
@@ -41,7 +41,7 @@ Updated 2026-11-06.
 
 ## Open questions
 
-- **What purpose_id means.** We read it as one id per app and hash the dapp's origin into it. If RAILGUN meant one id per wallet app (Pangolin vs others), the layout changes. Confirm with the RAILGUN team, and whether they have a hashing rule other wallets follow.
+- **What purpose_id means.** We read it as one id per app and hash the dapp's origin into it. If RAILGUN meant one id per wallet app (Canon vs others), the layout changes. Confirm with the RAILGUN team, and whether they have a hashing rule other wallets follow.
 - **Two 7702 layouts.** The engine (9.9.1) derives its own temporary keys at `m/44'/60'/0'/7702'/railgunIndex'/chainId'/index'`, unlike the `1984'` layout the team sent. Ask which is canonical.
 - **Restore listing.** Dapp addresses rederive on revisit, but an imported wallet does not list sites it has not seen yet.
 
@@ -51,4 +51,4 @@ Updated 2026-11-06.
 2. Submissions: make the repo public, fill the Uniswap feedback form, record the demo.
 3. Ask the RAILGUN team why Sepolia broadcasters reject on proof of innocence.
 4. WalletConnect signing stall (parked).
-5. **Mainnet: phase 1 done ([networks.md](networks.md)); transactions on Arbitrum next.** Earlier note: Pangolin runs on Sepolia only. Mainnet-only dapps such as pro.aave.com connect, then ask to switch to chain 1; Pangolin refuses with 4902, then 4200 on `wallet_addEthereumChain`. Wagmi reports that as "user rejected", so the dapp shows "Request cancelled". Mainnet needs: RAILGUN's mainnet network config, a mainnet sponsor with a fee in private tokens, Calibur (deployed at the same address on mainnet), the ENS parent on mainnet, and a network switch in the UI.
+5. **Mainnet: phase 1 done ([networks.md](networks.md)); transactions on Arbitrum next.** Earlier note: Canon runs on Sepolia only. Mainnet-only dapps such as pro.aave.com connect, then ask to switch to chain 1; Canon refuses with 4902, then 4200 on `wallet_addEthereumChain`. Wagmi reports that as "user rejected", so the dapp shows "Request cancelled". Mainnet needs: RAILGUN's mainnet network config, a mainnet sponsor with a fee in private tokens, Calibur (deployed at the same address on mainnet), the ENS parent on mainnet, and a network switch in the UI.

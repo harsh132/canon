@@ -1,4 +1,4 @@
-# Pangolin hardware-wallet test vectors
+# Canon hardware-wallet test vectors
 
 Written by `bun src/selftest.ts --write` in apps/hw-mock. Each file is one request the device must answer byte for byte.
 

@@ -1,8 +1,8 @@
 // Creates a wallet in a fresh profile and waits for the first RAILGUN sync.
-//   PANGOLIN_PROFILE=/some/new/dir bun scripts/e2e-create.mjs
+//   CANON_PROFILE=/some/new/dir bun scripts/e2e-create.mjs
 import { createWallet, launch } from './smoke.mjs';
 
-const PASSWORD = process.env.PANGOLIN_PASSWORD ?? 'correct horse battery';
+const PASSWORD = process.env.CANON_PASSWORD ?? 'correct horse battery';
 const { browser, popup, corePage } = await launch();
 corePage.on('requestfailed', (r) => console.log('[net:fail]', r.url().slice(0, 120), r.failure()?.errorText));
 corePage.on('response', (r) => {

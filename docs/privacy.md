@@ -9,8 +9,8 @@
 | Chain, on Make private | The public address that funded it, once | A shield is a public transaction from that address |
 | Chain, on Send privately | A proof, no amounts, no parties | RAILGUN |
 | Chain, on Make public | Recipient and amount | An unshield pays a public address |
-| Chain, on a private send's gas | Only that Pangolin's sponsor sent it | The sponsor relays by default. Choosing "Main" makes Main the sender, which links it |
-| Pangolin's sponsor, on a relayed send | Calldata that goes on-chain anyway; the IP unless reached through Nox | Local development sponsor is called directly |
+| Chain, on a private send's gas | Only that Canon's sponsor sent it | The sponsor relays by default. Choosing "Main" makes Main the sender, which links it |
+| Canon's sponsor, on a relayed send | Calldata that goes on-chain anyway; the IP unless reached through Nox | Local development sponsor is called directly |
 | Waku peers | The IP of a browser using RAILGUN broadcasters | Broadcaster discovery and requests travel over Waku, not Nox. Requests are encrypted to the broadcaster |
 | RAILGUN QuickSync (Subsquid) | The IP of someone syncing, and from which block | Bulk public data fetched directly, about 13 MB pages. Names no address |
 | PPOI aggregator | Blinded commitments of this wallet's notes, not the IP | Sent through Nox in Nox mode; verified |
@@ -19,8 +19,8 @@
 | Passkey provider (Google, Apple, a security key) | Holds the passkey, so it can open a passkey wallet | The PRF output never leaves the authenticator unencrypted; the provider's account security is the wallet's ([onboarding.md](onboarding.md#risks)) |
 | Each dapp | Only the address it was given | A fresh address per dapp ([walletconnect.md](walletconnect.md)) |
 | Chain, on Fund | That a RAILGUN user sent this amount to this site address | One unshield; not which balance or which other addresses |
-| Chain, on a site address's dapp call | The site address made it; Pangolin's sponsor paid gas | EIP-7702 + Calibur ([site-accounts.md](site-accounts.md)). The address never holds gas money, so no funding link from Main |
-| Pangolin's sponsor, on a site address's call | The site address and its calls, which go on chain anyway | Not the user's other addresses |
+| Chain, on a site address's dapp call | The site address made it; Canon's sponsor paid gas | EIP-7702 + Calibur ([site-accounts.md](site-accounts.md)). The address never holds gas money, so no funding link from Main |
+| Canon's sponsor, on a site address's call | The site address and its calls, which go on chain anyway | Not the user's other addresses |
 | A WalletConnect dapp's icon host | That someone fetched the icon, not who | Fetched by the core through Nox. Browser-dapp favicons come from Chrome's cache, with no request |
 | WalletConnect analytics | Nothing | Requests to `pulse.walletconnect.org` are blocked in the core |
 

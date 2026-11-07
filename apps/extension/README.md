@@ -1,4 +1,4 @@
-# Pangolin extension
+# Canon extension
 
 Chrome MV3 wallet. RAILGUN private balance, every RPC read through Anon-RPC (Nox), and a fresh public address for every dapp you connect over WalletConnect. Full docs: [`docs/`](../../docs/README.md).
 
@@ -6,11 +6,11 @@ Chrome MV3 wallet. RAILGUN private balance, every RPC read through Anon-RPC (Nox
 
 ```bash
 bun install            # from the repo root
-cp apps/extension/.env.example apps/extension/.env   # set PANGOLIN_WC_PROJECT_ID
-bun run --filter @pangolin/extension build
+cp apps/extension/.env.example apps/extension/.env   # set CANON_WC_PROJECT_ID
+bun run --filter @canon/extension build
 ```
 
-Load `apps/extension/dist` at `chrome://extensions` with Developer mode on. The toolbar icon opens Pangolin in Chrome's side panel. Dapp requests open the small toolbar popup when the panel is closed. The extension id is pinned by the manifest `key`:
+Load `apps/extension/dist` at `chrome://extensions` with Developer mode on. The toolbar icon opens Canon in Chrome's side panel. Dapp requests open the small toolbar popup when the panel is closed. The extension id is pinned by the manifest `key`:
 
 ```
 nigpkikilgbfgmgcmeiidiinikafjpjg
@@ -42,8 +42,8 @@ Full private flow on a local fork, since Sepolia faucets need a human:
 
 ```bash
 anvil --fork-url https://ethereum-sepolia-rpc.publicnode.com --fork-block-number <head-12> --chain-id 11155111
-PANGOLIN_FORK=1 PANGOLIN_SEPOLIA_RPC=http://127.0.0.1:8545 bun scripts/build.mjs --dev
+CANON_FORK=1 CANON_SEPOLIA_RPC=http://127.0.0.1:8545 bun scripts/build.mjs --dev
 bun scripts/e2e-fork.mjs       # make private, send privately, make public
 ```
 
-`PANGOLIN_FORK=1` turns off proof-of-innocence checks, because no PPOI node watches a fork. Never ship that build. Each script takes `PANGOLIN_PROFILE=<new dir>` for a clean Chromium profile.
+`CANON_FORK=1` turns off proof-of-innocence checks, because no PPOI node watches a fork. Never ship that build. Each script takes `CANON_PROFILE=<new dir>` for a clean Chromium profile.

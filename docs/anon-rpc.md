@@ -11,7 +11,7 @@ Every RPC read in the extension, including the RAILGUN engine's, goes through No
 
 ## How it is wired
 
-The harness expects to be called from the service worker, which then remotes to an offscreen document it creates. Pangolin's core already is the offscreen document, and an extension may have only one.
+The harness expects to be called from the service worker, which then remotes to an offscreen document it creates. Canon's core already is the offscreen document, and an extension may have only one.
 
 The harness covers this case without `mountOffscreenHost()`. `AnonRpcWorker` checks for `chrome.offscreen`; an offscreen document has no such API but has a DOM, so the harness runs in place (its `PageWorker` mode) and frames the packaged sandbox page directly. No remoting hop.
 
@@ -53,4 +53,4 @@ The same sync with direct RPC took about 36 s.
 
 ## Modes
 
-The Privacy screen switches between Nox and direct. The choice is stored. Builds pointed at a local RPC (`127.0.0.1`) or built with `PANGOLIN_FORK=1` start in direct mode, since a mixnet exit cannot reach localhost.
+The Privacy screen switches between Nox and direct. The choice is stored. Builds pointed at a local RPC (`127.0.0.1`) or built with `CANON_FORK=1` start in direct mode, since a mixnet exit cannot reach localhost.

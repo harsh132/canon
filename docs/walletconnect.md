@@ -28,7 +28,7 @@ The relay only accepts origins on the WalletConnect project's allowlist. The ext
 chrome-extension://nigpkikilgbfgmgcmeiidiinikafjpjg
 ```
 
-Pangolin's own project allows it. The id is public config, kept in `apps/extension/.env` as `PANGOLIN_WC_PROJECT_ID`.
+Canon's own project allows it. The id is public config, kept in `apps/extension/.env` as `CANON_WC_PROJECT_ID`.
 
 Verified 2026-11-06 with `e2e-wc.mjs`: two dapps got two fresh addresses, `personal_sign` recovered to dapp A's address, and A reconnecting got the same address back.
 

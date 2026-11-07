@@ -1,7 +1,7 @@
-// With no Pangolin UI open, a dapp's connect request should open the toolbar
+// With no Canon UI open, a dapp's connect request should open the toolbar
 // popup (popup.html), not the fallback window (popup.html?window=1), and the
 // icon should go back to opening the side panel afterwards.
-//   PANGOLIN_PROFILE=/new/dir bun scripts/check-prompt.mjs
+//   CANON_PROFILE=/new/dir bun scripts/check-prompt.mjs
 import { createWallet, launch } from './smoke.mjs';
 
 const PORT = 8793;
@@ -16,7 +16,7 @@ await popup.waitForFunction(() => /private balance/i.test(document.body.innerTex
 
 const dapp = await browser.newPage();
 await dapp.goto(`http://127.0.0.1:${PORT}/`);
-await popup.close(); // no Pangolin UI open now
+await popup.close(); // no Canon UI open now
 await new Promise((r) => setTimeout(r, 500));
 console.log('icon popup before request:', JSON.stringify(await sw.evaluate(() => chrome.action.getPopup({}))));
 

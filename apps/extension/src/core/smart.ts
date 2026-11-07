@@ -18,7 +18,7 @@ import { SEPOLIA_ID, sepolia } from './config';
 import { privateFetch } from './transport';
 
 export const CALIBUR = '0x000000009B1D0aF20D8C6d0A44e162d11F9b8f00';
-const SPONSOR_URL = process.env.PANGOLIN_SPONSOR_URL || 'http://127.0.0.1:8792';
+const SPONSOR_URL = process.env.CANON_SPONSOR_URL || 'http://127.0.0.1:8792';
 const ENTRY_POINT_V08 = '0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108';
 
 export type Call = { to: string; value: bigint; data: string };

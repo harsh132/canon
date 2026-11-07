@@ -75,7 +75,7 @@ export const summarize = (method: string, params: unknown[]): { title: string; d
 };
 
 export const execute = async (index: number, method: string, params: unknown[], dapp: string, chainId: number = SEPOLIA_ID): Promise<unknown> => {
-  if (isDelegation(method, params)) throw new RpcError(4001, 'Pangolin does not sign account delegations');
+  if (isDelegation(method, params)) throw new RpcError(4001, 'Canon does not sign account delegations');
   const signer = signerFor(index);
   if (method === 'personal_sign') {
     const raw = params[0] as string;

@@ -128,7 +128,7 @@ const prepare = async (intent: SendIntent, u: Unlocked): Promise<Prepared> => {
     }
   };
 
-  // Gas for private sends: Pangolin's sponsor (default), a RAILGUN broadcaster, or Main.
+  // Gas for private sends: Canon's sponsor (default), a RAILGUN broadcaster, or Main.
   const viaBroadcaster = intent.from === 'private' && intent.via === 'broadcaster';
   const viaSponsor = intent.from === 'private' && (intent.via ?? 'sponsor') === 'sponsor';
   const base = { kind, from: intent.from, to, amount, symbol: 'ETH', gasFrom: intent.from === 'private' && !viaBroadcaster && !viaSponsor ? gasFrom : null, broadcasterFee: null, ...(resolved ? { name: typed.toLowerCase(), resolvedVia: resolved.via } : {}) };

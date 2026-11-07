@@ -14,7 +14,7 @@ const SEPOLIA_HEX = hexChain(SEPOLIA_ID);
 
 // --- Per-site network ---------------------------------------------------------
 // Each site has its own network. A dapp's switch (or add) request for a network
-// Pangolin supports is accepted without a prompt. Saved in the encrypted book;
+// Canon supports is accepted without a prompt. Saved in the encrypted book;
 // while locked, the session's memory only. New sites start on Sepolia.
 const chains = new Map<string, number>();
 export const chainOf = (origin: string): number => chains.get(origin) ?? siteChains()[origin] ?? SEPOLIA_ID;
@@ -33,7 +33,7 @@ const syncChain = (port: chrome.runtime.Port, origin: string): void => {
   if (!first || c !== SEPOLIA_ID) send(port, { event: 'chainChanged', data: hexChain(c) });
 };
 export const setSiteChain = async (origin: string, chainId: number): Promise<void> => {
-  if (!netOf(chainId)) throw new RpcError(4902, 'Pangolin does not support this network');
+  if (!netOf(chainId)) throw new RpcError(4902, 'Canon does not support this network');
   chains.set(origin, chainId);
   await saveSiteChain(origin, chainId).catch(() => {});
   for (const [port, o] of ports) if (o === origin) syncChain(port, o);
@@ -138,14 +138,14 @@ const handle = async (port: chrome.runtime.Port, origin: string, method: string,
       return null;
     case 'wallet_switchEthereumChain': {
       const want = chainParam(params);
-      if (!netOf(want)) throw new RpcError(4902, 'Pangolin does not support this network');
+      if (!netOf(want)) throw new RpcError(4902, 'Canon does not support this network');
       await setSiteChain(origin, want);
       return null;
     }
     case 'wallet_addEthereumChain': {
-      // Only networks Pangolin already knows; the dapp's RPC URL is never used.
+      // Only networks Canon already knows; the dapp's RPC URL is never used.
       const want = chainParam(params);
-      if (!netOf(want)) throw new RpcError(4200, 'Pangolin does not support this network');
+      if (!netOf(want)) throw new RpcError(4200, 'Canon does not support this network');
       await setSiteChain(origin, want);
       return null;
     }
@@ -186,7 +186,7 @@ const handle = async (port: chrome.runtime.Port, origin: string, method: string,
   }
   if (SIGN_METHODS.includes(method)) {
     if (!accountsFor(origin).length) throw new RpcError(4100, 'Connect first');
-    if (isDelegation(method, params)) throw new RpcError(4001, 'Pangolin does not sign account delegations');
+    if (isDelegation(method, params)) throw new RpcError(4001, 'Canon does not sign account delegations');
     return enqueue({ kind: 'request', port, origin, method, params });
   }
   if (READ_METHODS.has(method)) return providerFor(chainOf(origin)).send(method, params ?? []);

@@ -1,7 +1,7 @@
 // Per-tab side panel: two dapps in two tabs, each connected; each tab's panel
 // shows that site and the address it sees. A tab with no dapp shows none.
 // Needs a --dev build (reads core state through a debug handle).
-//   PANGOLIN_PROFILE=/new/dir bun scripts/check-site-panel.mjs
+//   CANON_PROFILE=/new/dir bun scripts/check-site-panel.mjs
 import { createWallet, launch } from './smoke.mjs';
 
 const PORT = 8795;
@@ -30,7 +30,7 @@ const connect = async (host) => {
 };
 const a = await connect('127.0.0.1');
 const b = await connect('localhost');
-const tabs = await corePage.evaluate(() => globalThis.__pangolinState.tabs);
+const tabs = await corePage.evaluate(() => globalThis.__canonState.tabs);
 console.log('core tab map:', JSON.stringify(tabs));
 
 const findTab = (origin) => Object.entries(tabs).find(([, o]) => o === origin)?.[0];

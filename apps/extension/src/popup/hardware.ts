@@ -1,11 +1,11 @@
-// Granting Pangolin the hardware wallet, over Bluetooth or USB. Chrome only shows
+// Granting Canon the hardware wallet, over Bluetooth or USB. Chrome only shows
 // its device picker from a click in a visible page; once granted, the grant
 // belongs to the extension's origin and the core reopens the device itself.
 import { BLE, LINK_KEY, type HwLink } from '../shared/hwframe';
 
 const ESPRESSIF_VID = 0x303a;
 /** Dev builds: the JavaScript mock device (apps/hw-mock) stands in for the device. */
-const MOCK_KEY = 'pangolin.hwMock';
+const MOCK_KEY = 'canon.hwMock';
 const mocked = () => process.env.NODE_ENV !== 'production' && !!localStorage.getItem(MOCK_KEY);
 
 type Serial = { requestPort: (o: { filters: { usbVendorId: number }[] }) => Promise<unknown>; getPorts: () => Promise<unknown[]> };

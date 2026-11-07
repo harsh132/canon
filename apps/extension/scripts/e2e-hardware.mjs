@@ -1,6 +1,6 @@
 // Hardware wallet, end to end against the JavaScript mock device (apps/hw-mock)
 // over its WebSocket. Needs a --dev build (the mock URL is honoured only there).
-//   PANGOLIN_PROFILE=/new/dir bun scripts/e2e-hardware.mjs
+//   CANON_PROFILE=/new/dir bun scripts/e2e-hardware.mjs
 // HW_LINK=ble (default) onboards with Bluetooth: requests go out in BLE-sized
 // pieces and the mock answers in 20-byte notifications. HW_LINK=usb: whole frames.
 import { spawn } from 'node:child_process';
@@ -60,7 +60,7 @@ const purposeOf = (key) => Number.parseInt(keccak256(toUtf8Bytes(key)).slice(2, 
 const site = HDNodeWallet.fromPhrase(SEED, undefined, `m/44'/60'/1984'/7702'/0'/${purposeOf(`http://127.0.0.1:${PORT}`)}'/0'`).address;
 
 // Onboard with the hardware wallet.
-await popup.evaluate((url) => localStorage.setItem('pangolin.hwMock', url), `ws://127.0.0.1:${MOCK}`);
+await popup.evaluate((url) => localStorage.setItem('canon.hwMock', url), `ws://127.0.0.1:${MOCK}`);
 await waitText('hardware wallet');
 await click('^hardware wallet');
 await click(LINK === 'ble' ? '^connect with bluetooth$' : '^connect with usb$');
@@ -91,9 +91,9 @@ const approve = async (call, label = '^sign$') => {
   await click(label);
   return p;
 };
-const message = '0x48656c6c6f2066726f6d2050616e676f6c696e';
+const message = '0x48656c6c6f2066726f6d2043616e6f6e'; // 'Hello from Canon'
 const ps = await approve(() => rpc('personal_sign', [message, addr]));
-check(ps.r && verifyMessage(toUtf8Bytes('Hello from Pangolin'), ps.r).toLowerCase() === addr.toLowerCase(), 'personal_sign signed on the device');
+check(ps.r && verifyMessage(toUtf8Bytes('Hello from Canon'), ps.r).toLowerCase() === addr.toLowerCase(), 'personal_sign signed on the device');
 
 const typed = {
   domain: { name: 'Demo', version: '1', chainId: 11155111 },
@@ -166,7 +166,7 @@ await waitText('unlock with device');
 const other = LINK === 'ble' ? 'usb' : 'ble';
 await click(other === 'usb' ? '^use usb instead$' : '^use bluetooth instead$');
 await waitText('private balance');
-check((await popup.evaluate(() => localStorage.getItem('pangolin.hwLink'))) === other, `unlocked after switching to ${other}`);
+check((await popup.evaluate(() => localStorage.getItem('canon.hwLink'))) === other, `unlocked after switching to ${other}`);
 
 const log = await (await fetch(`http://127.0.0.1:${MOCK}/log`)).json();
 console.log('device screens:', log.map((s) => `${s.title}${s.approved ? '' : ' (rejected)'}`).join(' · '));

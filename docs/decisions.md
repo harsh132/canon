@@ -7,10 +7,10 @@ Newest last. Each entry: what, why, and what would change it.
 | 2026-11-04 | Build on RAILGUN | Mature shielded pool on Sepolia with a browser-capable SDK; POCs proved sync, shield, transfer and unshield |
 | 2026-11-06 | A lean extension, not a fork of EF's Kohaku | Kohaku is a GPL-3 Ambire fork, 218 MB, needs Alchemy, Hypersync and Pimlico keys, and has no Anon-RPC. Re-evaluated when asked, same answer |
 | 2026-11-06 | Lead with the EF Anon-RPC track; partner tracks Uniswap and ENS v2 | Anon-RPC is the strongest fit for a privacy wallet; one EF prize per project |
-| 2026-11-06 | ENS: sponsored subnames under a parent we own | Free for users; Pangolin pays and renounces control after issuing. Record key `org.railgun`, matching Ender |
+| 2026-11-06 | ENS: sponsored subnames under a parent we own | Free for users; Canon pays and renounces control after issuing. Record key `org.railgun`, matching Ender |
 | 2026-11-06 | Model the product on Ender | One Send routed by recipient, plain words, no polling, flow logic outside screens |
 | 2026-11-06 | UI in zo.mr's "Tape" theme; minimal copy | The author's own design language; the user asked for few words on screen |
-| 2026-11-06 | Name: Pangolin, for now | Chosen from animal names; may be renamed |
+| 2026-11-06 | Name: Canon, for now | Chosen from animal names; may be renamed |
 | 2026-11-06 | Monorepo with bun workspaces, hoisted linker | Room for more apps; hoisting lets the build alias transitive packages by path |
 | 2026-11-06 | ENS held back; RAILGUN first | User's call: get the private balance working before names |
 | 2026-11-06 | esbuild, not Vite | RAILGUN is CommonJS-heavy, and Ender's esbuild shim table already worked against it |
@@ -52,7 +52,7 @@ Newest last. Each entry: what, why, and what would change it.
 | 2026-11-06 | Recovery phrase in the menu, behind the password or passkey again | Passkey wallets otherwise see their phrase only once, at setup |
 | 2026-11-06 | Mainnet later; Sepolia only for the hackathon | User's call after pro.aave.com failed at the chain switch |
 | 2026-11-07 | RAILGUN on Arbitrum only among mainnets; public wallets on Ethereum, Arbitrum, Base, Optimism, Polygon | User's choice. Arbitrum has the classic Relay Adapt and proof of innocence, like Sepolia; Base is 7702-only with neither |
-| 2026-11-07 | A network per dapp; dapp chain switches accepted without a prompt | User's choice. Only networks in Pangolin's list, with Pangolin's own RPCs; the dapp's RPC URL is ignored |
+| 2026-11-07 | A network per dapp; dapp chain switches accepted without a prompt | User's choice. Only networks in Canon's list, with Canon's own RPCs; the dapp's RPC URL is ignored |
 | 2026-11-07 | Keep Sepolia | The sponsor, names and the demo run there |
 | 2026-11-07 | One private network per core session, switched by restart | Every private module keeps its constants; switching locks the wallet |
 | 2026-11-07 | Host the sponsor on Cloudflare Workers with one Durable Object, deployed with `cf` | User's choice. The Durable Object keeps one transaction queue for the single sponsor key; the free `workers.dev` address avoids a domain. Tighter caps in public |

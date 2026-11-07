@@ -59,7 +59,7 @@ const keysFrom = async (bits: Uint8Array<ArrayBuffer>) => {
 
 const hkdf = async (secret: Uint8Array<ArrayBuffer>, info: string, bytes: number): Promise<Uint8Array<ArrayBuffer>> => {
   const base = await crypto.subtle.importKey('raw', secret, 'HKDF', false, ['deriveBits']);
-  const salt = new TextEncoder().encode('pangolin');
+  const salt = new TextEncoder().encode('canon');
   return new Uint8Array(await crypto.subtle.deriveBits({ name: 'HKDF', hash: 'SHA-256', salt, info: new TextEncoder().encode(info) }, base, bytes * 8));
 };
 
@@ -70,7 +70,7 @@ const prfBytes = (prfHex: string): Uint8Array<ArrayBuffer> => {
 
 /** The wallet a passkey's PRF output stands for: a 12-word phrase. */
 export const passkeyMnemonic = async (prfHex: string): Promise<string> =>
-  Mnemonic.fromEntropy(await hkdf(prfBytes(prfHex), 'pangolin/wallet/v1', 16)).phrase;
+  Mnemonic.fromEntropy(await hkdf(prfBytes(prfHex), 'canon/wallet/v1', 16)).phrase;
 
 export const seal = async (key: CryptoKey, value: unknown): Promise<{ iv: string; data: string }> => {
   const iv = crypto.getRandomValues(new Uint8Array(12));
@@ -107,7 +107,7 @@ export const createVault = async (password: string, mnemonic: string): Promise<U
 
 export const createPasskeyVault = async (prfHex: string, credentialId: string): Promise<Unlocked> => {
   const mnemonic = await passkeyMnemonic(prfHex);
-  const keys = await keysFrom(await hkdf(prfBytes(prfHex), 'pangolin/vault/v1', 96));
+  const keys = await keysFrom(await hkdf(prfBytes(prfHex), 'canon/vault/v1', 96));
   const sealed = await seal(keys.vaultKey, { mnemonic });
   const record: VaultRecord = { v: 1, kind: 'passkey', credentialId, salt: '', ...sealed, iterations: 0, railgunWalletId: null };
   await store.setItem(KEY, record);
@@ -118,7 +118,7 @@ export const unlockPasskeyVault = async (prfHex: string): Promise<Unlocked> => {
   const record = await store.getItem<VaultRecord>(KEY);
   if (!record) throw new Error('No wallet on this device');
   if (record.kind !== 'passkey') throw new Error('This wallet uses a password');
-  const keys = await keysFrom(await hkdf(prfBytes(prfHex), 'pangolin/vault/v1', 96));
+  const keys = await keysFrom(await hkdf(prfBytes(prfHex), 'canon/vault/v1', 96));
   let mnemonic: string;
   try {
     ({ mnemonic } = await open<{ mnemonic: string }>(keys.vaultKey, record));
@@ -141,7 +141,7 @@ const sigBytes = (sigHex: string): Uint8Array<ArrayBuffer> => {
 type HardwareSealed = { shareableViewingKey: string; mainAddress: string };
 
 export const createHardwareVault = async (vaultSig: string, sealedData: HardwareSealed): Promise<Unlocked> => {
-  const keys = await keysFrom(await hkdf(sigBytes(vaultSig), 'pangolin/vault/v1', 96));
+  const keys = await keysFrom(await hkdf(sigBytes(vaultSig), 'canon/vault/v1', 96));
   const sealed = await seal(keys.vaultKey, sealedData);
   const record: VaultRecord = { v: 1, kind: 'hardware', salt: '', ...sealed, iterations: 0, railgunWalletId: null };
   await store.setItem(KEY, record);
@@ -152,7 +152,7 @@ export const unlockHardwareVault = async (vaultSig: string): Promise<Unlocked> =
   const record = await store.getItem<VaultRecord>(KEY);
   if (!record) throw new Error('No wallet on this device');
   if (record.kind !== 'hardware') throw new Error('This wallet does not use a hardware device');
-  const keys = await keysFrom(await hkdf(sigBytes(vaultSig), 'pangolin/vault/v1', 96));
+  const keys = await keysFrom(await hkdf(sigBytes(vaultSig), 'canon/vault/v1', 96));
   let data: HardwareSealed;
   try {
     data = await open<HardwareSealed>(keys.vaultKey, record);

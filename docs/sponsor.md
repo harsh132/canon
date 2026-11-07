@@ -1,16 +1,16 @@
 # Sponsor
 
-Pangolin's sponsor pays gas so that no address of the user's appears as a sender. Testnet only: it charges no fee, so hourly caps hold back abuse.
+Canon's sponsor pays gas so that no address of the user's appears as a sender. Testnet only: it charges no fee, so hourly caps hold back abuse.
 
-Hosted at **https://pangolin-sponsor.prakashharsh32.workers.dev** (Cloudflare Worker). The extension's production build points there through `PANGOLIN_SPONSOR_URL` in `apps/extension/.env`.
+Hosted at **https://canon-sponsor.prakashharsh32.workers.dev** (Cloudflare Worker). The extension's production build points there through `CANON_SPONSOR_URL` in `apps/extension/.env`.
 
 ## Endpoints
 
 | Path | Does | Code |
 |---|---|---|
 | `GET /health` | Parent name, subregistry, sponsor address | `src/app.ts` |
-| `GET /available?label=` | Whether `<label>.pangolin.eth` is free | `src/app.ts` |
-| `POST /claim` | Issues `<label>.pangolin.eth` to the user's identity address with an `org.railgun` record, then hands over every role | `src/app.ts` |
+| `GET /available?label=` | Whether `<label>.canon.eth` is free | `src/app.ts` |
+| `POST /claim` | Issues `<label>.canon.eth` to the user's identity address with an `org.railgun` record, then hands over every role | `src/app.ts` |
 | `POST /relay` | Submits a proved RAILGUN transaction, or RAILGUN's 7702 unshield as type 4 | `src/relay.ts` |
 | `POST /execute` | Submits a Calibur batch for an EIP-7702 site address, delegating on first use | `src/execute.ts` |
 
@@ -46,7 +46,7 @@ bun run deploy
 Check it with the probe, which spends a little Sepolia ETH:
 
 ```bash
-SPONSOR_URL=https://pangolin-sponsor.prakashharsh32.workers.dev bun scripts/execute-probe.ts
+SPONSOR_URL=https://canon-sponsor.prakashharsh32.workers.dev bun scripts/execute-probe.ts
 ```
 
 ## What it sees

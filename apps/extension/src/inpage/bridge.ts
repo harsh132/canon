@@ -4,8 +4,8 @@
 import { decode, encode } from '../shared/codec';
 import { DAPP_PORT_NAME, type SwMessage } from '../shared/protocol';
 
-const TO_BRIDGE = 'pangolin:bridge';
-const FROM_BRIDGE = 'pangolin:inpage';
+const TO_BRIDGE = 'canon:bridge';
+const FROM_BRIDGE = 'canon:inpage';
 
 let port: chrome.runtime.Port | null = null;
 let connecting: Promise<chrome.runtime.Port> | null = null;
@@ -34,6 +34,6 @@ window.addEventListener('message', (e: MessageEvent) => {
   const { id, method, params } = e.data as { id: number; method: string; params: unknown };
   connect().then(
     (p) => p.postMessage(encode({ id, method, params })),
-    (err: unknown) => toPage({ id, error: { code: 4900, message: `Pangolin unavailable: ${String((err as Error)?.message ?? err)}` } }),
+    (err: unknown) => toPage({ id, error: { code: 4900, message: `Canon Wallet unavailable: ${String((err as Error)?.message ?? err)}` } }),
   );
 });

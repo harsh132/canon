@@ -1,4 +1,4 @@
-// Networks Pangolin supports, shared by the core and the UI. Plain data, no dependencies.
+// Networks Canon supports, shared by the core and the UI. Plain data, no dependencies.
 
 // Main and every site address are plain EVM addresses (site addresses use chain 0
 // in their path), so the same address works on each of these. Each site picks
@@ -9,7 +9,7 @@ export type Net = { chainId: number; name: string; native: string; rpc: string; 
 
 export const SEPOLIA_ID = 11155111;
 export const ARBITRUM_ID = 42161;
-const SEPOLIA_RPC = process.env.PANGOLIN_SEPOLIA_RPC || 'https://ethereum-sepolia-rpc.publicnode.com';
+const SEPOLIA_RPC = process.env.CANON_SEPOLIA_RPC || 'https://ethereum-sepolia-rpc.publicnode.com';
 const t = (symbol: string, address: string, decimals: number): Token => ({ symbol, address, decimals });
 
 // Token addresses checked on-chain (symbol, decimals) on 2026-11-07.

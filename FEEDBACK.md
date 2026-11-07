@@ -1,6 +1,6 @@
 # Uniswap developer feedback
 
-From building Pangolin's private swap at ETHGlobal Mumbai (November 2026). Pangolin swaps a RAILGUN private balance on Uniswap v4 without a public address of the user's ever holding the tokens: RAILGUN's Relay Adapt contract unshields WETH, unwraps it, swaps ETH→USDC through the UniversalRouter, and re-shields the output, all in one transaction.
+From building Canon's private swap at ETHGlobal Mumbai (November 2026). Canon swaps a RAILGUN private balance on Uniswap v4 without a public address of the user's ever holding the tokens: RAILGUN's Relay Adapt contract unshields WETH, unwraps it, swaps ETH→USDC through the UniversalRouter, and re-shields the output, all in one transaction.
 
 Integration code: [`apps/extension/src/core/swap.ts`](apps/extension/src/core/swap.ts). Quote and simulation probe: [`apps/extension/scripts/v4-probe.mjs`](apps/extension/scripts/v4-probe.mjs).
 

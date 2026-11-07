@@ -1,9 +1,9 @@
 import { NETWORK_CONFIG, NetworkName } from '@railgun-community/shared-models';
 import { JsonRpcProvider } from 'ethers';
 
-export const WC_PROJECT_ID = process.env.PANGOLIN_WC_PROJECT_ID ?? '';
+export const WC_PROJECT_ID = process.env.CANON_WC_PROJECT_ID ?? '';
 export const DEV = process.env.NODE_ENV !== 'production';
-export const FORK = process.env.PANGOLIN_FORK === '1';
+export const FORK = process.env.CANON_FORK === '1';
 export const AUTO_LOCK_MS = 15 * 60_000;
 export const POI_NODES = ['https://ppoi.fdi.network'];
 
@@ -28,7 +28,7 @@ export const providerFor = (chainId: number): JsonRpcProvider => {
 // the wallet. Not secret, so it lives in localStorage, which is synchronous.
 
 export type PrivateNet = 'sepolia' | 'arbitrum';
-export const PRIVATE_NET_KEY = 'pangolin.privateNet';
+export const PRIVATE_NET_KEY = 'canon.privateNet';
 const chosen = (): PrivateNet => {
   try {
     return globalThis.localStorage?.getItem(PRIVATE_NET_KEY) === 'arbitrum' ? 'arbitrum' : 'sepolia';

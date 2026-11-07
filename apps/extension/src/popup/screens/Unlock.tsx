@@ -32,7 +32,7 @@ export const Unlock = ({ s }: { s: CoreState }) => {
 
   return (
     <div className="flex min-h-[var(--app-h)] flex-col">
-      <Header title="Pangolin" />
+      <Header title="Canon Wallet" />
       <div className="flex flex-1 flex-col gap-4 px-[18px] pt-24">
         {pending && (
           <div>

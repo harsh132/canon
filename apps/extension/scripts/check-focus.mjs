@@ -1,7 +1,7 @@
 // Focuses every input, textarea and select on every popup screen (dark mode)
 // and checks: no outline is drawn on the field itself, and the field or its
 // wrapper shows the accent border. Saves a strip of screenshots.
-//   PANGOLIN_PROFILE=/new/dir bun scripts/check-focus.mjs
+//   CANON_PROFILE=/new/dir bun scripts/check-focus.mjs
 import { createWallet, launch } from './smoke.mjs';
 
 const { browser, popup } = await launch();

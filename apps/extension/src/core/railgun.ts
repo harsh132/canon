@@ -66,7 +66,7 @@ const describe = (err: unknown, depth = 0): string => {
 
 // FORK ONLY. No PPOI aggregator watches a local fork, so every shield would sit
 // in ShieldPending forever. Treat unspent notes as spendable and build no POI
-// proofs. Runs only in a PANGOLIN_FORK=1 build; never for a real network.
+// proofs. Runs only in a CANON_FORK=1 build; never for a real network.
 const patchPoiForFork = (): void => {
   const poi = POI as unknown as Record<string, unknown>;
   poi.lists = [];
@@ -93,7 +93,7 @@ export const bootEngine = (): Promise<void> =>
       },
     );
     if (FORK) delete (NETWORK_CONFIG[NETWORK] as { poi?: unknown }).poi;
-    await startRailgunEngine('pangolin', leveljs('pangolin-railgun'), DEV, artifactStore, false, false, POI_NODES);
+    await startRailgunEngine('canon', leveljs('canon-railgun'), DEV, artifactStore, false, false, POI_NODES);
     if (FORK) patchPoiForFork();
 
     const singleThread = !blobWorkersAllowed();

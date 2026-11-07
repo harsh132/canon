@@ -1,6 +1,6 @@
 // Screenshots of the wallet frame (dark): Home, menu open, Send, Recovery phrase,
 // and a panel with a connected dapp. Into .cache/frame-shots/.
-//   PANGOLIN_PROFILE=/new/dir bun scripts/shot-frame.mjs
+//   CANON_PROFILE=/new/dir bun scripts/shot-frame.mjs
 import { createWallet, launch } from './smoke.mjs';
 
 const PORT = 8797;
@@ -41,7 +41,7 @@ await popup.bringToFront();
 await waitText(popup, 'sees');
 await popup.evaluate(() => [...document.querySelectorAll('button')].filter((b) => /^connect$/i.test(b.textContent.trim())).pop().click());
 await req;
-const tabs = await corePage.evaluate(() => globalThis.__pangolinState.tabs);
+const tabs = await corePage.evaluate(() => globalThis.__canonState.tabs);
 const tabId = Object.entries(tabs).find(([, o]) => o === `http://127.0.0.1:${PORT}`)?.[0];
 const panel = await browser.newPage();
 await panel.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: 'dark' }]);

@@ -1,6 +1,6 @@
-// A software Pangolin hardware wallet: the protocol in docs/hardware-wallet.md,
+// A software Canon hardware wallet: the protocol in docs/hardware-wallet.md,
 // built from the RAILGUN engine's own primitives so its clear-sign output is
-// exactly what the engine verifies. Used by Pangolin's tests (over a WebSocket)
+// exactly what the engine verifies. Used by Canon's tests (over a WebSocket)
 // and as the source of the BuddyOS firmware's test vectors.
 //
 // Not a wallet: the seed is in memory, approval is a callback.
@@ -10,7 +10,7 @@ import type { HwRequest, HwResponse } from '../../extension/src/shared/hwframe';
 import { Babyjubjub, ByteLength, ByteUtils, Memo, TransactNote, WalletNode, constants, decodeAddress, deriveNodes, hashBoundParamsV2, keys, msgpack, poseidon } from './engine';
 
 export const CALIBUR = '0x000000009B1D0aF20D8C6d0A44e162d11F9b8f00';
-export const VAULT_MESSAGE = 'Pangolin vault key v1';
+export const VAULT_MESSAGE = 'Canon vault key v1';
 const VAULT_PATH = "m/44'/60'/0'/0/0";
 const ZERO20 = '0x0000000000000000000000000000000000000000';
 const ZERO32 = `0x${'00'.repeat(32)}`;
@@ -36,7 +36,7 @@ type Output =
 
 export type ClearSignRequest = {
   account?: number;
-  /** Pangolin extension to the Ledger contract: the wallet source folded into transfer annotations. */
+  /** Canon extension to the Ledger contract: the wallet source folded into transfer annotations. */
   walletSource?: string;
   merkleRoot: string;
   nullifiers: string[];
@@ -62,7 +62,7 @@ export class MockDevice {
     this.#mnemonic = mnemonic;
     this.#confirm = opts.confirm ?? (async () => true);
     this.#rng = opts.rng ?? ((n) => new Uint8Array(randomBytes(n)));
-    this.#walletSource = opts.walletSource ?? 'pangolin';
+    this.#walletSource = opts.walletSource ?? 'canon';
   }
 
   async handle(req: HwRequest): Promise<HwResponse> {
@@ -86,18 +86,18 @@ export class MockDevice {
   async #dispatch(m: string, p: Record<string, unknown>): Promise<unknown> {
     switch (m) {
       case 'info':
-        return { fw: 'pangolin-mock/0.1', hasSeed: true, locked: false };
+        return { fw: 'canon-mock/0.1', hasSeed: true, locked: false };
       case 'getAddresses': {
         const paths = p.paths as string[];
         if (!Array.isArray(paths) || paths.length === 0 || paths.length > 32) throw new DeviceError(-32602, 'Bad paths');
         return { addresses: paths.map((path) => this.#wallet(path).address) };
       }
       case 'vaultKey': {
-        await this.#approve('Unlock Pangolin', []);
+        await this.#approve('Unlock Canon', []);
         return { signature: await this.#wallet(VAULT_PATH).signMessage(VAULT_MESSAGE) };
       }
       case 'getViewingKey': {
-        await this.#approve('Let Pangolin see your private balance', []);
+        await this.#approve('Let Canon see your private balance', []);
         return { shareableViewingKey: await this.shareableViewingKey(Number(p.account ?? 0)) };
       }
       case 'signMessage': {

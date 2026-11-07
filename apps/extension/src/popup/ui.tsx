@@ -98,7 +98,7 @@ export const etherscan = (hash: string, chainId?: number) => explorerTx(hash, ch
 
 /**
  * Chrome's cached favicon for a site the user has open or visited. Served by
- * the browser from its own cache: no network request from Pangolin.
+ * the browser from its own cache: no network request from Canon.
  */
 export const faviconFor = (origin: string | null | undefined): string | null => {
   if (!origin) return null;

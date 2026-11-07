@@ -2,11 +2,11 @@
 //   bun scripts/poi-probe.mjs
 import { launch } from './smoke.mjs';
 
-process.env.PANGOLIN_PROFILE ??= new URL('../.cache/sepolia/profile', import.meta.url).pathname;
+process.env.CANON_PROFILE ??= new URL('../.cache/sepolia/profile', import.meta.url).pathname;
 const { browser, popup, corePage } = await launch();
 const text = async () => (await popup.evaluate(() => document.body.innerText)).replace(/\s+/g, ' ');
 await popup.waitForFunction(() => /password/i.test(document.body.innerText), { timeout: 30000 });
-await (await popup.$('input[type=password]')).type('pangolin sepolia test');
+await (await popup.$('input[type=password]')).type('canon sepolia test');
 await popup.evaluate(() => [...document.querySelectorAll('button')].find((b) => /^unlock$/i.test(b.textContent.trim())).click());
 await popup.waitForFunction(() => /Synced|Sync failed/i.test(document.body.innerText), { timeout: 600000, polling: 1000 });
 console.log('[probe] home:', (await text()).slice(0, 160));

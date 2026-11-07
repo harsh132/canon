@@ -1,6 +1,6 @@
 // The sponsor's HTTP API, shared by the local Bun server (server.ts) and the
 // Cloudflare Worker (worker.ts). Three jobs, one key:
-//  /claim   issues <label>.pangolin.eth to a user's unfunded identity address,
+//  /claim   issues <label>.canon.eth to a user's unfunded identity address,
 //           with an org.railgun record pointing at their 0zk; then hands every
 //           role on the name and its resolver to the user
 //  /relay   submits proved RAILGUN transactions so users' addresses never pay gas (relay.ts)
@@ -23,7 +23,7 @@ export type AppConfig = {
 };
 
 export const makeApp = (cfg: AppConfig) => {
-const PARENT = cfg.parent ?? 'pangolin';
+const PARENT = cfg.parent ?? 'canon';
 const subregistry = cfg.subregistry;
 const caps = { claim: 20, relay: 60, execute: 60, ...cfg.caps };
 const { sponsor, factory, userRegistryAt, resolverAt } = connect(cfg.key, cfg.rpc);

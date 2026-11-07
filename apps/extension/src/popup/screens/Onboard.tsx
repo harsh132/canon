@@ -35,7 +35,7 @@ export const Onboard = ({ onBackup }: { onBackup: (b: BackupView) => void }) => 
   if (step === 'hardware') return <Hardware onBack={back} />;
   return (
     <div className="flex min-h-[var(--app-h)] flex-col">
-      <Header title="Pangolin" />
+      <Header title="Canon Wallet" />
       <div className="flex flex-1 flex-col gap-2.5 px-[18px] pt-10">
         <Slug>Start</Slug>
         <Choice title="New wallet" hint="Recovery phrase" onClick={() => setStep('create')} />
@@ -145,7 +145,7 @@ const Hardware = ({ onBack }: { onBack: () => void }) => {
     <div className="flex min-h-[var(--app-h)] flex-col">
       <Header title="Hardware wallet" onBack={onBack} />
       <div className="flex flex-1 flex-col gap-3 px-[18px] pt-6">
-        <p className="text-[15px] leading-snug">Keys stay on the device. Pangolin can see your private balance; only the device can spend it.</p>
+        <p className="text-[15px] leading-snug">Keys stay on the device. Canon Wallet can see your private balance; only the device can spend it.</p>
         <div className="flex-1" />
         <ErrorLine>{a.error}</ErrorLine>
         <Button busy={a.busy} onClick={() => connect('ble')}>
@@ -296,10 +296,10 @@ export const Backup = ({ phrase, optional, onDone }: BackupView & { onDone: () =
 /** The onboarding tab, once the wallet exists. */
 export const Ready = () => (
   <div className="flex min-h-[var(--app-h)] flex-col">
-    <Header title="Pangolin" />
+    <Header title="Canon Wallet" />
     <div className="flex flex-1 flex-col items-center gap-4 px-[18px] pt-24 text-center">
       <span className="stamp">Ready</span>
-      <p className="text-[15px]">Open Pangolin from the toolbar.</p>
+      <p className="text-[15px]">Open Canon Wallet from the toolbar.</p>
     </div>
   </div>
 );

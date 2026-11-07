@@ -1,10 +1,10 @@
 # ENS names
 
-Every wallet can claim `<label>.pangolin.eth` for free. The name's `org.railgun` text record holds the wallet's 0zk, so anyone can pay it privately by name.
+Every wallet can claim `<label>.canon.eth` for free. The name's `org.railgun` text record holds the wallet's 0zk, so anyone can pay it privately by name.
 
 | Item | Value |
 |---|---|
-| Parent | `pangolin.eth` on the live ENSv2 Sepolia deployment, registered 2026-11-06 for 1 year (8 USDC) |
+| Parent | `canon.eth` on the live ENSv2 Sepolia deployment, registered 2026-11-06 for 1 year (8 USDC) |
 | Subregistry | `0x371c18e4B47B1183Ae4c4bE2018440871424bF61` (UserRegistry proxy) |
 | Sponsor | `0x254d9B9c09F113271fBC2f7DD84f17060A7d3141`: REGISTRAR + RENEW on the subregistry, nothing else |
 | Record key | `org.railgun` (ENSIP-5 style; same key as the Ender wallet) |
@@ -19,16 +19,16 @@ All gas is paid by the sponsor, in three transactions:
 2. One multicall: `setText(name, "org.railgun", 0zk)`, grant every resolver role to the owner, revoke every role from the sponsor.
 3. `UserRegistry.register(label, owner, resolver, userRoles, expiry = never)`.
 
-The **owner** is a fresh address on the app path with `pangolin.eth` as the app, `m/44'/60'/1984'/7702'/0'/<purpose(pangolin.eth)>'/0'`. It never holds funds and signs nothing else. Main is not used, because Main appears on-chain as the sender of shields.
+The **owner** is a fresh address on the app path with `canon.eth` as the app, `m/44'/60'/1984'/7702'/0'/<purpose(canon.eth)>'/0'`. It never holds funds and signs nothing else. Main is not used, because Main appears on-chain as the sender of shields.
 
 ## Trust after issue
 
-Verified on Sepolia for `alice.pangolin.eth`: the sponsor's attempts to rewrite the record, unregister the name and repoint its resolver all revert with `EACUnauthorizedAccountRoles`. The sponsor also renounced `SET_SUBREGISTRY` on `pangolin.eth`, so it cannot swap the whole namespace.
+Verified on Sepolia for `alice.canon.eth`: the sponsor's attempts to rewrite the record, unregister the name and repoint its resolver all revert with `EACUnauthorizedAccountRoles`. The sponsor also renounced `SET_SUBREGISTRY` on `canon.eth`, so it cannot swap the whole namespace.
 
 What the sponsor still controls:
 
 - **New names.** It can refuse or squat labels not yet issued.
-- **Parent expiry.** `pangolin.eth` is registered for one year. Anyone can renew it through the registrar; if nobody does, someone could register the parent again after the grace period and capture every subname.
+- **Parent expiry.** `canon.eth` is registered for one year. Anyone can renew it through the registrar; if nobody does, someone could register the parent again after the grace period and capture every subname.
 
 ## Paying a name
 
@@ -46,6 +46,6 @@ The sponsor learns the label, owner address and 0zk (all published on-chain anyw
 
 `e2e-sepolia.mjs name`, 2026-11-06:
 
-- Claimed `alice.pangolin.eth`; owner `0x81d7…f2C6` with 0 ETH.
-- Paying `alice.pangolin.eth` from Main resolved through Nox to the wallet's 0zk via `org.railgun` and ran as Make private ([tx](https://sepolia.etherscan.io/tx/0xd0da0f458b05c311471ad0d4ab7588b10318fcdc6d7380031cec29509a103f42)).
+- Claimed `alice.canon.eth`; owner `0x81d7…f2C6` with 0 ETH.
+- Paying `alice.canon.eth` from Main resolved through Nox to the wallet's 0zk via `org.railgun` and ran as Make private ([tx](https://sepolia.etherscan.io/tx/0xd0da0f458b05c311471ad0d4ab7588b10318fcdc6d7380031cec29509a103f42)).
 - A claim whose reply was lost is adopted on retry, because the name already pays this wallet.

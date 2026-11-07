@@ -1,8 +1,8 @@
-// Pangolin hardware-wallet frames (docs/hardware-wallet.md), shared by the
+// Canon hardware-wallet frames (docs/hardware-wallet.md), shared by the
 // extension, the JavaScript mock device and the test vectors:
-//   0x02 'P' 'W' 0x01 | length u32 LE | JSON (UTF-8) | CRC32 u32 LE of the JSON
+//   0x02 'C' 'W' 0x01 | length u32 LE | JSON (UTF-8) | CRC32 u32 LE of the JSON
 
-export const FRAME_MAGIC = [0x02, 0x50, 0x57, 0x01] as const;
+export const FRAME_MAGIC = [0x02, 0x43, 0x57, 0x01] as const;
 const HEADER = 8;
 const TRAILER = 4;
 /** Larger than any request we send (a typed-data payload or a clear-sign request). */
@@ -15,11 +15,11 @@ export const BLE = {
   responses: '3dff3ba6-599b-4084-b915-020fd7c35f03',
   name: 'Buddy',
 } as const;
-/** Largest piece Pangolin writes to the requests characteristic. */
+/** Largest piece Canon writes to the requests characteristic. */
 export const BLE_CHUNK = 180;
 
-/** Which link the user picked in a Pangolin page (localStorage, shared by the UI and the core). */
-export const LINK_KEY = 'pangolin.hwLink';
+/** Which link the user picked in a Canon page (localStorage, shared by the UI and the core). */
+export const LINK_KEY = 'canon.hwLink';
 export type HwLink = 'ble' | 'usb';
 
 /** A frame cut into pieces of at most `size` bytes, in order. */

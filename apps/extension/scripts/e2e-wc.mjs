@@ -1,6 +1,6 @@
 // WalletConnect per-dapp addresses, end to end. Plays two dapps with the
 // WalletConnect sign client and drives the popup to approve them.
-//   PANGOLIN_PROFILE=/new/dir PANGOLIN_WC_PROJECT_ID=… bun scripts/e2e-wc.mjs
+//   CANON_PROFILE=/new/dir CANON_WC_PROJECT_ID=… bun scripts/e2e-wc.mjs
 //
 // Checks: dapp A and dapp B see different addresses; A reconnecting sees the
 // same address as before; personal_sign from A recovers to A's address.
@@ -10,8 +10,8 @@ import { hexlify, toUtf8Bytes, verifyMessage, verifyTypedData } from 'ethers';
 import { createWallet, launch } from './smoke.mjs';
 
 const projectId =
-  process.env.PANGOLIN_WC_PROJECT_ID ??
-  readFileSync(new URL('../.env', import.meta.url), 'utf8').match(/PANGOLIN_WC_PROJECT_ID=(\w+)/)?.[1];
+  process.env.CANON_WC_PROJECT_ID ??
+  readFileSync(new URL('../.env', import.meta.url), 'utf8').match(/CANON_WC_PROJECT_ID=(\w+)/)?.[1];
 const PASSWORD = 'correct horse battery';
 const CHAIN = 'eip155:11155111';
 
@@ -71,7 +71,7 @@ if (a1.address.toLowerCase() === b1.address.toLowerCase()) throw new Error('A an
 log('PASS distinct addresses per dapp');
 
 // personal_sign from A
-const message = 'pangolin e2e';
+const message = 'canon e2e';
 const pending = A.request({
   topic: a1.session.topic,
   chainId: CHAIN,
@@ -88,7 +88,7 @@ log('PASS personal_sign recovers to A');
 
 // eth_signTypedData_v4 from B
 const typed = {
-  domain: { name: 'Pangolin e2e', version: '1', chainId: 11155111 },
+  domain: { name: 'Canon e2e', version: '1', chainId: 11155111 },
   types: {
     EIP712Domain: [{ name: 'name', type: 'string' }, { name: 'version', type: 'string' }, { name: 'chainId', type: 'uint256' }],
     Mail: [{ name: 'contents', type: 'string' }],

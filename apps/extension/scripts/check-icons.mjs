@@ -1,7 +1,7 @@
 // Dapp icons: a browser dapp's favicon on the connect and sign prompts and the
 // Apps / Addresses lists, and a WalletConnect proposal's metadata icon fetched
 // by the core (through Nox) and shown inline. Screenshots in .cache/icons/.
-//   PANGOLIN_PROFILE=/new/dir bun scripts/check-icons.mjs
+//   CANON_PROFILE=/new/dir bun scripts/check-icons.mjs
 import { readFileSync } from 'node:fs';
 import { SignClient } from '@walletconnect/sign-client';
 import { createWallet, launch } from './smoke.mjs';
@@ -64,7 +64,7 @@ await new Promise((r) => setTimeout(r, 500));
 await popup.screenshot({ path: `${out}addresses.png`, clip: { x: 0, y: 0, width: 380, height: 220 } });
 
 // WalletConnect proposal with an https icon in its metadata.
-const projectId = readFileSync(new URL('../.env', import.meta.url), 'utf8').match(/PANGOLIN_WC_PROJECT_ID=(\w+)/)?.[1];
+const projectId = readFileSync(new URL('../.env', import.meta.url), 'utf8').match(/CANON_WC_PROJECT_ID=(\w+)/)?.[1];
 const wc = await SignClient.init({
   projectId,
   metadata: { name: 'Icon Dapp', description: 'icons', url: 'https://icons.example', icons: ['https://avatars.githubusercontent.com/u/37784886'] },

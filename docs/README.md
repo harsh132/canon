@@ -1,14 +1,14 @@
-# Pangolin docs
+# Canon docs
 
 | Doc | Read it for |
 |---|---|
-| [overview.md](overview.md) | What Pangolin is, the hackathon tracks, where things stand |
+| [overview.md](overview.md) | What Canon is, the hackathon tracks, where things stand |
 | [architecture.md](architecture.md) | The extension's parts, how they talk, keys and storage |
 | [privacy.md](privacy.md) | Who learns what, and the leaks still open |
 | [anon-rpc.md](anon-rpc.md) | How every RPC read goes through Nox |
 | [railgun.md](railgun.md) | The RAILGUN engine inside an MV3 extension: shims, quirks, the one-Send model |
 | [walletconnect.md](walletconnect.md) | A public address per dapp, and the project-id setup |
-| [ens.md](ens.md) | Free `<label>.pangolin.eth` names that pay privately |
+| [ens.md](ens.md) | Free `<label>.canon.eth` names that pay privately |
 | [uniswap.md](uniswap.md) | Private swap on Uniswap v4 through Relay Adapt |
 | [onboarding.md](onboarding.md) | New wallet, passkey and restore; how a passkey becomes a wallet |
 | [networks.md](networks.md) | The private network (Sepolia or Arbitrum) and each site's public network |

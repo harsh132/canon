@@ -1,7 +1,7 @@
 // Injected provider, end to end, against a local dapp page served on two hosts.
-//   PANGOLIN_PROFILE=/new/dir bun scripts/e2e-injected.mjs
+//   CANON_PROFILE=/new/dir bun scripts/e2e-injected.mjs
 //
-// Checks: EIP-6963 announces Pangolin; eth_chainId is Sepolia; a read goes
+// Checks: EIP-6963 announces Canon; eth_chainId is Sepolia; a read goes
 // through the core; eth_requestAccounts prompts and returns a fresh address;
 // personal_sign recovers to it; a second origin gets a different address;
 // reloading the first origin returns the same address without a prompt.
@@ -69,8 +69,8 @@ const announced = await d1.evaluate(
       setTimeout(() => resolve(seen), 300);
     }),
 );
-if (!announced.includes('Pangolin')) fail(`EIP-6963 announced ${JSON.stringify(announced)}`);
-log('PASS EIP-6963 announces Pangolin; window.ethereum.isPangolin =', await d1.evaluate(() => window.ethereum?.isPangolin));
+if (!announced.includes('Canon')) fail(`EIP-6963 announced ${JSON.stringify(announced)}`);
+log('PASS EIP-6963 announces Canon; window.ethereum.isCanon =', await d1.evaluate(() => window.ethereum?.isCanon));
 
 const chainId = await d1.evaluate(() => window.ethereum.request({ method: 'eth_chainId' }));
 if (chainId !== '0xaa36a7') fail(`chainId ${chainId}`);

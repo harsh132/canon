@@ -45,7 +45,7 @@ export const AppHeader = ({ s, tab, go }: { s: CoreState; tab: Tab; go: (t: Tab)
       <div className="flex items-center justify-between px-[18px] pt-3.5 pb-1.5">
         <div className="flex items-center gap-2">
           <Mark />
-          <span className="font-mono text-[11px] font-bold tracking-[0.18em] uppercase">Pangolin</span>
+          <span className="font-mono text-[11px] font-bold tracking-[0.18em] uppercase">Canon Wallet</span>
           <PrivateNet s={s} />
         </div>
         <div className="flex items-center gap-0.5">
@@ -113,7 +113,7 @@ const PrivateNet = ({ s }: { s: CoreState }) => {
         className={`rounded-sm border px-1.5 py-px font-mono text-[9px] tracking-[0.14em] uppercase ${s.privateNet === 'sepolia' ? 'border-rule text-warn' : 'border-rule text-accent'}`}
       >
         {current.label}
-        {process.env.PANGOLIN_FORK === '1' ? ' fork' : ''}
+        {process.env.CANON_FORK === '1' ? ' fork' : ''}
       </button>
       {open && (
         <>

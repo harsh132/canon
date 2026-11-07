@@ -1,13 +1,13 @@
 {
   "manifest_version": 3,
-  "name": "Pangolin",
-  "short_name": "Pangolin",
+  "name": "Canon Wallet",
+  "short_name": "Canon Wallet",
   "version": "0.1.0",
   "description": "A private Ethereum wallet on RAILGUN.",
   "minimum_chrome_version": "120",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqISDN/Lh8f795XZ6/3Gts/mxEYUwU7g8T1KUB8887xbUIhaFXWKrsAjwUFavlVN+qA4AfK+LHftSILyCGorzXG7PpL2adlimGOfniIGDAn4u7cM93w7JEspqf5hDN5A3FufyZK2V8Pp70seY+qOV/CQ9iS7JzaapgA5bNkcT4z8Amc2y+rZzumMmthoMBU5qF2Yv/OXryanysamxiRyIUmICtBQBIOgV1hrso5n8Eq1rx/Y5TNah/6EFQxplSfizHmXr1JMOTarUeKaKVI14ZGtKskpvYIalxpfEQ/zhAAjA1Om4D1S5U1mluZF5aYq7XQNVcK3T/C3kqr8B/2S6rwIDAQAB",
   "action": {
-    "default_title": "Pangolin"
+    "default_title": "Canon Wallet"
   },
   "background": {
     "service_worker": "background.js",

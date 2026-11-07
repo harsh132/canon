@@ -5,7 +5,7 @@
 // PRF with a fixed salt gives the same 32 bytes every time this passkey is used,
 // on any device it syncs to. That output is the wallet (core/vault.ts).
 
-const SALT = new TextEncoder().encode('pangolin wallet v1');
+const SALT = new TextEncoder().encode('canon wallet v1');
 const NO_PRF = "This passkey can't hold a wallet. Try Google Password Manager, iCloud Keychain or a security key.";
 
 const hex = (b: ArrayBuffer): string => [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, '0')).join('');
@@ -17,11 +17,11 @@ type PrfResults = { prf?: { enabled?: boolean; results?: { first?: ArrayBuffer }
 const friendly = (e: unknown): Error => {
   const name = (e as DOMException)?.name;
   if (name === 'NotAllowedError') return new Error('Passkey cancelled');
-  if (name === 'InvalidStateError') return new Error('A passkey for Pangolin already exists here');
+  if (name === 'InvalidStateError') return new Error('A passkey for Canon Wallet already exists here');
   return e instanceof Error ? e : new Error(String(e));
 };
 
-/** Ask for an existing passkey; with no id, any Pangolin passkey on this device or synced to it. */
+/** Ask for an existing passkey; with no id, any Canon passkey on this device or synced to it. */
 export const getPasskey = async (credentialId?: string | null): Promise<{ prf: string; credentialId: string }> => {
   let cred: PublicKeyCredential;
   try {
@@ -47,8 +47,8 @@ export const createPasskey = async (): Promise<{ prf: string; credentialId: stri
   try {
     cred = (await navigator.credentials.create({
       publicKey: {
-        rp: { name: 'Pangolin' },
-        user: { id: crypto.getRandomValues(new Uint8Array(16)), name: 'Pangolin wallet', displayName: 'Pangolin wallet' },
+        rp: { name: 'Canon Wallet' },
+        user: { id: crypto.getRandomValues(new Uint8Array(16)), name: 'Canon Wallet', displayName: 'Canon Wallet' },
         challenge: crypto.getRandomValues(new Uint8Array(32)),
         pubKeyCredParams: [
           { type: 'public-key', alg: -7 },

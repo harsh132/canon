@@ -6,7 +6,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { formatUnits, hexlify, id, randomBytes } from 'ethers';
 import { A, R, ZERO, adm, connect, labelId, registryIface } from '../src/ens';
 
-const LABEL = process.env.PARENT_LABEL ?? 'pangolin';
+const LABEL = process.env.PARENT_LABEL ?? 'canon';
 const YEARS = BigInt(process.env.YEARS ?? 1);
 const DURATION = YEARS * 365n * 24n * 3600n;
 const stateFile = new URL('../.data/parent.json', import.meta.url).pathname;

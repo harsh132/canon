@@ -1,5 +1,5 @@
 // Visual check: the name field focused, in dark mode. Fresh profile each run.
-//   PANGOLIN_PROFILE=/new/dir bun scripts/shot-name-focus.mjs
+//   CANON_PROFILE=/new/dir bun scripts/shot-name-focus.mjs
 import { createWallet, launch } from './smoke.mjs';
 
 const { browser, popup } = await launch();

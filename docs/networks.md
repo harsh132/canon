@@ -10,7 +10,7 @@ Two separate choices: where the **private balance** lives, and which network eac
 | Arbitrum | Yes, view-only for now | Not yet: Send and Swap say "Sepolia only" |
 
 - Chosen with the badge in the header. Switching restarts the core, which locks the wallet.
-- One network per session: `core/config.ts` reads the choice from `localStorage` (`pangolin.privateNet`) when the core starts. It is not secret, so it is not in the encrypted vault.
+- One network per session: `core/config.ts` reads the choice from `localStorage` (`canon.privateNet`) when the core starts. It is not secret, so it is not in the encrypted vault.
 - The 0zk address is the same on both.
 - First sync on Arbitrum: RAILGUN's QuickSync loads about 92,000 commitments, then the last few thousand blocks are scanned through the RPC. The wallet scan finishes in a few minutes. The final step, validating transaction ids against the proof-of-innocence aggregator, needs a Nox TLS exit in Nox mode; on 2026-11-07 none was available, so the footer stayed at "Syncing 90%".
 - Arbitrum reads use Offchain Labs' RPC (`arb1.arbitrum.io`), because publicnode refuses RAILGUN's `eth_getLogs` there without a paid token.
@@ -32,7 +32,7 @@ Sepolia, Ethereum, Arbitrum, Base, Optimism, Polygon (`src/shared/networks.ts`).
 |---|---|
 | Gasless site-address calls (EIP-7702 + Calibur) and EIP-5792 batches | The sponsor pays gas for free, which only makes sense on a testnet |
 | Fund | It unshields on the private network; only Sepolia builds transactions for now |
-| Names (`pangolin.eth`) | ENSv2 is on Sepolia |
+| Names (`canon.eth`) | ENSv2 is on Sepolia |
 
 On other networks a site address sends ordinary transactions and pays its own gas.
 

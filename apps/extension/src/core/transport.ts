@@ -19,8 +19,8 @@ const MODE_KEY = 'rpcMode';
 export type RpcMode = 'nox' | 'direct';
 
 // The untouched fetch, saved by src/shims/inject.js before any module loaded.
-const g = globalThis as unknown as { __pangolinRealFetch?: typeof fetch; __pangolinFetch?: typeof fetch };
-const realFetch: typeof fetch = g.__pangolinRealFetch ?? globalThis.fetch.bind(globalThis);
+const g = globalThis as unknown as { __canonRealFetch?: typeof fetch; __canonFetch?: typeof fetch };
+const realFetch: typeof fetch = g.__canonRealFetch ?? globalThis.fetch.bind(globalThis);
 let worker: AnonRpcWorker | null = null;
 
 const bump = (key: keyof typeof state.rpc.counts): void => {
@@ -137,7 +137,7 @@ export const installTransport = async (): Promise<void> => {
   // A local fork is unreachable from a mixnet exit.
   state.rpc.mode = FORK || RPC_URL.includes('127.0.0.1') ? 'direct' : (saved ?? 'nox');
   FetchRequest.registerGetUrl(getUrl as never);
-  g.__pangolinFetch = patchedFetch;
+  g.__canonFetch = patchedFetch;
   // axios defaults to XHR in a browser, which the fetch patch cannot see.
   axios.defaults.adapter = 'fetch';
   if (state.rpc.mode === 'nox') ensureWorker();

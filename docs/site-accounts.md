@@ -6,7 +6,7 @@ Each dapp gets its own public address ([walletconnect.md](walletconnect.md), [in
 
 The toolbar icon opens the side panel for the current tab only (`panel.html?tab=<id>`). Other tabs keep their own panel, or none.
 
-- The core maps each tab to the dapp connected in it, from the `pangolin-dapp` port Chrome stamps with the tab id.
+- The core maps each tab to the dapp connected in it, from the `canon-dapp` port Chrome stamps with the tab id.
 - The panel's site card shows the dapp's icon, origin, its address and the address's ETH, WETH and USDC, read through Nox.
 - A tab with no dapp shows "No dapp in this tab".
 - Requests still open the toolbar popup unless the panel or popup is open ([architecture.md](architecture.md#where-prompts-appear)). In the panel, a waiting request shows as a bar at the top until reviewed.
@@ -24,7 +24,7 @@ The chain sees that a RAILGUN user sent this amount of this token to this addres
 
 ## Gasless calls through EIP-7702 and Calibur
 
-A site address never needs ETH for gas. It runs Uniswap's [Calibur](https://github.com/Uniswap/calibur) smart-account code through EIP-7702, and Pangolin's sponsor submits its transactions.
+A site address never needs ETH for gas. It runs Uniswap's [Calibur](https://github.com/Uniswap/calibur) smart-account code through EIP-7702, and Canon's sponsor submits its transactions.
 
 1. The dapp calls `eth_sendTransaction` or `wallet_sendCalls`. The user approves the prompt as usual.
 2. The wallet signs a Calibur `SignedBatchedCall` with the site address's own key: root key (`keyHash` 0), nonce from `getSeq(0)`, a 30-minute deadline, and the sponsor as the only allowed `executor`.

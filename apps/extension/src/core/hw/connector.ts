@@ -1,4 +1,4 @@
-// RAILGUN's HardwareWallet calls this to sign a private transaction. Pangolin
+// RAILGUN's HardwareWallet calls this to sign a private transaction. Canon
 // only clear-signs: the device sees recipients, tokens and amounts, builds the
 // outputs itself, and the engine verifies every byte it returns
 // (engine transaction/clear-sign-verify.js) before proving.
@@ -24,7 +24,7 @@ const bytes = (h: string): Bytes => Uint8Array.from((h.replace(/^0x/, '').match(
 
 const toWire = (r: ClearSignRequest) => ({
   account: r.account ?? 0,
-  walletSource: 'pangolin',
+  walletSource: 'canon',
   merkleRoot: hex(r.merkleRoot),
   nullifiers: r.nullifiers.map(hex),
   boundParams: {
@@ -52,7 +52,7 @@ const toWire = (r: ClearSignRequest) => ({
 
 export const railgunConnector = {
   async sign(_expectedHash: bigint, _publicInputs?: unknown, _subSession?: string, clearSign?: ClearSignRequest) {
-    if (!clearSign) throw new Error('Pangolin clear-signs only; this transaction could not be clear-signed');
+    if (!clearSign) throw new Error('Canon clear-signs only; this transaction could not be clear-signed');
     const r = await deviceRequest<{ signature: { R8: [string, string]; S: string }; msgHash: string; outputs: { kind: Output['kind']; response: string }[] }>(
       'railgunClearSign',
       { request: toWire(clearSign) },

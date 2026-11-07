@@ -1,6 +1,6 @@
 // Side panel check: the service worker opens the panel on icon click, and the
 // panel page fills narrow, medium and wide panels at full height.
-//   PANGOLIN_PROFILE=/new/dir bun scripts/check-panel.mjs
+//   CANON_PROFILE=/new/dir bun scripts/check-panel.mjs
 import { createWallet, launch } from './smoke.mjs';
 
 const { browser, popup, id } = await launch();

@@ -1,4 +1,4 @@
-// Names: <label>.pangolin.eth, issued free by the sponsor, owned by an
+// Names: <label>.canon.eth, issued free by the sponsor, owned by an
 // unfunded identity address, with an org.railgun record holding the 0zk.
 // Every lookup goes through the core's provider, so through Nox.
 import { AbiCoder, Contract, Interface, dnsEncode, getAddress, namehash } from 'ethers';
@@ -7,9 +7,9 @@ import { sepolia } from './config';
 import { privateFetch } from './transport';
 import { emit, state } from './state';
 
-export const PARENT = 'pangolin.eth';
+export const PARENT = 'canon.eth';
 export const TEXT_KEY = 'org.railgun';
-const SPONSOR_URL = process.env.PANGOLIN_SPONSOR_URL || 'http://127.0.0.1:8792';
+const SPONSOR_URL = process.env.CANON_SPONSOR_URL || 'http://127.0.0.1:8792';
 const UNIVERSAL_RESOLVER = '0xeEeEEEeE14D718C2B47D9923Deab1335E144EeEe';
 const LABEL = /^[a-z0-9](?:[a-z0-9-]{1,30}[a-z0-9])$/;
 

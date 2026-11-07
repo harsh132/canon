@@ -14,15 +14,15 @@ Source: [Railgun-Community/ppoi-safe-broadcaster-example](https://github.com/Rai
 6. Signs and sends from its own address.
 7. **Queues the POIs** (`transactions/poi-assurance.ts`). Every 2 minutes, once `getRailgunTransactionsForTxid` returns the transaction, it calls `POINodeRequest.submitSingleCommitmentProof` with the first output's commitment and note public key and the full pre-transaction POIs. It stops once the fee note is spendable.
 
-Step 7 clears the broadcaster's own fee note quickly. A single commitment proof clears only the commitment it names: our first sponsored test cleared the 1-wei first output and left the payment and change Missing. Pangolin therefore submits one per output it owns.
+Step 7 clears the broadcaster's own fee note quickly. A single commitment proof clears only the commitment it names: our first sponsored test cleared the 1-wei first output and left the payment and change Missing. Canon therefore submits one per output it owns.
 
 Step 7's purpose: the PPOI node gets the transaction's proofs at once, instead of the sender waiting for RAILGUN's TXID tree to index the send and then generating proofs itself.
 
-## What Pangolin takes from it
+## What Canon takes from it
 
 - **Sponsored sends use the same assurance** (`apps/extension/src/core/poi-assurance.ts`). The submission is keyed on the first output's note public key, which only its receiver can decrypt, so the sponsored send carries a 1-wei "fee" note to the user's own 0zk as its first output, and the wallet performs step 7 itself.
 - **The sponsor's relay** mirrors steps 2 and 4: simulate at the real gas price, enforce `minGasPrice`.
-- Running our own Waku broadcaster from this code is possible but heavy for a hackathon (Docker, nwaku, a funded wallet per chain). The sponsored relay over HTTPS through Nox gives the same sender privacy for Pangolin users.
+- Running our own Waku broadcaster from this code is possible but heavy for a hackathon (Docker, nwaku, a funded wallet per chain). The sponsored relay over HTTPS through Nox gives the same sender privacy for Canon users.
 
 ## Result on Sepolia
 

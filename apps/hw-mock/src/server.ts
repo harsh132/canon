@@ -1,5 +1,5 @@
-// The mock device over a WebSocket, for Pangolin's tests (dev builds read the
-// URL from localStorage "pangolin.hwMock").
+// The mock device over a WebSocket, for Canon's tests (dev builds read the
+// URL from localStorage "canon.hwMock").
 //   HW_MOCK_SEED="…" HW_MOCK_DELAY_MS=600 bun src/server.ts
 // HW_MOCK_MTU=23 acts like the Bluetooth link: replies cut into MTU − 3 byte
 // notifications and no log lines.
@@ -35,7 +35,7 @@ Bun.serve({
     }
     if (url.pathname === '/log') return Response.json(shown);
     if (server.upgrade(req, { data: { reader: new FrameReader() } })) return undefined;
-    return new Response('pangolin hw-mock', { status: 426 });
+    return new Response('canon hw-mock', { status: 426 });
   },
   websocket: {
     async message(ws, msg) {

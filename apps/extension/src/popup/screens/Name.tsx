@@ -46,7 +46,7 @@ export const Name = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
             placeholder="alice"
             className="min-w-0 flex-1 bg-transparent font-mono text-[18px] font-bold outline-none"
           />
-          <span className="font-mono text-[13px] text-second">.pangolin.eth</span>
+          <span className="font-mono text-[13px] text-second">.canon.eth</span>
         </div>
       </div>
       <Card edge className="mx-[18px] mt-[18px] px-[18px] pt-4">
@@ -62,7 +62,7 @@ export const Name = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
       <div className="flex flex-col gap-2 px-[18px] pt-4 pb-[18px]">
         <ErrorLine>{a.error}</ErrorLine>
         <Button busy={a.busy} disabled={label.length < 3 || !s.railgunAddress} onClick={() => a.run(() => call('ens.claim', { label }))}>
-          Claim {label || '…'}.pangolin.eth
+          Claim {label || '…'}.canon.eth
         </Button>
         <div className="flex justify-between">
           <Slug>Free · sponsored</Slug>

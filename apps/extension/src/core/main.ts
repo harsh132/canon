@@ -150,15 +150,15 @@ const handlers: Handlers = {
   'vault.hardware': async () => {
     if (await vaultExists()) throw new Error('A wallet already exists');
     // Three approvals on the device: the viewing key, Main's address, and the vault key.
-    const { shareableViewingKey } = await deviceRequest<{ shareableViewingKey: string }>('getViewingKey', { account: 0 }, 'Let Pangolin see your private balance');
-    const { addresses } = await deviceRequest<{ addresses: string[] }>('getAddresses', { paths: [accountPath(0)] }, 'Share addresses with Pangolin');
-    const { signature } = await deviceRequest<{ signature: string }>('vaultKey', {}, 'Unlock Pangolin');
+    const { shareableViewingKey } = await deviceRequest<{ shareableViewingKey: string }>('getViewingKey', { account: 0 }, 'Let Canon see your private balance');
+    const { addresses } = await deviceRequest<{ addresses: string[] }>('getAddresses', { paths: [accountPath(0)] }, 'Share addresses with Canon');
+    const { signature } = await deviceRequest<{ signature: string }>('vaultKey', {}, 'Unlock Canon');
     // The device may hold an existing wallet, so RAILGUN scans from deployment.
     await afterUnlock(await createHardwareVault(signature, { shareableViewingKey, mainAddress: addresses[0] }), true);
     return null;
   },
   'vault.unlockHardware': async () => {
-    const { signature } = await deviceRequest<{ signature: string }>('vaultKey', {}, 'Unlock Pangolin');
+    const { signature } = await deviceRequest<{ signature: string }>('vaultKey', {}, 'Unlock Canon');
     await afterUnlock(await unlockHardwareVault(signature), false);
     return null;
   },
@@ -345,7 +345,7 @@ chrome.runtime.onConnect.addListener((port) => {
 });
 
 // Dev builds only: lets test scripts read core state (e.g. which site is in which tab).
-if (DEV) (globalThis as Record<string, unknown>).__pangolinState = state;
+if (DEV) (globalThis as Record<string, unknown>).__canonState = state;
 
 wc.configureWc({ isUnlocked: () => session != null, prompt });
 browser.configureDapp({

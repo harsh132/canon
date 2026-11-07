@@ -3,9 +3,9 @@
 //   bun scripts/e2e-sepolia.mjs shield    Make private AMOUNT (default 0.01) from Main
 //   bun scripts/e2e-sepolia.mjs status    sync and print private balance (spendable / pending)
 //   bun scripts/e2e-sepolia.mjs broadcasters  wait for Waku to find Sepolia broadcasters
-//   bun scripts/e2e-sepolia.mjs private   Send privately AMOUNT to TO (default alice.pangolin.eth) with VIA gas
+//   bun scripts/e2e-sepolia.mjs private   Send privately AMOUNT to TO (default alice.canon.eth) with VIA gas
 //   bun scripts/e2e-sepolia.mjs swap      private swap AMOUNT (default 0.001) WETH -> USDC on Uniswap v4
-//   bun scripts/e2e-sepolia.mjs name      claim LABEL.pangolin.eth, then pay it from Main by name
+//   bun scripts/e2e-sepolia.mjs name      claim LABEL.canon.eth, then pay it from Main by name
 //   bun scripts/e2e-sepolia.mjs spend     Send privately 0.002 to self
 //   bun scripts/e2e-sepolia.mjs public    Make public 0.002 to Main (after the new notes clear POI)
 //   bun scripts/e2e-sepolia.mjs dapp      a local dapp on its site address: EIP-5792 + sponsored 7702 calls, then Fund
@@ -15,9 +15,9 @@ import { createWallet, launch } from './smoke.mjs';
 
 const dir = new URL('../.cache/sepolia/', import.meta.url).pathname;
 mkdirSync(dir, { recursive: true });
-process.env.PANGOLIN_PROFILE ??= `${dir}profile`;
+process.env.CANON_PROFILE ??= `${dir}profile`;
 const walletFile = `${dir}wallet.json`;
-const PASSWORD = 'pangolin sepolia test';
+const PASSWORD = 'canon sepolia test';
 const phase = process.argv[2] ?? 'status';
 const AMOUNT = process.env.AMOUNT ?? '0.01';
 // Gas for private sends: 'sponsor' (default), 'broadcaster' or 'self' (Main pays).
@@ -139,10 +139,10 @@ if (phase === 'setup') {
 } else if (phase === 'status') {
   log('balances:', await balances());
 } else if (phase === 'name') {
-  // Claim LABEL.pangolin.eth through the sponsor, then pay it from Main by name.
+  // Claim LABEL.canon.eth through the sponsor, then pay it from Main by name.
   const label = process.env.LABEL ?? 'alice';
   await click('^menu$');
-  await click('get a name|pangolin\\.eth');
+  await click('get a name|canon\\.eth');
   await waitText('Your name');
   if (!/Yours/i.test(await text())) {
     const input = await popup.$('input[aria-label="Name label"]');
@@ -154,13 +154,13 @@ if (phase === 'setup') {
   } else {
     log('already named:', (await text()).slice(0, 120));
   }
-  const name = (await text()).match(/([a-z0-9-]+\.pangolin\.eth)/i)?.[1];
+  const name = (await text()).match(/([a-z0-9-]+\.canon\.eth)/i)?.[1];
   if (!name) throw new Error('no name on screen');
   await nav('home');
   await send({ from: 0, to: name, amount: process.env.AMOUNT ?? '0.001', expect: 'Make private' });
 } else if (phase === 'private') {
   // Send privately (gas route from VIA, default sponsor) to TO, default a name.
-  const to = process.env.TO ?? 'alice.pangolin.eth';
+  const to = process.env.TO ?? 'alice.canon.eth';
   // WAIT_SPENDABLE=1: stay open, resyncing, until enough clears proof of innocence
   // (the wallet submits those proofs only while it runs).
   if (process.env.WAIT_SPENDABLE) {
@@ -301,7 +301,7 @@ if (phase === 'dapp') {
   }
 
   // Fund from the panel: private WETH arrives as ETH.
-  const tabs = await corePage.evaluate(() => globalThis.__pangolinState.tabs);
+  const tabs = await corePage.evaluate(() => globalThis.__canonState.tabs);
   const tabId = Object.entries(tabs).find(([, o]) => o === `http://127.0.0.1:${PORT}`)?.[0];
   const panel = await browser.newPage();
   await panel.setViewport({ width: 380, height: 760 });

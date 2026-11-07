@@ -2,7 +2,7 @@
 // the site's chain, persistence across reload and lock, the panel's chip, and
 // switching RAILGUN's network to Arbitrum and back. No transactions.
 // Needs a --dev build (reads the core's tab map).
-//   PANGOLIN_PROFILE=/new/dir bun scripts/e2e-networks.mjs
+//   CANON_PROFILE=/new/dir bun scripts/e2e-networks.mjs
 import { createWallet, launch } from './smoke.mjs';
 
 const PORT = 8798;
@@ -90,7 +90,7 @@ await waitText('private balance');
 check((await rpc(a, 'eth_chainId')).r === '0x2105', 'lock and unlock keep the network');
 
 // The panel for that tab: Base chip, Base balances, no Fund.
-const tabs = await corePage.evaluate(() => globalThis.__pangolinState.tabs);
+const tabs = await corePage.evaluate(() => globalThis.__canonState.tabs);
 const tabId = Object.entries(tabs).find(([, o]) => o === `http://127.0.0.1:${PORT}`)?.[0];
 const panel = await browser.newPage();
 await panel.setViewport({ width: 380, height: 720 });

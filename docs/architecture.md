@@ -6,7 +6,7 @@
 |---|---|---|---|
 | Core | Offscreen document | `apps/extension/src/core` | Vault, RAILGUN engine, Anon-RPC worker, WalletConnect client, account book |
 | Service worker | MV3 background | `src/background/sw.ts` | Nothing. Creates the offscreen document, sets the badge, opens prompts |
-| UI | The onboarding tab (`onboard.html`) on first install; Chrome side panel (`panel.html`) when the user clicks the toolbar icon; the toolbar popup (`popup.html`) when a dapp asks for something and no Pangolin UI is open; a small window (`popup.html?window=1`) only if Chrome refuses the popup | `src/popup` | Nothing secret. Renders pushed state, sends commands |
+| UI | The onboarding tab (`onboard.html`) on first install; Chrome side panel (`panel.html`) when the user clicks the toolbar icon; the toolbar popup (`popup.html`) when a dapp asks for something and no Canon UI is open; a small window (`popup.html?window=1`) only if Chrome refuses the popup | `src/popup` | Nothing secret. Renders pushed state, sends commands |
 | Inpage provider | Each http(s) page's own world | `src/inpage/provider.ts` | Nothing. EIP-1193 provider, EIP-6963 announcement |
 | Bridge | Each page, isolated world | `src/inpage/bridge.ts` | Nothing. Relays calls to the core over a port Chrome stamps with the tab's origin |
 | Sponsor | Cloudflare Worker + Durable Object (`apps/sponsor`); `bun src/server.ts` locally | `apps/sponsor/src` | The gas key. Pays for private sends, swaps, Fund, name claims and site-address calls ([sponsor.md](sponsor.md)) |
@@ -17,10 +17,10 @@ The core lives in the offscreen document because the service worker is killed wh
 ## Messages
 
 ```
-panel ──port "pangolin-popup"──▶ core          commands (whitelist), JSON with tagged bigints
+panel ──port "canon-popup"──▶ core          commands (whitelist), JSON with tagged bigints
 popup ◀─────── state push ─────── core          whole CoreState after every change, coalesced per tick
 core  ──runtime.sendMessage────▶ service worker "prompt" / "prompt-clear"
-page  ─postMessage─▶ bridge ─port "pangolin-dapp"─▶ core   EIP-1193 calls; origin from Chrome
+page  ─postMessage─▶ bridge ─port "canon-dapp"─▶ core   EIP-1193 calls; origin from Chrome
 popup ──runtime.sendMessage────▶ service worker "ensure-core" before connecting
 ```
 
@@ -51,10 +51,10 @@ All in the extension origin's IndexedDB. The offscreen document has no `chrome.s
 
 | Store | Contents | At rest |
 |---|---|---|
-| `pangolin/kv` → `vault` | Kind, salt or passkey credential id, IV, encrypted phrase, RAILGUN wallet id | Encrypted |
-| `pangolin/kv` → `book` | Public accounts, dapp bindings, activity | Encrypted |
-| `pangolin/kv` → `rpcMode` | `nox` or `direct` | Plain |
-| `pangolin-railgun` | RAILGUN merkle trees (public data) and wallet data | Wallet data encrypted with the RAILGUN key |
+| `canon/kv` → `vault` | Kind, salt or passkey credential id, IV, encrypted phrase, RAILGUN wallet id | Encrypted |
+| `canon/kv` → `book` | Public accounts, dapp bindings, activity | Encrypted |
+| `canon/kv` → `rpcMode` | `nox` or `direct` | Plain |
+| `canon-railgun` | RAILGUN merkle trees (public data) and wallet data | Wallet data encrypted with the RAILGUN key |
 | `railgun-artifacts` | Circuit artifacts | Public data |
 | WalletConnect's own stores | Pairings and sessions | Plain, as the SDK keeps them |
 
@@ -95,7 +95,7 @@ The panel is per tab; see [site-accounts.md](site-accounts.md#per-tab-panel).
 | Situation | Shows |
 |---|---|
 | User clicks the toolbar icon | The side panel |
-| A dapp or WalletConnect request needs approval, no Pangolin UI open | The toolbar popup, on the requesting tab's window (`chrome.action.openPopup`, Chrome 127+) |
+| A dapp or WalletConnect request needs approval, no Canon UI open | The toolbar popup, on the requesting tab's window (`chrome.action.openPopup`, Chrome 127+) |
 | Same, with the panel or popup already open | The open UI shows it; nothing new opens |
 | Chrome refuses to open the popup | A small separate window, as a last resort |
 

@@ -1,10 +1,10 @@
 // The popup <-> core contract. The popup holds no keys: it renders CoreState
 // and sends one of the whitelisted Commands below. Nothing else is accepted.
 
-export const PORT_NAME = 'pangolin-popup';
+export const PORT_NAME = 'canon-popup';
 /** What kind of UI a port belongs to: `${PORT_NAME}:${UiKind}`. */
 export type UiKind = 'panel' | 'popup' | 'window' | 'tab';
-export const DAPP_PORT_NAME = 'pangolin-dapp';
+export const DAPP_PORT_NAME = 'canon-dapp';
 
 /** 'unknown' until the core has read storage; the popup must not offer onboarding before then. */
 export type VaultStatus = 'unknown' | 'none' | 'locked' | 'unlocked';
@@ -144,7 +144,7 @@ export type SendIntent = {
   from: 'private' | number;
   to: string;
   amount: string;
-  /** Who pays gas when sending from private: Pangolin's sponsor (default), a RAILGUN broadcaster, or a public account. */
+  /** Who pays gas when sending from private: Canon's sponsor (default), a RAILGUN broadcaster, or a public account. */
   via?: 'sponsor' | 'broadcaster' | 'self';
   /** Public account that pays gas when via is 'self'. */
   gasFrom?: number;

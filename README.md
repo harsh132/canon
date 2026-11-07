@@ -1,6 +1,6 @@
-# Pangolin
+# Canon Wallet
 
-The only mammal in armour. A privacy wallet for Ethereum, built as a Chrome extension.
+A privacy wallet for Ethereum, built as a Chrome extension.
 
 - Every read goes through [Anon-RPC](https://github.com/ethereum/anon-rpc) by default, so no RPC provider learns which addresses belong to you.
 - Shielded balance via [RAILGUN](https://railgun.org): one Send that becomes a public send, "Make private", "Make public" or "Send privately" depending on who you pay.

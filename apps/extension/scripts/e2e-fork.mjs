@@ -1,6 +1,6 @@
 // End-to-end RAILGUN flow through the popup, against a local anvil fork of Sepolia.
-// Build first with:  PANGOLIN_FORK=1 PANGOLIN_SEPOLIA_RPC=http://127.0.0.1:8545 bun scripts/build.mjs --dev
-// Then:              PANGOLIN_PROFILE=/new/dir bun scripts/e2e-fork.mjs
+// Build first with:  CANON_FORK=1 CANON_SEPOLIA_RPC=http://127.0.0.1:8545 bun scripts/build.mjs --dev
+// Then:              CANON_PROFILE=/new/dir bun scripts/e2e-fork.mjs
 //
 // 1. create wallet  2. fund Main on the fork  3. Make private 1 ETH
 // 4. Send privately 0.2 to self  5. Make public 0.3 to a fresh 0x

@@ -6,7 +6,7 @@ import { bind, bindingFor, createAccount, indexOfAddress, prefetchPreview, previ
 import { SIGN_METHODS, execute, isDelegation, summarize } from './sign';
 import { DEV, NETS, SEPOLIA_ID, WC_PROJECT_ID, netOf } from './config';
 
-// Every network Pangolin supports; each request names the one it runs on.
+// Every network Canon supports; each request names the one it runs on.
 const SUPPORTED = NETS.map((n) => `eip155:${n.chainId}`);
 const chainIdOf = (caip?: string): number => Number((caip ?? '').split(':')[1] ?? SEPOLIA_ID) || SEPOLIA_ID;
 import { dappKeyFor } from './dapp-origin';
@@ -152,7 +152,7 @@ export const startWc = async (): Promise<void> => {
     const core = new Core({ projectId: WC_PROJECT_ID, telemetryEnabled: false });
     // A project id whose allowlist lacks this extension's origin never connects; say so.
     kit = await Promise.race([
-      WalletKit.init({ core, metadata: { name: 'Pangolin', description: 'Private wallet', url: location.origin, icons: [] } }),
+      WalletKit.init({ core, metadata: { name: 'Canon Wallet', description: 'Private wallet', url: location.origin, icons: [] } }),
       new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error(`Relay refused ${location.origin}. Allow it in the WalletConnect project.`)), 20_000),
       ),
@@ -172,7 +172,7 @@ export const startWc = async (): Promise<void> => {
   kit.on('session_request', (r) => {
     const { method, params } = r.params.request as { method: string; params: unknown[] };
     if (isDelegation(method, params)) {
-      void respondError(r, 4001, 'Pangolin does not sign account delegations');
+      void respondError(r, 4001, 'Canon Wallet does not sign account delegations');
       return;
     }
     if (!METHODS.includes(method)) {

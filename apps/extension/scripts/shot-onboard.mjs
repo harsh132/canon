@@ -1,5 +1,5 @@
 // Screenshots of the onboarding screens (light), into .cache/onboard-shots/.
-//   PANGOLIN_PROFILE=/new/dir bun scripts/shot-onboard.mjs
+//   CANON_PROFILE=/new/dir bun scripts/shot-onboard.mjs
 import { launch } from './smoke.mjs';
 
 const { browser, popup } = await launch();

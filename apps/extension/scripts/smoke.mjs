@@ -1,6 +1,6 @@
 // Loads dist/ into Chromium and drives the popup. Prints the core's console.
 //   bun scripts/smoke.mjs [--headful] [--keep]
-// Env: PANGOLIN_PROFILE (user-data dir, default .cache/profile), CHROME (binary).
+// Env: CANON_PROFILE (user-data dir, default .cache/profile), CHROME (binary).
 import { mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -10,7 +10,7 @@ const app = join(dirname(fileURLToPath(import.meta.url)), '..');
 const dist = join(app, 'dist');
 export const launch = async ({ headful = process.argv.includes('--headful') } = {}) => {
   // Read at call time: importers may set it after this module has loaded.
-  const profile = process.env.PANGOLIN_PROFILE ?? join(app, '.cache', 'profile');
+  const profile = process.env.CANON_PROFILE ?? join(app, '.cache', 'profile');
   mkdirSync(profile, { recursive: true });
   const browser = await puppeteer.launch({
     executablePath: process.env.CHROME ?? '/usr/bin/chromium',

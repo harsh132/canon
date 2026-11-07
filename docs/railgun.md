@@ -4,7 +4,7 @@
 |---|---|
 | Packages | `@railgun-community/wallet` 11.3.0, `engine` 9.9.1, `shared-models` 8.2.1, `ethers` 6.14.3, `snarkjs` 0.7.6 |
 | Network | Ethereum Sepolia |
-| Store | IndexedDB via `level-js` (`pangolin-railgun`); artifacts via `localforage` (`railgun-artifacts`) |
+| Store | IndexedDB via `level-js` (`canon-railgun`); artifacts via `localforage` (`railgun-artifacts`) |
 | PPOI node | `https://ppoi.fdi.network` |
 | Code | `apps/extension/src/core/railgun.ts`, `send.ts` |
 
@@ -43,7 +43,7 @@ Ported from Ender's engine WebView build:
 
 ## Fork mode
 
-`PANGOLIN_FORK=1` builds for a local anvil fork of Sepolia. No PPOI aggregator watches a fork, so every shield would stay pending forever. Fork mode removes the network's POI config and patches the engine to treat unspent notes as spendable. Never ship a fork build. See [testing.md](testing.md).
+`CANON_FORK=1` builds for a local anvil fork of Sepolia. No PPOI aggregator watches a fork, so every shield would stay pending forever. Fork mode removes the network's POI config and patches the engine to treat unspent notes as spendable. Never ship a fork build. See [testing.md](testing.md).
 
 ## Broadcasters
 
@@ -68,7 +68,7 @@ After the self-paid private send, both new notes sat in `MissingExternalPOI`, an
 
 ## Sponsored relay (default on Sepolia)
 
-Private sends default to Pangolin's sponsor paying gas (`apps/sponsor/src/relay.ts`, `POST /relay`). The wallet proves in broadcaster mode with no fee output and posts `{ to, data, minGasPrice }`; the sponsor sends it from its own address.
+Private sends default to Canon's sponsor paying gas (`apps/sponsor/src/relay.ts`, `POST /relay`). The wallet proves in broadcaster mode with no fee output and posts `{ to, data, minGasPrice }`; the sponsor sends it from its own address.
 
 - The sponsor accepts only the RAILGUN proxy and Relay Adapt as `to`, simulates at the real gas price first (RAILGUN checks `tx.gasprice >= minGasPrice`), caps gas at 4M and sends at most 60 an hour.
 - It prices legacy gas from the latest base fee ×2 plus a tip. A node's `eth_gasPrice` lagged the base fee on Sepolia (17 wei against 18) and left the first relayed transaction unmineable; `scripts/replace-stuck.ts` rebroadcast it.
@@ -76,4 +76,4 @@ Private sends default to Pangolin's sponsor paying gas (`apps/sponsor/src/relay.
 - The wallet submits the send's pre-attached proofs itself (`core/poi-assurance.ts`), one single commitment proof per output it owns. Measured: spendable again 7 minutes after sending, against 40+ minutes without.
 - The wallet caps its wait for a send to settle at 10 minutes, because a relayed transaction can be replaced under a new hash.
 
-Verified 2026-11-06: Send privately 0.001 WETH to `alice.pangolin.eth`, name resolved through Nox, sponsor as sender ([tx](https://sepolia.etherscan.io/tx/0xc4864297530c07547a3b5448bee9f987cceb8a2bd6daee27312699e6b1df74d2)). Main does not appear.
+Verified 2026-11-06: Send privately 0.001 WETH to `alice.canon.eth`, name resolved through Nox, sponsor as sender ([tx](https://sepolia.etherscan.io/tx/0xc4864297530c07547a3b5448bee9f987cceb8a2bd6daee27312699e6b1df74d2)). Main does not appear.

@@ -68,8 +68,8 @@ const run = async (name: string, device: MockDevice, consumed: string[], m: stri
   return response;
 };
 
-WalletInfo.setWalletSource('pangolin');
-const { rng, consumed } = streamRng('pangolin-hw-vectors-v1');
+WalletInfo.setWalletSource('canon');
+const { rng, consumed } = streamRng('canon-hw-vectors-v1');
 const device = new MockDevice(MNEMONIC, { rng });
 const path = "m/44'/60'/0'/0/0";
 const main = HDNodeWallet.fromPhrase(MNEMONIC, undefined, path);
@@ -127,7 +127,7 @@ const clearSignCase = async (name: string, withUnshield: boolean) => {
   const unshieldTo = '0x1111111111111111111111111111111111111111';
   const request: ClearSignRequest = {
     account: 0,
-    walletSource: 'pangolin',
+    walletSource: 'canon',
     merkleRoot: '0x0abc0000000000000000000000000000000000000000000000000000000000ff',
     nullifiers: ['0x01', '0x02'].map((x) => `0x${x.slice(2).padStart(64, '0')}`),
     boundParams: { treeNumber: 0, minGasPrice: '1000000000', unshield: withUnshield, chainId: '11155111' },
@@ -224,7 +224,7 @@ if (WRITE) {
   writeFileSync(
     `${OUT}README.md`,
     [
-      '# Pangolin hardware-wallet test vectors',
+      '# Canon hardware-wallet test vectors',
       '',
       'Written by `bun src/selftest.ts --write` in apps/hw-mock. Each file is one request the device must answer byte for byte.',
       '',

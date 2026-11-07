@@ -27,7 +27,7 @@ type BookData = {
   accounts: AccountRecord[];
   bindings: Record<string, Binding>;
   activity: Activity[];
-  /** This wallet's issued name, e.g. alice.pangolin.eth. */
+  /** This wallet's issued name, e.g. alice.canon.eth. */
   name?: string;
   /** Each site's network (chain id), as the dapp last switched it. */
   chains?: Record<string, number>;
@@ -95,7 +95,7 @@ export const ensureAddresses = async (paths: string[]): Promise<void> => {
   if (!session?.hardware) return;
   const missing = paths.filter((p) => !addresses.has(p));
   if (!missing.length) return;
-  const { addresses: got } = await deviceRequest<{ addresses: string[] }>('getAddresses', { paths: missing }, 'Share addresses with Pangolin');
+  const { addresses: got } = await deviceRequest<{ addresses: string[] }>('getAddresses', { paths: missing }, 'Share addresses with Canon');
   missing.forEach((p, i) => addresses.set(p, got[i]));
 };
 

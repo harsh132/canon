@@ -1,6 +1,6 @@
 # Overview
 
-Pangolin is a Chrome extension wallet for private Ethereum use. Working name, chosen 2026-11-06; may change.
+Canon is a Chrome extension wallet for private Ethereum use. Working name, chosen 2026-11-06; may change.
 
 It does three things:
 
@@ -19,11 +19,11 @@ ETHGlobal Mumbai, started 2026-11-06.
 | Ethereum Foundation: Anon-RPC | Lead. Every RPC read through Nox in an MV3 extension, counted on a Privacy screen | Working on Sepolia |
 | Ethereum Foundation: CROPS | Alternative EF entry; one EF prize per project | Not targeted separately |
 | Uniswap | Private swap through RAILGUN cross-contract calls | Not started |
-| ENS v2 | Sponsored `<label>.pangolin.eth` subnames whose `org.railgun` record pays privately | Working on Sepolia |
+| ENS v2 | Sponsored `<label>.canon.eth` subnames whose `org.railgun` record pays privately | Working on Sepolia |
 
 ## Repo
 
-`harsh132/pangolin`, a bun-workspaces monorepo.
+`harsh132/canon`, a bun-workspaces monorepo.
 
 | Path | What |
 |---|---|
