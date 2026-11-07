@@ -11,6 +11,8 @@ const PORT = Number(process.env.HW_MOCK_PORT ?? 8799);
 const SEED = process.env.HW_MOCK_SEED ?? 'test test test test test test test test test test test junk';
 const DELAY = Number(process.env.HW_MOCK_DELAY_MS ?? 600);
 const MTU = Number(process.env.HW_MOCK_MTU ?? 0);
+/** Send every piece twice, as BlueZ does with two subscribers. */
+const REPEAT = !!process.env.HW_MOCK_REPEAT;
 let rejectNext = false;
 const shown: { title: string; lines: string[]; approved: boolean }[] = [];
 
@@ -45,7 +47,10 @@ Bun.serve({
       for (const req of reader.push(bytes) as HwRequest[]) {
         const res = await device.handle(req);
         if (MTU) {
-          for (const c of chunks(encodeFrame(res), MTU - 3)) ws.send(c);
+          for (const c of chunks(encodeFrame(res), MTU - 3)) {
+            ws.send(c);
+            if (REPEAT) ws.send(c);
+          }
           continue;
         }
         // Log noise on the same channel, as on the real device's shared USB port.

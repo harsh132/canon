@@ -3,7 +3,7 @@
 // in a Canon page; the grant belongs to the extension's origin, so the core
 // reopens it here. Dev builds can point at the JavaScript mock (apps/hw-mock) over
 // a WebSocket.
-import { BLE, BLE_CHUNK, FrameReader, LINK_KEY, chunks, encodeFrame, type HwResponse } from '../../shared/hwframe';
+import { BLE, BLE_CHUNK, BleReader, FrameReader, LINK_KEY, chunks, encodeFrame, type HwResponse } from '../../shared/hwframe';
 import { DEV } from '../config';
 import { emit, state } from '../state';
 
@@ -26,8 +26,11 @@ const waiting = new Map<number, { resolve: (r: HwResponse) => void; reject: (e: 
 let nextId = 1;
 let queue: Promise<unknown> = Promise.resolve();
 
-const onFrames = (bytes: Uint8Array) => {
-  for (const f of reader.push(bytes) as HwResponse[]) {
+const onFrames = (bytes: Uint8Array) => deliver(reader.push(bytes));
+
+/** Responses to their requests; a response nobody waits for (a late or repeated one) is dropped. */
+const deliver = (frames: unknown[]) => {
+  for (const f of frames as HwResponse[]) {
     const w = waiting.get(f.id);
     if (!w) continue;
     waiting.delete(f.id);
@@ -60,7 +63,9 @@ const openMock = (url: string): Promise<Link> =>
     ws.onopen = () => resolve(self);
     ws.onerror = () => reject(new DeviceError(4900, 'Mock device unreachable'));
     ws.onclose = () => dropped('Device disconnected', self);
-    ws.onmessage = (e) => onFrames(new Uint8Array(e.data as ArrayBuffer));
+    // The mock can repeat pieces (HW_MOCK_REPEAT) the way BlueZ does.
+    const pieces = new BleReader();
+    ws.onmessage = (e) => deliver(pieces.push(new Uint8Array(e.data as ArrayBuffer)));
   });
 
 const openSerial = async (): Promise<Link> => {
@@ -137,9 +142,10 @@ const openBle = async (): Promise<Link> => {
     const svc = await server.getPrimaryService(BLE.service);
     const rx = await svc.getCharacteristic(BLE.requests);
     const tx = await svc.getCharacteristic(BLE.responses);
+    const pieces = new BleReader();
     tx.addEventListener('characteristicvaluechanged', () => {
       const v = tx.value;
-      if (v) onFrames(new Uint8Array(v.buffer.slice(v.byteOffset, v.byteOffset + v.byteLength)));
+      if (v) deliver(pieces.push(new Uint8Array(v.buffer.slice(v.byteOffset, v.byteOffset + v.byteLength))));
     });
     // The first encrypted access starts pairing if the computer is not bonded yet.
     await tx.startNotifications();

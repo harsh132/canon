@@ -5,7 +5,7 @@
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { HDNodeWallet, Transaction, TypedDataEncoder, getBytes, hashMessage, recoverAddress, verifyAuthorization, verifyMessage, verifyTypedData } from 'ethers';
-import { encodeFrame, FrameReader } from '../../extension/src/shared/hwframe';
+import { BleReader, chunks, encodeFrame, FrameReader } from '../../extension/src/shared/hwframe';
 import { CALIBUR, MockDevice, VAULT_MESSAGE, type ClearSignRequest } from './device';
 import { ByteUtils, constants, deriveNodes, encodeAddress, hashBoundParamsV2, poseidon, TransactNote, verify, WalletNode } from './engine';
 import { createRequire } from 'node:module';
@@ -216,6 +216,21 @@ check(parsed.length === 1 && (parsed[0] as { m: string }).m === 'info', 'frame c
   const stream = new Uint8Array([...enc.encode('I (1234) wallet: boot\n@@ ok\n'), ...broken, ...enc.encode('W (1240) ble: adv\n'), ...good]);
   const got = [...r2.push(stream.slice(0, 40)), ...r2.push(stream.slice(40))];
   check(got.length === 1 && (got[0] as { id: number }).id === 7, 'frame codec: skips log lines, drops a bad CRC, keeps the next frame');
+}
+{
+  // BLE: a 2.5 KB answer in 5 notifications, each delivered twice by BlueZ.
+  const hex = Array.from({ length: 2500 }, (_, i) => ((i * 7919) % 16).toString(16)).join('');
+  const big = encodeFrame({ id: 9, r: { pad: hex } });
+  const twice = chunks(big, 514).flatMap((c) => [c, c]);
+  const plain = new FrameReader().push(new Uint8Array(twice.flatMap((c) => [...c])));
+  const r3 = new BleReader();
+  const got = twice.flatMap((c) => r3.push(c)) as { id: number }[];
+  check(plain.length === 0 && got.length >= 1 && got.every((f) => f.id === 9), 'BLE reader: an answer survives repeated notifications');
+  // Real pieces that happen to be identical (a run of the same bytes) still reassemble.
+  const same = encodeFrame({ id: 10, r: { pad: 'x'.repeat(2500) } });
+  const r4 = new BleReader();
+  const got4 = chunks(same, 514).flatMap((c) => r4.push(c)) as { id: number }[];
+  check(got4.length >= 1 && got4.every((f) => f.id === 10), 'BLE reader: identical real pieces are kept');
 }
 
 if (WRITE) {

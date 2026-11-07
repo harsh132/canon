@@ -114,3 +114,24 @@ export class FrameReader {
     return -1;
   }
 }
+
+/**
+ * Frames out of BLE notifications. When two programs on a Linux computer
+ * subscribe to Buddy's responses, BlueZ hands each of them every notification
+ * twice. A piece identical to the one before is either such a copy or (rarely)
+ * real data, so two readers run side by side, one keeping every piece and one
+ * dropping repeats, and the CRC decides: whichever yields a frame wins. A frame
+ * both readers find comes out twice; callers match responses by id.
+ */
+export class BleReader {
+  #all = new FrameReader();
+  #unique = new FrameReader();
+  #last: Uint8Array | null = null;
+
+  push(piece: Uint8Array): unknown[] {
+    const last = this.#last;
+    const repeat = last !== null && last.length === piece.length && last.every((b, i) => b === piece[i]);
+    this.#last = piece;
+    return [...this.#all.push(piece), ...(repeat ? [] : this.#unique.push(piece))];
+  }
+}

@@ -2,7 +2,8 @@
 // over its WebSocket. Needs a --dev build (the mock URL is honoured only there).
 //   CANON_PROFILE=/new/dir bun scripts/e2e-hardware.mjs
 // HW_LINK=ble (default) onboards with Bluetooth: requests go out in BLE-sized
-// pieces and the mock answers in 20-byte notifications. HW_LINK=usb: whole frames.
+// pieces and the mock answers in 20-byte notifications, each sent twice (as BlueZ
+// does with two subscribers). HW_LINK=usb: whole frames.
 import { spawn } from 'node:child_process';
 import { HDNodeWallet, Mnemonic, keccak256, randomBytes, toUtf8Bytes, verifyMessage, verifyTypedData } from 'ethers';
 import { deriveNodes, encodeAddress, WalletNode } from '../../hw-mock/src/engine.ts';
@@ -15,7 +16,7 @@ const MOCK = 8799;
 const PORT = 8800;
 const LINK = process.env.HW_LINK ?? 'ble';
 const mock = spawn('bun', [new URL('../../hw-mock/src/server.ts', import.meta.url).pathname], {
-  env: { ...process.env, HW_MOCK_SEED: SEED, HW_MOCK_PORT: String(MOCK), HW_MOCK_DELAY_MS: '700', HW_MOCK_MTU: LINK === 'ble' ? '23' : '' },
+  env: { ...process.env, HW_MOCK_SEED: SEED, HW_MOCK_PORT: String(MOCK), HW_MOCK_DELAY_MS: '700', HW_MOCK_MTU: LINK === 'ble' ? '23' : '', HW_MOCK_REPEAT: LINK === 'ble' ? '1' : '' },
   stdio: ['ignore', 'inherit', 'inherit'],
 });
 // Never leave the mock running, whatever ends this script.
