@@ -11,9 +11,10 @@
 //   bun scripts/e2e-sepolia.mjs dapp      a local dapp on its site address: EIP-5792 + sponsored 7702 calls, then Fund
 // The profile and the test phrase live in .cache/sepolia (gitignored). Test funds only.
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { createWallet, launch } from './smoke.mjs';
 
-const dir = new URL('../.cache/sepolia/', import.meta.url).pathname;
+const dir = fileURLToPath(new URL('../.cache/sepolia/', import.meta.url));
 mkdirSync(dir, { recursive: true });
 process.env.CANON_PROFILE ??= `${dir}profile`;
 const walletFile = `${dir}wallet.json`;

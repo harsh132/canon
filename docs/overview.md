@@ -10,16 +10,9 @@ It does three things:
 
 The model follows the author's Ender wallet (React Native): one Send whose meaning comes from the source and the recipient, plain words instead of "shield", no background polling, and never showing a failed read as zero.
 
-## Hackathon
+## History
 
-ETHGlobal Mumbai, started 2026-11-06.
-
-| Track | Fit | State |
-|---|---|---|
-| Ethereum Foundation: Anon-RPC | Lead. Every RPC read through Nox in an MV3 extension, counted on a Privacy screen | Working on Sepolia |
-| Ethereum Foundation: CROPS | Alternative EF entry; one EF prize per project | Not targeted separately |
-| Uniswap | Private swap through RAILGUN cross-contract calls | Not started |
-| ENS v2 | Sponsored `<label>.canon.eth` subnames whose `org.railgun` record pays privately | Working on Sepolia |
+Started at ETHGlobal Mumbai on 2026-11-06. The hackathon is over. Its tracks and prize rules (Anon-RPC, Uniswap, ENS v2) no longer shape Canon: each part stays only on its merit, and any part can be replaced, Anon-RPC and Nox included.
 
 ## Repo
 

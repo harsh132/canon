@@ -8,7 +8,7 @@ First install opens `onboard.html` in its own tab. The toolbar popup and the sid
 | Passkey | Create a passkey, or use one that exists. The phrase backup that follows is optional | The passkey |
 | Restore | A 12- or 24-word grid. Pasting a phrase into any box fills the boxes from there on. Words not on the BIP-39 list turn red and hold back the password step | Password |
 
-Hardware wallets will be a fourth choice. Hardware devices cannot hold RAILGUN's keys, so the likely route derives the RAILGUN wallet from a fixed signature made on the device.
+Hardware wallets are not supported. The first try (an ESP32 device, BuddyOS) was removed on 2026-11-09. Real devices, such as Ledger, come later.
 
 ## Passkey wallets
 

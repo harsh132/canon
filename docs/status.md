@@ -1,6 +1,6 @@
 # Status
 
-Updated 2026-11-06.
+Updated 2026-11-09.
 
 ## Works
 
@@ -29,12 +29,12 @@ Updated 2026-11-06.
 | Hosted sponsor on Cloudflare (Worker + Durable Object) | `execute-probe.ts` against the live URL: delegate, then a two-call batch |
 | Per-tab side panel showing each tab's dapp and address | `check-site-panel.mjs` |
 | Transaction preview on dapp prompts: balance changes from `eth_simulateV1` through Nox, decoded calls, warnings for reverts and unlimited approvals | `preview-check.ts`, `e2e-injected.mjs` |
+| Fund with ETH through Nox (the 7702 unshield, sponsor relay), with a 30 s tunnel-open timeout ([anon-rpc.md](anon-rpc.md)) | `FUND_ONLY=1 e2e-sepolia.mjs dapp`, 2026-11-09 |
 | Per-dapp WalletConnect addresses: two dapps get two fresh addresses, personal_sign recovers to the right one, a reconnect keeps its address | `e2e-wc.mjs`, Canon project id |
 
 ## Built, not yet verified
 
-- **The 7702 unshield through Nox.** The SDK reads the ephemeral address's nonce over a route that needs a Nox TLS exit. On 2026-11-06 no exit offered TLS tunnels, so Fund with ETH and Make public failed with "No exit offers TLS tunnels" in Nox mode. They passed with direct reads.
-- **Sponsored Make public from Home.** Same relay path as Fund with ETH, not run separately.
+- **Sponsored Make public from Home.** Same relay path as Fund with ETH, which now passes through Nox; not run separately.
 - **Passkeys on real authenticators.** Google Password Manager, iCloud Keychain and security keys need a manual try; headless tests use a virtual one.
 
 - **Typed-data signing over WalletConnect.** Added to `e2e-wc.mjs`; a re-run stalled once at the personal_sign step after passing it the run before, so treat the script as flaky until it passes twice.
@@ -48,8 +48,6 @@ Updated 2026-11-06.
 
 ## Next
 
-1. Flash the BuddyOS wallet onto the board and run onboarding against it ([hardware-wallet.md](hardware-wallet.md)). The hosted sponsor is proven from the extension (a device-signed gasless call, 2026-11-07); in Nox mode it still needs a Nox TLS exit.
-2. Submissions: make the repo public, fill the Uniswap feedback form, record the demo.
-3. Ask the RAILGUN team why Sepolia broadcasters reject on proof of innocence.
-4. WalletConnect signing stall (parked).
-5. **Mainnet: phase 1 done ([networks.md](networks.md)); transactions on Arbitrum next.** Earlier note: Canon runs on Sepolia only. Mainnet-only dapps such as pro.aave.com connect, then ask to switch to chain 1; Canon refuses with 4902, then 4200 on `wallet_addEthereumChain`. Wagmi reports that as "user rejected", so the dapp shows "Request cancelled". Mainnet needs: RAILGUN's mainnet network config, a mainnet sponsor with a fee in private tokens, Calibur (deployed at the same address on mainnet), the ENS parent on mainnet, and a network switch in the UI.
+1. Ask the RAILGUN team why Sepolia broadcasters reject on proof of innocence.
+2. WalletConnect signing stall (parked).
+3. **Mainnet: phase 1 done ([networks.md](networks.md)); transactions on Arbitrum next.** Earlier note: Canon runs on Sepolia only. Mainnet-only dapps such as pro.aave.com connect, then ask to switch to chain 1; Canon refuses with 4902, then 4200 on `wallet_addEthereumChain`. Wagmi reports that as "user rejected", so the dapp shows "Request cancelled". Mainnet needs: RAILGUN's mainnet network config, a mainnet sponsor with a fee in private tokens, Calibur (deployed at the same address on mainnet), the ENS parent on mainnet, and a network switch in the UI.

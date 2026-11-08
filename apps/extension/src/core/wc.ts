@@ -2,7 +2,7 @@ import { Core } from '@walletconnect/core';
 import { WalletKit, type IWalletKit, type WalletKitTypes } from '@reown/walletkit';
 import { buildApprovedNamespaces, getSdkError } from '@walletconnect/utils';
 import type { Verification, WcProposalView, WcRequestView } from '../shared/protocol';
-import { bind, bindingFor, createAccount, indexOfAddress, prefetchPreview, previewAccount, signerFor, accounts } from './book';
+import { bind, bindingFor, createAccount, indexOfAddress, previewAccount, signerFor, accounts } from './book';
 import { SIGN_METHODS, execute, isDelegation, summarize } from './sign';
 import { callsOf, previewFor } from './preview';
 import { DEV, NETS, SEPOLIA_ID, WC_PROJECT_ID, netOf, providerFor } from './config';
@@ -77,7 +77,6 @@ const proposalView = (): WcProposalView | null => {
     const pick = chosen ?? (bound && accounts().some((a) => a.index === bound.index) ? bound.index : id.key ? 'new' : 0);
     if (pick === 'new' && id.key) {
       const next = previewAccount(id.key);
-      prefetchPreview(id.key, () => refreshWc());
       account = { index: next.index, address: next.address, label: id.name.slice(0, 32), isNew: true };
     } else {
       const rec = accounts().find((a) => a.index === pick);
@@ -255,10 +254,10 @@ export const approveRequest = async (): Promise<void> => {
   try {
     result = await execute(view.account.index, method, params, view.dapp, chainIdOf(r.params.chainId));
   } catch (e) {
-    // Rejected on the hardware wallet: answer the dapp as a user reject.
+    // A user reject from execute: answer the dapp with 4001.
     if ((e as { code?: unknown }).code !== 4001) throw e;
     requests.shift();
-    await respondError(r, 4001, 'Rejected on device');
+    await respondError(r, 4001, 'User rejected');
     refreshWc();
     return;
   }

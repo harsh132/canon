@@ -1,6 +1,6 @@
 # Research notes
 
-Findings from the proofs of concept run before and during the hackathon. Copied as written; script paths refer to the `ethglobal-mumbai/poc` folder they came from, not to this repo.
+Findings from the proofs of concept run before and during the hackathon (ETHGlobal Mumbai, November 2026), and the Uniswap developer feedback written then ([uniswap-feedback.md](uniswap-feedback.md)). Copied as written; script paths refer to the `ethglobal-mumbai/poc` folder they came from, not to this repo.
 
 | Note | What it covers |
 |---|---|

@@ -2,7 +2,7 @@
 
 | Doc | Read it for |
 |---|---|
-| [overview.md](overview.md) | What Canon is, the hackathon tracks, where things stand |
+| [overview.md](overview.md) | What Canon is and where it came from |
 | [architecture.md](architecture.md) | The extension's parts, how they talk, keys and storage |
 | [privacy.md](privacy.md) | Who learns what, and the leaks still open |
 | [anon-rpc.md](anon-rpc.md) | How every RPC read goes through Nox |
@@ -17,7 +17,6 @@
 | [injected-provider.md](injected-provider.md) | `window.ethereum` and EIP-6963, MetaMask-style |
 | [testing.md](testing.md) | The end-to-end scripts and what they last proved |
 | [decisions.md](decisions.md) | Decisions with dates and reasons |
-| [submission-anon-rpc.md](submission-anon-rpc.md) | The Anon-RPC track write-up |
 | [status.md](status.md) | Done, next, blocked |
 | [research/](research/README.md) | POC findings that led here |
 
