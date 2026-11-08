@@ -1,6 +1,6 @@
 # Status
 
-Updated 2026-11-06.
+Updated 2026-11-09.
 
 ## Works
 
@@ -29,12 +29,12 @@ Updated 2026-11-06.
 | Hosted sponsor on Cloudflare (Worker + Durable Object) | `execute-probe.ts` against the live URL: delegate, then a two-call batch |
 | Per-tab side panel showing each tab's dapp and address | `check-site-panel.mjs` |
 | Transaction preview on dapp prompts: balance changes from `eth_simulateV1` through Nox, decoded calls, warnings for reverts and unlimited approvals | `preview-check.ts`, `e2e-injected.mjs` |
+| Fund with ETH through Nox (the 7702 unshield, sponsor relay), with a 30 s tunnel-open timeout ([anon-rpc.md](anon-rpc.md)) | `FUND_ONLY=1 e2e-sepolia.mjs dapp`, 2026-11-09 |
 | Per-dapp WalletConnect addresses: two dapps get two fresh addresses, personal_sign recovers to the right one, a reconnect keeps its address | `e2e-wc.mjs`, Canon project id |
 
 ## Built, not yet verified
 
-- **The 7702 unshield through Nox.** The SDK reads the ephemeral address's nonce over a route that needs a Nox TLS exit. On 2026-11-06 no exit offered TLS tunnels, so Fund with ETH and Make public failed with "No exit offers TLS tunnels" in Nox mode. They passed with direct reads.
-- **Sponsored Make public from Home.** Same relay path as Fund with ETH, not run separately.
+- **Sponsored Make public from Home.** Same relay path as Fund with ETH, which now passes through Nox; not run separately.
 - **Passkeys on real authenticators.** Google Password Manager, iCloud Keychain and security keys need a manual try; headless tests use a virtual one.
 
 - **Typed-data signing over WalletConnect.** Added to `e2e-wc.mjs`; a re-run stalled once at the personal_sign step after passing it the run before, so treat the script as flaky until it passes twice.

@@ -48,7 +48,10 @@ const ensureWorker = (): AnonRpcWorker => {
   if (worker) return worker;
   state.rpc.status = 'booting';
   emit();
-  const w = new AnonRpcWorker({ address: NOX_SPECIFIER, preExisting: { rpcProvider: bootstrapProvider } });
+  // Proving and RAILGUN's transaction building block this renderer for seconds; with the
+  // worker's 5 s default, a late tunnel-open reply skips that exit for 10 min, and once all
+  // five tunnel exits are skipped every Nox call fails with "No exit offers TLS tunnels".
+  const w = new AnonRpcWorker({ address: NOX_SPECIFIER, config: { tlsOpenTimeoutMs: 30_000 }, preExisting: { rpcProvider: bootstrapProvider } });
   worker = w;
   const started = Date.now();
   w.ready.then(

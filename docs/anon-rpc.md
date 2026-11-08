@@ -39,6 +39,12 @@ ethers must be a single module instance in the bundle. RAILGUN `require`s it and
 
 Do not forward ethers' cancel signal to `worker.fetch`. It is not an `AbortSignal`.
 
+## TLS tunnels and the open timeout
+
+The Nox worker (`tls: "required"`, its default) sends every https call through an end-to-end TLS tunnel: RPC reads, the sponsor and proof-of-innocence lookups. The pinned snapshot lists five exits with `tunnel_v1`. An exit that does not answer a tunnel open within `tlsOpenTimeoutMs` is skipped for 10 minutes. When all five are skipped, every Nox call fails with "No exit offers TLS tunnels".
+
+Proving and RAILGUN's transaction building block the core's renderer for seconds. With the 5 s default, one Fund skipped all five exits and failed. `transport.ts` passes `config: { tlsOpenTimeoutMs: 30_000 }`; with it, the same Fund passed with no skipped exit (2026-11-09).
+
 ## Measured (Chromium 155, real Sepolia, 2026-11-06)
 
 | What | Result |
