@@ -7,7 +7,7 @@ A privacy wallet for Ethereum, built as a Chrome extension.
 - Free ENSv2 names under an app-owned parent on Sepolia, with the app's control renounced after issue, carrying a RAILGUN `org.railgun` record so the name can be paid privately.
 - Private swaps on Uniswap through RAILGUN cross-contract calls.
 
-Built at ETHGlobal Mumbai, November 2026.
+Started at ETHGlobal Mumbai in November 2026. The hackathon is over, and the project now goes its own way.
 
 > **Alpha.** Built and tested on Sepolia. Don't put real funds in it.
 
