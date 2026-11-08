@@ -4,7 +4,8 @@ import { buildApprovedNamespaces, getSdkError } from '@walletconnect/utils';
 import type { Verification, WcProposalView, WcRequestView } from '../shared/protocol';
 import { bind, bindingFor, createAccount, indexOfAddress, prefetchPreview, previewAccount, signerFor, accounts } from './book';
 import { SIGN_METHODS, execute, isDelegation, summarize } from './sign';
-import { DEV, NETS, SEPOLIA_ID, WC_PROJECT_ID, netOf } from './config';
+import { callsOf, previewFor } from './preview';
+import { DEV, NETS, SEPOLIA_ID, WC_PROJECT_ID, netOf, providerFor } from './config';
 
 // Every network Canon supports; each request names the one it runs on.
 const SUPPORTED = NETS.map((n) => `eip155:${n.chainId}`);
@@ -106,6 +107,8 @@ const requestView = (): WcRequestView | null => {
   const label = index != null ? accounts().find((a) => a.index === index)?.label ?? '' : '';
   const dapp = kit?.getActiveSessions()[r.topic]?.peer.metadata.name ?? 'App';
   const { title, detail, isTransaction } = summarize(method, params);
+  const chainId = chainIdOf(r.params.chainId);
+  const calls = callsOf(method, params);
   return {
     id: r.id,
     source: 'wc',
@@ -118,7 +121,8 @@ const requestView = (): WcRequestView | null => {
     detail,
     isTransaction,
     account: index != null && address ? { index, address, label } : null,
-    network: netOf(chainIdOf(r.params.chainId))?.name ?? r.params.chainId,
+    network: netOf(chainId)?.name ?? r.params.chainId,
+    preview: calls && index != null && address && netOf(chainId) ? previewFor(`w:${r.id}`, providerFor(chainId), chainId, address, calls, () => refreshWc()) : undefined,
   };
 };
 

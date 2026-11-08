@@ -88,7 +88,25 @@ export type WcRequestView = {
   account: { index: number; address: string; label: string } | null;
   /** The network the request runs on. */
   network?: string;
+  /** Transactions only: what the calls would do, from a simulation (core/preview.ts). */
+  preview?: TxPreview;
 };
+
+export type TxPreview =
+  | { status: 'pending' }
+  | {
+      status: 'done';
+      /** False when the node could not simulate; then only `calls` and `warnings` hold. */
+      simulated: boolean;
+      /** Null when not simulated. */
+      ok: boolean | null;
+      /** One line per call, decoded from the calldata. */
+      calls: string[];
+      /** Net balance changes for the signing address, e.g. "−0.01 ETH". */
+      changes: { text: string; in: boolean }[];
+      /** danger: the user may lose funds or control (a revert, an unlimited allowance). */
+      warnings: { text: string; danger: boolean }[];
+    };
 
 export type RpcState = {
   mode: 'nox' | 'direct';

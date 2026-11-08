@@ -6,6 +6,8 @@
 // personal_sign recovers to it; a second origin gets a different address;
 // reloading the first origin returns the same address without a prompt.
 import { HDNodeWallet, keccak256, toUtf8Bytes, verifyMessage } from 'ethers';
+import { mkdirSync } from 'node:fs';
+import { join } from 'node:path';
 import { createWallet, launch } from './smoke.mjs';
 
 const PORT = 8791;
@@ -69,7 +71,7 @@ const announced = await d1.evaluate(
       setTimeout(() => resolve(seen), 300);
     }),
 );
-if (!announced.includes('Canon')) fail(`EIP-6963 announced ${JSON.stringify(announced)}`);
+if (!announced.some((n) => n.startsWith('Canon'))) fail(`EIP-6963 announced ${JSON.stringify(announced)}`);
 log('PASS EIP-6963 announces Canon; window.ethereum.isCanon =', await d1.evaluate(() => window.ethereum?.isCanon));
 
 const chainId = await d1.evaluate(() => window.ethereum.request({ method: 'eth_chainId' }));
@@ -97,6 +99,26 @@ const sig = await (async () => {
 })();
 if (verifyMessage('hello', sig).toLowerCase() !== addr1.toLowerCase()) fail('signature recovers to someone else');
 log('PASS personal_sign recovers to the site address');
+
+// Transaction preview: an unlimited USDC approval shows a danger warning before
+// approval. Rejected, so nothing is sent.
+{
+  const approve = `0x095ea7b3${'3fc91a3afd70395cd496c647d5a6cc9d4b2b7fad'.padStart(64, '0')}${'f'.repeat(64)}`;
+  const p = d1.evaluate(
+    (a, data) =>
+      window.ethereum.request({ method: 'eth_sendTransaction', params: [{ from: a, to: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238', data }] }).catch((e) => e.code),
+    addr1,
+    approve,
+  );
+  await waitText('Unlimited USDC allowance', 40000);
+  if (!/Allow 0x3fC9.* to spend unlimited USDC/.test(await text())) fail('approval not decoded');
+  mkdirSync(join(import.meta.dir, '..', '.cache'), { recursive: true });
+  await popup.bringToFront();
+  await popup.screenshot({ path: join(import.meta.dir, '..', '.cache', 'tx-preview.png') });
+  await click('^reject$');
+  if ((await p) !== 4001) fail('reject did not reach the dapp as 4001');
+  log('PASS transaction preview warns on an unlimited approval; reject is 4001');
+}
 
 // Origin 2: a different host is a different dapp.
 const d2 = await openDapp('localhost');

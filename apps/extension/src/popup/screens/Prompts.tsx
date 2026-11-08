@@ -1,4 +1,4 @@
-import type { CoreState, Verification } from '../../shared/protocol';
+import type { CoreState, TxPreview, Verification } from '../../shared/protocol';
 import { short } from '../../shared/format';
 import { call, useAction } from '../client';
 import { AppIcon, Button, Card, ErrorLine, Header, Row, Slug, faviconFor } from '../ui';
@@ -79,6 +79,31 @@ export const ConnectPrompt = ({ s }: { s: CoreState }) => {
 };
 
 
+// What the transaction would do, from the core's simulation. Advice only.
+const Preview = ({ p }: { p: TxPreview }) => (
+  <Card edge className="mx-[18px] mt-4 px-[18px] py-3">
+    <Slug>{p.status === 'pending' ? 'Simulating…' : p.simulated ? 'Balance changes' : 'Preview'}</Slug>
+    {p.status === 'done' && (
+      <>
+        {p.simulated && p.ok && !p.changes.length && <div className="mt-1 text-[13px] text-second">No balance changes</div>}
+        {p.changes.map((c, i) => (
+          <div key={i} className={`mt-1 font-mono text-[15px] font-semibold ${c.in ? 'text-accent' : ''}`}>{c.text}</div>
+        ))}
+        {p.warnings.map((w, i) => (
+          <div key={i} className={`mt-2 text-[13px] ${w.danger ? 'text-danger' : 'text-warn'}`}>{w.text}</div>
+        ))}
+        {p.calls.length > 0 && (
+          <div className="mt-3 border-t border-dashed border-rule pt-2">
+            {p.calls.map((c, i) => (
+              <div key={i} className="font-mono text-[11px] leading-relaxed text-second">{p.calls.length > 1 ? `${i + 1}. ` : ''}{c}</div>
+            ))}
+          </div>
+        )}
+      </>
+    )}
+  </Card>
+);
+
 export const RequestPrompt = ({ s }: { s: CoreState }) => {
   const r = s.wc.request!;
   const a = useAction();
@@ -93,9 +118,19 @@ export const RequestPrompt = ({ s }: { s: CoreState }) => {
         </div>
       </div>
       {r.network && <Slug className="mx-[18px] mt-3">On {r.network}</Slug>}
-      <Card className="mx-[18px] mt-4 max-h-[300px] overflow-auto px-4 py-3">
-        <pre className="font-mono text-[11px] leading-relaxed whitespace-pre-wrap break-all">{r.detail}</pre>
-      </Card>
+      {r.preview && <Preview p={r.preview} />}
+      {r.preview ? (
+        <details className="mx-[18px] mt-3">
+          <summary className="cursor-pointer font-mono text-[11px] text-second">Raw</summary>
+          <Card className="mt-2 max-h-[200px] overflow-auto px-4 py-3">
+            <pre className="font-mono text-[11px] leading-relaxed whitespace-pre-wrap break-all">{r.detail}</pre>
+          </Card>
+        </details>
+      ) : (
+        <Card className="mx-[18px] mt-4 max-h-[300px] overflow-auto px-4 py-3">
+          <pre className="font-mono text-[11px] leading-relaxed whitespace-pre-wrap break-all">{r.detail}</pre>
+        </Card>
+      )}
       {r.isTransaction && <Slug className="mx-[18px] mt-3 text-warn">Public transaction</Slug>}
       <div className="flex-1" />
       <div className="flex flex-col gap-2 px-[18px] pb-[18px]">

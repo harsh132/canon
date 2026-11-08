@@ -9,6 +9,7 @@ import { accounts, bind, bindingFor, bindings, createAccount, isSiteAccount, pre
 import { SEPOLIA_ID, hexChain, netOf, providerFor, sepolia } from './config';
 import { dappKeyFor } from './dapp-origin';
 import { RpcError, SIGN_METHODS, execute, isDelegation, summarize } from './sign';
+import { callsOf, previewFor } from './preview';
 
 const SEPOLIA_HEX = hexChain(SEPOLIA_ID);
 
@@ -264,6 +265,8 @@ export const requestView = (): WcRequestView | null => {
   if (!item) return null;
   const b = isUnlocked() ? bindingFor(item.origin) : null;
   const rec = b ? accounts().find((a) => a.index === b.index) : undefined;
+  const address = rec ? signerFor(rec.index).address : null;
+  const calls = callsOf(item.method, item.params);
   return {
     id: item.id,
     source: 'browser',
@@ -274,7 +277,8 @@ export const requestView = (): WcRequestView | null => {
     method: item.method,
     ...summarize(item.method, item.params),
     network: netOf(item.chainId)?.name ?? String(item.chainId),
-    account: rec ? { index: rec.index, address: signerFor(rec.index).address, label: rec.label } : null,
+    account: rec && address ? { index: rec.index, address, label: rec.label } : null,
+    preview: calls && address && netOf(item.chainId) ? previewFor(`b:${item.id}`, providerFor(item.chainId), item.chainId, address, calls, changed) : undefined,
   };
 };
 
