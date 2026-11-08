@@ -9,7 +9,7 @@ import { store } from './store';
 // every device the passkey syncs to) is the wallet. HKDF turns it into the
 // mnemonic's entropy and, separately, the same three keys. No password.
 
-export type VaultKind = 'phrase' | 'passkey' | 'hardware';
+export type VaultKind = 'phrase' | 'passkey';
 
 type VaultRecord = {
   v: 1;
@@ -25,10 +25,7 @@ type VaultRecord = {
 };
 
 export type Unlocked = {
-  /** Empty for a hardware wallet: the seed never leaves the device. */
   mnemonic: string;
-  /** Hardware wallets: what the browser keeps instead of a seed. */
-  hardware?: { shareableViewingKey: string; mainAddress: string };
   railgunKey: string;
   bookKey: CryptoKey;
   record: VaultRecord;
@@ -128,40 +125,6 @@ export const unlockPasskeyVault = async (prfHex: string): Promise<Unlocked> => {
   return { mnemonic, railgunKey: keys.railgunKey, bookKey: keys.bookKey, record };
 };
 
-// --- Hardware wallet (docs/hardware-wallet.md) --------------------------------
-// The device's vaultKey signature (RFC 6979, the same every time) stands in for a
-// password: HKDF over it gives the three keys. The vault holds RAILGUN's shareable
-// viewing key and Main's address, never a seed.
-
-const sigBytes = (sigHex: string): Uint8Array<ArrayBuffer> => {
-  if (!/^0x[0-9a-f]{130}$/i.test(sigHex)) throw new Error('Device gave no vault key');
-  return Uint8Array.from(sigHex.slice(2).match(/../g)!.map((b) => parseInt(b, 16)));
-};
-
-type HardwareSealed = { shareableViewingKey: string; mainAddress: string };
-
-export const createHardwareVault = async (vaultSig: string, sealedData: HardwareSealed): Promise<Unlocked> => {
-  const keys = await keysFrom(await hkdf(sigBytes(vaultSig), 'canon/vault/v1', 96));
-  const sealed = await seal(keys.vaultKey, sealedData);
-  const record: VaultRecord = { v: 1, kind: 'hardware', salt: '', ...sealed, iterations: 0, railgunWalletId: null };
-  await store.setItem(KEY, record);
-  return { mnemonic: '', hardware: sealedData, railgunKey: keys.railgunKey, bookKey: keys.bookKey, record };
-};
-
-export const unlockHardwareVault = async (vaultSig: string): Promise<Unlocked> => {
-  const record = await store.getItem<VaultRecord>(KEY);
-  if (!record) throw new Error('No wallet on this device');
-  if (record.kind !== 'hardware') throw new Error('This wallet does not use a hardware device');
-  const keys = await keysFrom(await hkdf(sigBytes(vaultSig), 'canon/vault/v1', 96));
-  let data: HardwareSealed;
-  try {
-    data = await open<HardwareSealed>(keys.vaultKey, record);
-  } catch {
-    throw new Error('Not this wallet\'s device');
-  }
-  return { mnemonic: '', hardware: data, railgunKey: keys.railgunKey, bookKey: keys.bookKey, record };
-};
-
 /** How this device's wallet unlocks, for the unlock screen. */
 export const vaultInfo = async (): Promise<{ kind: VaultKind; credentialId: string | null } | null> => {
   const record = await store.getItem<VaultRecord>(KEY);
@@ -172,7 +135,8 @@ export const unlockVault = async (password: string): Promise<Unlocked> => {
   const record = await store.getItem<VaultRecord>(KEY);
   if (!record) throw new Error('No wallet on this device');
   if (record.kind === 'passkey') throw new Error('This wallet unlocks with its passkey');
-  if (record.kind === 'hardware') throw new Error('This wallet unlocks with its device');
+  // Alpha builds had hardware-wallet vaults; that support is gone.
+  if (record.kind && record.kind !== 'phrase') throw new Error('This wallet type is no longer supported. Reset to start again.');
   const keys = await stretch(password, unb64(record.salt), record.iterations);
   let mnemonic: string;
   try {

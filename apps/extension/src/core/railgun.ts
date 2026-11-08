@@ -1,10 +1,6 @@
 import {
   ArtifactStore,
-  createHardwareRailgunWallet,
   createRailgunWallet,
-  loadHardwareRailgunWallet,
-  setHardwareWalletClearSignEnabled,
-  setHardwareWalletClearSignMode,
   generatePOIsForWallet,
   refreshReceivePOIsForWallet,
   refreshSpentPOIsForWallet,
@@ -32,7 +28,6 @@ import type { TokenBalance } from '../shared/protocol';
 import { CHAIN, DEV, FORK, NETWORK, POI_NODES, RPC_URL, WETH, getProvider } from './config';
 import { emit, state } from './state';
 import { saveRailgunWalletId, type Unlocked } from './vault';
-import { railgunConnector } from './hw/connector';
 
 const artifacts = localforage.createInstance({ name: 'railgun-artifacts' });
 const artifactStore = new ArtifactStore(
@@ -211,27 +206,14 @@ export const spendable = (token = WETH): bigint =>
 
 export const openRailgunWallet = async (u: Unlocked, imported: boolean): Promise<void> => {
   await bootEngine();
-  // Hardware wallets: RAILGUN's own HardwareWallet, from the device's shareable
-  // viewing key. Spending is clear-signed on the device (hw/connector.ts); never blind.
-  const hw = u.hardware;
   let info = u.record.railgunWalletId
-    ? await (hw
-        ? loadHardwareRailgunWallet(u.railgunKey, u.record.railgunWalletId, railgunConnector as never)
-        : loadWalletByID(u.railgunKey, u.record.railgunWalletId, false)
-      ).catch(() => null)
+    ? await loadWalletByID(u.railgunKey, u.record.railgunWalletId, false).catch(() => null)
     : null;
   if (!info) {
     // A new phrase cannot have history, so its scan starts at today's block.
-    // A device may hold an existing wallet, so its first scan starts at deployment.
-    const from = imported || hw ? NETWORK_CONFIG[NETWORK].deploymentBlock : await getProvider().getBlockNumber();
-    info = hw
-      ? await createHardwareRailgunWallet(u.railgunKey, hw.shareableViewingKey, { [NETWORK]: from }, railgunConnector as never, 0)
-      : await createRailgunWallet(u.railgunKey, u.mnemonic, { [NETWORK]: from });
+    const from = imported ? NETWORK_CONFIG[NETWORK].deploymentBlock : await getProvider().getBlockNumber();
+    info = await createRailgunWallet(u.railgunKey, u.mnemonic, { [NETWORK]: from });
     await saveRailgunWalletId(u.record, info.id);
-  }
-  if (hw) {
-    setHardwareWalletClearSignEnabled(info.id, true);
-    setHardwareWalletClearSignMode(info.id, 'require');
   }
   walletId = info.id;
   state.railgunAddress = info.railgunAddress;

@@ -48,8 +48,7 @@ Updated 2026-11-06.
 
 ## Next
 
-1. Flash the BuddyOS wallet onto the board and run onboarding against it ([hardware-wallet.md](hardware-wallet.md)). The hosted sponsor is proven from the extension (a device-signed gasless call, 2026-11-07); in Nox mode it still needs a Nox TLS exit.
-2. Submissions: make the repo public, fill the Uniswap feedback form, record the demo.
-3. Ask the RAILGUN team why Sepolia broadcasters reject on proof of innocence.
-4. WalletConnect signing stall (parked).
-5. **Mainnet: phase 1 done ([networks.md](networks.md)); transactions on Arbitrum next.** Earlier note: Canon runs on Sepolia only. Mainnet-only dapps such as pro.aave.com connect, then ask to switch to chain 1; Canon refuses with 4902, then 4200 on `wallet_addEthereumChain`. Wagmi reports that as "user rejected", so the dapp shows "Request cancelled". Mainnet needs: RAILGUN's mainnet network config, a mainnet sponsor with a fee in private tokens, Calibur (deployed at the same address on mainnet), the ENS parent on mainnet, and a network switch in the UI.
+1. Submissions: make the repo public, fill the Uniswap feedback form, record the demo.
+2. Ask the RAILGUN team why Sepolia broadcasters reject on proof of innocence.
+3. WalletConnect signing stall (parked).
+4. **Mainnet: phase 1 done ([networks.md](networks.md)); transactions on Arbitrum next.** Earlier note: Canon runs on Sepolia only. Mainnet-only dapps such as pro.aave.com connect, then ask to switch to chain 1; Canon refuses with 4902, then 4200 on `wallet_addEthereumChain`. Wagmi reports that as "user rejected", so the dapp shows "Request cancelled". Mainnet needs: RAILGUN's mainnet network config, a mainnet sponsor with a fee in private tokens, Calibur (deployed at the same address on mainnet), the ENS parent on mainnet, and a network switch in the UI.
