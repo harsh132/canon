@@ -166,7 +166,8 @@ if (phase === 'setup') {
   // spendable up by the shield and pending back to its total, both read before the submit.
   // ponytail: totals, not per-note; an older pending note clearing meanwhile can end the wait
   // early. Track the shield's own notes if a run ever has other notes clearing at once.
-  if (process.env.WAIT_SPENDABLE) await waitSpendable(Number(before.spendable ?? 0) + Number(AMOUNT) * 0.99, Number(before.pending));
+  // The UI rounds down to 4 decimals: allow one step.
+  if (process.env.WAIT_SPENDABLE) await waitSpendable(Number(before.spendable ?? 0) + Number(AMOUNT) * 0.99 - 0.0001, Number(before.pending));
 } else if (phase === 'status') {
   // WAIT_SPENDABLE=1: stay open until some private balance is spendable, for example
   // while the wallet resumes POI submissions a closed session left.
