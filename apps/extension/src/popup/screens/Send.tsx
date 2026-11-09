@@ -42,7 +42,7 @@ export const Send = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
     setPubToken(null);
     if (!token || !account) return;
     void call('site.balances', { address: account.address, chainId: s.chainId }).then(
-      (b) => setPubToken(b.tokens.find((t) => t.address === token.address)?.amount ?? 0n),
+      (b) => setPubToken(b.tokens.find((t) => t.address === token.address)?.amount ?? null),
       () => {},
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { CoreState } from '../../shared/protocol';
 import { NETS, tokensOn, type Token } from '../../shared/networks';
 import { amount, short } from '../../shared/format';
@@ -13,10 +13,15 @@ const digits = (d: number) => (d > 6 ? 4 : 2);
 export const Tokens = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
   const [chainId, setChainId] = useState(s.chainId);
   const [address, setAddress] = useState('');
-  const [found, setFound] = useState<Token | null>(null);
+  // The looked-up token, with the network it was read on; Add uses that network, not the select's.
+  const [found, setFound] = useState<(Token & { chainId: number }) | null>(null);
   // Main's public balances, read only when asked.
   const [pub, setPub] = useState<Record<string, bigint> | null>(null);
   const a = useAction();
+  // What the inputs are now. A reply for an older network or address is dropped, so a
+  // lookup or balance read started before a change never shows under the new choice.
+  const now = useRef({ chainId, address });
+  now.current = { chainId, address };
   const main = s.accounts.find((x) => x.index === 0);
   const list = tokensOn(chainId, s.tokens);
   const custom = new Set((s.tokens[chainId] ?? []).map((t) => t.address.toLowerCase()));
@@ -25,8 +30,9 @@ export const Tokens = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
 
   const readPublic = () =>
     a.run(async () => {
-      const b = await call('site.balances', { address: main!.address, chainId });
-      setPub(Object.fromEntries(b.tokens.map((t) => [t.address.toLowerCase(), t.amount])));
+      const asked = chainId;
+      const b = await call('site.balances', { address: main!.address, chainId: asked });
+      if (now.current.chainId === asked) setPub(Object.fromEntries(b.tokens.map((t) => [t.address.toLowerCase(), t.amount])));
     });
 
   return (
@@ -61,7 +67,7 @@ export const Tokens = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
               <div className="flex items-baseline justify-between gap-3">
                 <span className="truncate font-mono text-[13px] font-bold">{t.symbol}</span>
                 <span className="font-mono text-xs tnum text-second">
-                  {pub && `${amount(pub[t.address.toLowerCase()] ?? 0n, t.decimals, digits(t.decimals))} public`}
+                  {pub && (t.address.toLowerCase() in pub ? `${amount(pub[t.address.toLowerCase()], t.decimals, digits(t.decimals))} public` : 'public unknown')}
                   {pub && p != null && ' · '}
                   {p != null && `${amount(p, t.decimals, digits(t.decimals))} private`}
                 </span>
@@ -95,7 +101,13 @@ export const Tokens = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
                 setFound(null);
               }}
             />
-            <Button variant="ghost" className="flex-none" busy={a.busy} disabled={!address.trim()} onClick={() => a.run(async () => setFound(await call('tokens.lookup', { chainId, address })))}>
+            <Button variant="ghost" className="flex-none" busy={a.busy} disabled={!address.trim()} onClick={() =>
+                a.run(async () => {
+                  const asked = { chainId, address };
+                  const t = await call('tokens.lookup', asked);
+                  if (now.current.chainId === asked.chainId && now.current.address === asked.address) setFound({ ...t, chainId: asked.chainId } as Token & { chainId: number });
+                })
+              }>
               Look up
             </Button>
           </div>
@@ -112,7 +124,7 @@ export const Tokens = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
               busy={a.busy}
               onClick={() =>
                 a.run(async () => {
-                  await call('tokens.add', { chainId, address: found.address });
+                  await call('tokens.add', { chainId: found.chainId, address: found.address });
                   setFound(null);
                   setAddress('');
                 })
