@@ -62,7 +62,7 @@ The book is encrypted because a readable list of the sites someone uses is the v
 
 ## Locking
 
-The wallet locks after 15 minutes without a command, and on the Lock button. Locking drops the phrase, the derived signers and the RAILGUN wallet from memory. WalletConnect requests that arrive while locked open the popup at an unlock prompt.
+The wallet locks after 5, 15 or 60 minutes without a command (15 by default), and on the Lock button. The choice sits in the Privacy screen. It is saved unencrypted in IndexedDB (key `autoLockMin`, like `rpcMode`), so the core knows it before unlock. A change restarts the running timer at once. Locking drops the phrase, the derived signers and the RAILGUN wallet from memory. WalletConnect requests that arrive while locked open the popup at an unlock prompt.
 
 ## Build
 

@@ -6,7 +6,6 @@ export const DEV = process.env.NODE_ENV !== 'production';
 export const FORK = process.env.CANON_FORK === '1';
 /** Name claims and gasless calls. The hosted sponsor, or a local one for fork builds; CANON_SPONSOR_URL overrides. */
 export const SPONSOR_URL = process.env.CANON_SPONSOR_URL || (FORK ? 'http://127.0.0.1:8792' : 'https://canon-sponsor.prakashharsh32.workers.dev');
-export const AUTO_LOCK_MS = 15 * 60_000;
 export const POI_NODES = ['https://ppoi.fdi.network'];
 
 // --- Public networks: shared/networks.ts -------------------------------------

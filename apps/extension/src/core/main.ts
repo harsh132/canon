@@ -1,10 +1,10 @@
 // The core. Runs in the offscreen document, which outlives the popup and the
 // service worker's idle kills. Holds the only copy of the unlocked keys.
 import type { Commands, CoreMessage, Method, Request, SwMessage } from '../shared/protocol';
-import { PORT_NAME, type UiKind } from '../shared/protocol';
+import { AUTO_LOCK_MINS, PORT_NAME, type AutoLockMin, type UiKind } from '../shared/protocol';
 import { decode, encode } from '../shared/codec';
 import { accounts, activity, bindings, closeBook, createAccount, loadBook, myName, signerFor } from './book';
-import { AUTO_LOCK_MS, DEV, PRIVATE_NET_KEY, PRIVATE_TX, getProvider, netOf, providerFor } from './config';
+import { DEV, PRIVATE_NET_KEY, PRIVATE_TX, getProvider, netOf, providerFor } from './config';
 import { bootEngine, closeRailgunWallet, openRailgunWallet, sync } from './railgun';
 import { executeSend, planSend } from './send';
 import { emit, onState, state } from './state';
@@ -29,6 +29,9 @@ import { fundSite } from './fund';
 import { executeSwap, quoteSwap } from './swap';
 import { Contract, parseEther } from 'ethers';
 import { FORK } from './config';
+import { store } from './store';
+
+const LOCK_KEY = 'autoLockMin';
 
 let session: Unlocked | null = null;
 let lockTimer: ReturnType<typeof setTimeout> | null = null;
@@ -56,7 +59,7 @@ const rebuildAccounts = (): void => {
 
 const touch = (): void => {
   if (lockTimer) clearTimeout(lockTimer);
-  if (session) lockTimer = setTimeout(lock, AUTO_LOCK_MS);
+  if (session) lockTimer = setTimeout(lock, state.autoLockMin * 60_000);
 };
 
 const lock = (): void => {
@@ -186,6 +189,14 @@ const handlers: Handlers = {
   },
   'rpc.setMode': async ({ mode }) => {
     await setRpcMode(mode);
+    return null;
+  },
+  'settings.autoLock': async ({ min }) => {
+    if (!AUTO_LOCK_MINS.includes(min)) throw new Error('Unsupported auto-lock time');
+    state.autoLockMin = min;
+    await store.setItem(LOCK_KEY, min);
+    touch(); // restart the running timer with the new time
+    emit();
     return null;
   },
   'swap.quote': async ({ amount }) => {
@@ -354,6 +365,8 @@ browser.configureDapp({
 void (async () => {
   // Before anything touches the network.
   await installTransport();
+  const lockMin = await store.getItem<AutoLockMin>(LOCK_KEY);
+  if (lockMin && AUTO_LOCK_MINS.includes(lockMin)) state.autoLockMin = lockMin;
   state.vault = (await vaultExists()) ? 'locked' : 'none';
   state.unlockWith = await vaultInfo();
   emit();

@@ -2,6 +2,11 @@
 // and sends one of the whitelisted Commands below. Nothing else is accepted.
 
 export const PORT_NAME = 'canon-popup';
+
+/** Auto-lock choices, in minutes. */
+export const AUTO_LOCK_MINS = [5, 15, 60] as const;
+export type AutoLockMin = (typeof AUTO_LOCK_MINS)[number];
+export const DEFAULT_AUTO_LOCK_MIN: AutoLockMin = 15;
 /** What kind of UI a port belongs to: `${PORT_NAME}:${UiKind}`. */
 export type UiKind = 'panel' | 'popup' | 'window' | 'tab';
 export const DAPP_PORT_NAME = 'canon-dapp';
@@ -137,6 +142,8 @@ export type CoreState = {
   activity: Activity[];
   proof: { label: string; progress: number } | null;
   rpc: RpcState;
+  /** Minutes of no command before the wallet locks. Saved unencrypted, so it is known before unlock. */
+  autoLockMin: AutoLockMin;
   /** RAILGUN broadcasters over Waku. count: distinct broadcasters seen on Sepolia. */
   broadcaster: { status: 'off' | 'connecting' | 'connected' | 'none' | 'error'; count: number; error?: string };
   /** Browser tab id -> the site (dapp key) open in it, from the bridge connections. */
@@ -200,6 +207,7 @@ export type Commands = {
   'send.plan': { params: SendIntent; result: SendPlan };
   'send.execute': { params: SendIntent; result: { hash: string } };
   'rpc.setMode': { params: { mode: 'nox' | 'direct' }; result: null };
+  'settings.autoLock': { params: { min: AutoLockMin }; result: null };
   'swap.quote': { params: { amount: string }; result: { swapped: bigint; out: bigint; minOut: bigint } };
   'swap.execute': { params: { amount: string }; result: { hash: string } };
   'site.balances': { params: { address: string; chainId: number }; result: { eth: bigint; tokens: { symbol: string; decimals: number; amount: bigint }[] } };
