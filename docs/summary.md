@@ -99,6 +99,7 @@ The book is encrypted because a list of the sites that someone uses is the discl
 | Private | 0x | Unshield (WETH out as ETH) | Make public |
 
 - An ERC-20 moves on the same four paths. Make private approves exactly the amount, and only when the allowance is too small.
+- A sponsored private ERC-20 send, and Fund with any token, need a little spendable private WETH: the sponsor route adds a 1-wei WETH fee note to the wallet itself (see [decisions.md](decisions.md#railgun-behaviour)). A wallet that holds only private USDC cannot use these routes.
 - Send accepts a name. Canon resolves it only at Review. An `org.railgun` record sends to that 0zk; otherwise the ETH address record is used.
 - Private sends go through Canon's sponsor by default. The user can choose a RAILGUN broadcaster or Main instead. Main pays gas publicly and links itself to the send.
 - Private WETH shows as ETH. The shield fee is 0.25%.
