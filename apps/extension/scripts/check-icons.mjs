@@ -2,6 +2,7 @@
 // Apps / Addresses lists, and a WalletConnect proposal's metadata icon fetched
 // by the core (through Nox) and shown inline. Screenshots in .cache/icons/.
 //   CANON_PROFILE=/new/dir bun scripts/check-icons.mjs
+import { fileURLToPath } from 'node:url';
 import { readFileSync } from 'node:fs';
 import { SignClient } from '@walletconnect/sign-client';
 import { createWallet, launch } from './smoke.mjs';
@@ -16,7 +17,7 @@ const server = Bun.serve({
       ? new Response(png, { headers: { 'content-type': 'image/png' } })
       : new Response('<!doctype html><link rel="icon" href="/icon.png"><h1>icon dapp</h1>', { headers: { 'content-type': 'text/html' } }),
 });
-const out = new URL('../.cache/icons/', import.meta.url).pathname;
+const out = fileURLToPath(new URL('../.cache/icons/', import.meta.url));
 await Bun.write(`${out}.keep`, '');
 
 const { browser, popup } = await launch();

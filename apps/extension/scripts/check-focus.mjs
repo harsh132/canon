@@ -2,11 +2,12 @@
 // and checks: no outline is drawn on the field itself, and the field or its
 // wrapper shows the accent border. Saves a strip of screenshots.
 //   CANON_PROFILE=/new/dir bun scripts/check-focus.mjs
+import { fileURLToPath } from 'node:url';
 import { createWallet, launch } from './smoke.mjs';
 
 const { browser, popup } = await launch();
 await popup.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: 'dark' }]);
-const out = new URL('../.cache/focus/', import.meta.url).pathname;
+const out = fileURLToPath(new URL('../.cache/focus/', import.meta.url));
 await Bun.write(`${out}.keep`, '');
 const click = (re) =>
   popup.evaluate((src) => {

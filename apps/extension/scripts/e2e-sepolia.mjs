@@ -65,6 +65,16 @@ const balances = async () => {
   };
 };
 
+// WAIT_SPENDABLE=1: stay open, resyncing, until enough clears proof of innocence
+// (the wallet submits those proofs only while it runs).
+const waitSpendable = async (need) => {
+  for (let i = 0; i < 25 && !(Number((await balances()).spendable) >= need); i += 1) {
+    await new Promise((r) => setTimeout(r, 60_000));
+    await resync();
+    log(`waiting to clear +${i + 1}m`, await balances());
+  }
+};
+
 // Unlock or create.
 await waitText('Password|New wallet');
 if (/new wallet/i.test(await text())) {
@@ -162,16 +172,7 @@ if (phase === 'setup') {
 } else if (phase === 'private') {
   // Send privately (gas route from VIA, default sponsor) to TO, default a name.
   const to = process.env.TO ?? 'alice.canon.eth';
-  // WAIT_SPENDABLE=1: stay open, resyncing, until enough clears proof of innocence
-  // (the wallet submits those proofs only while it runs).
-  if (process.env.WAIT_SPENDABLE) {
-    const need = Number(process.env.AMOUNT ?? '0.001');
-    for (let i = 0; i < 25 && !(Number((await balances()).spendable) >= need); i += 1) {
-      await new Promise((r) => setTimeout(r, 60_000));
-      await resync();
-      log(`waiting to clear +${i + 1}m`, await balances());
-    }
-  }
+  if (process.env.WAIT_SPENDABLE) await waitSpendable(Number(process.env.AMOUNT ?? '0.001'));
   await send({ from: 'private', to, amount: process.env.AMOUNT ?? '0.001', expect: 'Send privately' });
   // Stay open: the wallet submits the send's POIs in the background, like a broadcaster.
   const t1 = Date.now();
@@ -210,7 +211,7 @@ if (phase === 'setup') {
   }
 } else if (phase === 'broadcasters') {
   // Waku discovery takes a while; read the Privacy screen until one shows up.
-  await popup.evaluate(() => [...document.querySelectorAll('button')].find((b) => /clear ·/.test(b.textContent)).click());
+  await popup.evaluate(() => [...document.querySelectorAll('button')].find((b) => /clear ·|no exits/.test(b.textContent)).click());
   for (let i = 0; i < 36; i += 1) {
     const row = (await text()).match(/BROADCASTERS (\S+)( · \d+)?/i)?.[0];
     log(row);
@@ -226,6 +227,7 @@ if (phase === 'setup') {
   await resync();
   log('after send privately:', await balances());
 } else if (phase === 'public') {
+  if (process.env.WAIT_SPENDABLE) await waitSpendable(0.0021);
   const b = await balances();
   log('balances:', b);
   if (!(Number(b.spendable) > 0.002)) throw new Error('not enough spendable yet; new notes wait for proof of innocence');
@@ -233,12 +235,23 @@ if (phase === 'setup') {
   await new Promise((r) => setTimeout(r, 30000));
   await resync();
   log('after make public:', await balances());
+  // WAIT_SPENDABLE=1: stay open while the wallet submits the change note's POI proof;
+  // the change is the only note that can turn spendable, since the send used the rest.
+  if (process.env.WAIT_SPENDABLE) {
+    const t1 = Date.now();
+    for (let i = 0; i < 15 && !(Number((await balances()).spendable) > 0); i += 1) {
+      await new Promise((r) => setTimeout(r, 60_000));
+      await resync();
+      log(`change clearing +${i + 1}m`, await balances());
+    }
+    log(`change ${Number((await balances()).spendable) > 0 ? 'spendable' : 'still pending'} after ${Math.round((Date.now() - t1) / 60000)} min`);
+  }
 }
 
 // RPC_DIRECT=1: reads go direct for this run (when Nox has no TLS exits), then back to Nox.
 const setRpc = async (mode) => {
   await nav('home');
-  await popup.evaluate(() => [...document.querySelectorAll('button')].find((b) => /clear ·/.test(b.textContent)).click());
+  await popup.evaluate(() => [...document.querySelectorAll('button')].find((b) => /clear ·|no exits/.test(b.textContent)).click());
   await waitText('use direct rpc|route through nox');
   const want = mode === 'direct' ? 'use direct rpc' : 'route through nox';
   if (new RegExp(want, 'i').test(await text())) await click(`^${want}$`);

@@ -10,7 +10,7 @@
 | Inpage provider | Each http(s) page's own world | `src/inpage/provider.ts` | Nothing. EIP-1193 provider, EIP-6963 announcement |
 | Bridge | Each page, isolated world | `src/inpage/bridge.ts` | Nothing. Relays calls to the core over a port Chrome stamps with the tab's origin |
 | Sponsor | Cloudflare Worker + Durable Object (`apps/sponsor`); `bun src/server.ts` locally | `apps/sponsor/src` | The gas key. Pays for private sends, swaps, Fund, name claims and site-address calls ([sponsor.md](sponsor.md)) |
-| Anon-RPC sandbox | Null-origin iframe inside the core | `dist/anon-rpc/<ver>/sandbox.html` | The hash-pinned Nox worker bundle |
+| Anon-RPC sandbox | Null-origin iframe inside the core | `dist/anon-rpc/<ver>/sandbox.html` | The hash-pinned Nox worker bundle, packaged at `dist/nox/anon-rpc-worker.js` |
 
 The core lives in the offscreen document because the service worker is killed when idle and has no DOM. The offscreen document stays up, so the engine, its IndexedDB store and the WalletConnect socket survive the popup closing.
 
@@ -52,7 +52,7 @@ All in the extension origin's IndexedDB. The offscreen document has no `chrome.s
 | Store | Contents | At rest |
 |---|---|---|
 | `canon/kv` → `vault` | Kind, salt or passkey credential id, IV, encrypted phrase, RAILGUN wallet id | Encrypted |
-| `canon/kv` → `book` | Public accounts, dapp bindings, activity | Encrypted |
+| `canon/kv` → `book` | Public accounts, dapp bindings, activity, site networks, custom tokens | Encrypted |
 | `canon/kv` → `rpcMode` | `nox` or `direct` | Plain |
 | `canon-railgun` | RAILGUN merkle trees (public data) and wallet data | Wallet data encrypted with the RAILGUN key |
 | `railgun-artifacts` | Circuit artifacts | Public data |
@@ -62,7 +62,7 @@ The book is encrypted because a readable list of the sites someone uses is the v
 
 ## Locking
 
-The wallet locks after 15 minutes without a command, and on the Lock button. Locking drops the phrase, the derived signers and the RAILGUN wallet from memory. WalletConnect requests that arrive while locked open the popup at an unlock prompt.
+The wallet locks after 5, 15 or 60 minutes without a command (15 by default), and on the Lock button. The choice sits in the Privacy screen. It is saved unencrypted in IndexedDB (key `autoLockMin`, like `rpcMode`), so the core knows it before unlock. A change restarts the running timer at once. Locking drops the phrase, the derived signers and the RAILGUN wallet from memory. WalletConnect requests that arrive while locked open the popup at an unlock prompt.
 
 ## Build
 
@@ -82,11 +82,13 @@ The extension id is pinned by the manifest `key` to `nigpkikilgbfgmgcmeiidiinika
 
 Every unlocked screen sits in one frame (`src/popup/frame.tsx`):
 
-- **Header:** mark, a Sepolia badge, a lock icon and a menu (Get a name, Addresses, Privacy, Recovery phrase, Reset).
+- **Header:** mark, a Sepolia badge, a lock icon and a menu (Get a name, Addresses, Tokens, Privacy, Recovery phrase, Reset).
 - **Tabs under the header:** Home, Send, Swap, Apps.
 - **One status line at the bottom:** where reads go (Nox or direct, with clear and mixed counts; taps open Privacy) and how fresh the private balance is (taps sync).
 
-Home shows the site card (side panel, only when the tab has a dapp), the private balance in ETH, Main's public balance on demand, Receive, and recent activity. Locking returns the frame to Home.
+Home shows the site card (side panel, only when the tab has a dapp), the private balance in ETH, Main's public balance on demand, Receive, and the last four activity entries with a See all link. Locking returns the frame to Home.
+
+Activity (`screens/Activity.tsx`, opened from See all; no tab, back returns Home) lists all entries the book keeps (the last 50), newest first. Each row shows the label, the amount or status, the status and time, and links to the transaction on its network's explorer. Home and Activity share one row component, `ActivityRow`.
 
 ## Where prompts appear
 

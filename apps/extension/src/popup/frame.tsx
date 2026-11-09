@@ -36,6 +36,7 @@ export const AppHeader = ({ s, tab, go }: { s: CoreState; tab: Tab; go: (t: Tab)
   const items: { tab: Tab; label: string; cls?: string }[] = [
     { tab: 'name', label: s.name ?? 'Get a name' },
     { tab: 'accounts', label: 'Addresses' },
+    { tab: 'tokens', label: 'Tokens' },
     { tab: 'privacy', label: 'Privacy' },
     { tab: 'phrase', label: 'Recovery phrase' },
     { tab: 'reset', label: 'Reset', cls: 'text-danger' },
@@ -149,7 +150,8 @@ const ago = (t?: number) => {
 
 /** One line of status: where reads go and how fresh the private balance is. */
 export const Footer = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
-  const clean = s.rpc.mode === 'nox' && s.rpc.counts.clear === 0 && s.rpc.status !== 'error';
+  const noTunnels = s.rpc.mode === 'nox' && !!s.rpc.noTunnelsAt;
+  const clean = s.rpc.mode === 'nox' && s.rpc.counts.clear === 0 && s.rpc.status !== 'error' && !noTunnels;
   const sync =
     s.engine.status === 'error'
       ? { text: 'Engine error', cls: 'text-danger' }
@@ -166,7 +168,7 @@ export const Footer = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
     <footer className="sticky bottom-0 z-10 flex items-center justify-between border-t border-rule bg-page px-[18px] py-2.5 font-mono text-[10px] tnum">
       <button onClick={() => go('privacy')} className={`flex items-center gap-1.5 ${clean ? 'text-second' : 'text-warn'}`}>
         <span className={`inline-block h-1.5 w-1.5 rounded-full ${clean ? 'bg-accent' : 'bg-warn'}`} />
-        {s.rpc.mode === 'nox' ? 'Nox' : 'Direct'} · {s.rpc.status === 'error' ? 'Nox down' : `${s.rpc.counts.clear} clear · ${s.rpc.counts.mixed} mixed`}
+        {s.rpc.mode === 'nox' ? 'Nox' : 'Direct'} · {s.rpc.status === 'error' ? 'Nox down' : noTunnels ? 'no exits' : `${s.rpc.counts.clear} clear · ${s.rpc.counts.mixed} mixed`}
       </button>
       <button
         title={s.sync.error ?? s.engine.error}

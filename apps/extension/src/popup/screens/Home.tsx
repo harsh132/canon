@@ -2,15 +2,25 @@ import type { CoreState } from '../../shared/protocol';
 import { amount, short } from '../../shared/format';
 import type { Tab } from '../App';
 import { call } from '../client';
-import { Button, Card, Slug, etherscan } from '../ui';
+import { Button, Card, Slug } from '../ui';
+import { ActivityRow } from './Activity';
 import { SiteCard } from './SiteCard';
 import { Fund } from './Fund';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { etaText } from '../../shared/eta';
 
 export const Home = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
   const [funding, setFunding] = useState<{ address: string; origin: string } | null>(null);
   const [weth, ...others] = s.privateBalances;
   const main = s.accounts.find((a) => a.index === 0);
+  // Re-render from the stored time; the core sends no new state for this.
+  const [, tick] = useState(0);
+  useEffect(() => {
+    if (!s.pendingEta) return;
+    const id = setInterval(() => tick((n) => n + 1), 30_000);
+    return () => clearInterval(id);
+  }, [s.pendingEta]);
+  const eta = s.privateBalances.some((b) => b.pending > 0n) ? etaText(s.pendingEta, Date.now()) : null;
 
   if (funding) return <Fund s={s} address={funding.address} origin={funding.origin} onDone={() => setFunding(null)} />;
 
@@ -39,6 +49,7 @@ export const Home = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
             </span>
           </div>
         ))}
+        {eta && <div className="pt-2 text-right text-[12px] text-muted">{eta}</div>}
       </Card>
 
       {main && (
@@ -65,19 +76,13 @@ export const Home = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
         <Slug>Recent</Slug>
         {s.activity.length === 0 && <p className="py-3 font-mono text-xs text-muted">Nothing yet</p>}
         {s.activity.slice(0, 4).map((a, i, list) => (
-          <a
-            key={a.id}
-            href={a.hash ? etherscan(a.hash, a.chainId) : undefined}
-            target="_blank"
-            rel="noreferrer"
-            className={`flex items-baseline justify-between py-2.5 text-[13px] ${i < list.length - 1 ? 'rule-dash' : ''}`}
-          >
-            <span className="truncate">{a.label}</span>
-            <span className={`font-mono text-xs tnum ${a.status === 'pending' ? 'text-warn' : a.status === 'failed' ? 'text-danger' : 'text-second'}`}>
-              {a.status === 'pending' ? 'pending' : a.status === 'failed' ? 'failed' : (a.amount ?? short(a.hash ?? '', 6, 0))}
-            </span>
-          </a>
+          <ActivityRow key={a.id} a={a} last={i === list.length - 1} />
         ))}
+        {s.activity.length > 0 && (
+          <Button variant="link" className="pt-2.5" onClick={() => go('activity')}>
+            See all
+          </Button>
+        )}
       </div>
     </div>
   );

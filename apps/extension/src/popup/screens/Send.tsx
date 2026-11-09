@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { CoreState, SendIntent, SendKind, SendPlan } from '../../shared/protocol';
 import { amount, isZk, short } from '../../shared/format';
+import { tokensOn } from '../../shared/networks';
 import type { Tab } from '../App';
 import { call, useAction } from '../client';
 import { Button, Card, ErrorLine, Field, Header, Input, Meta, Row, Slug, etherscan } from '../ui';
@@ -27,12 +28,35 @@ export const Send = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
   const [plan, setPlan] = useState<SendPlan | null>(null);
   const [hash, setHash] = useState<string | null>(null);
   const [via, setVia] = useState<'sponsor' | 'broadcaster' | 'self'>(process.env.CANON_FORK === '1' ? 'self' : 'sponsor');
+  const [tokenAddr, setTokenAddr] = useState('');
+  // A public account's token balance, read when the user picks the token.
+  const [pubToken, setPubToken] = useState<bigint | null>(null);
   const a = useAction();
 
-  const intent: SendIntent = { from, to, amount: value, gasFrom: 0, via };
-  const priv = s.privateBalances[0]?.spendable ?? 0n;
-  const fromBalance = from === 'private' ? priv : (s.accounts.find((x) => x.index === from)?.balance ?? null);
-  const unit = 'ETH'; // Private WETH is shown as ETH; it leaves as ETH.
+  // ETH, or an ERC-20 on the private network. Only the built-in WETH is called exactly "WETH" (checkToken), and it is ETH here.
+  const tokens = tokensOn(s.chainId, s.tokens).filter((t) => t.symbol !== 'WETH');
+  const token = tokens.find((t) => t.address === tokenAddr) ?? null;
+  const decimals = token?.decimals ?? 18;
+  const account = from === 'private' ? null : s.accounts.find((x) => x.index === from);
+  useEffect(() => {
+    setPubToken(null);
+    if (!token || !account) return;
+    // A reply for the token or account picked before must not overwrite the current one.
+    let stale = false;
+    void call('site.balances', { address: account.address, chainId: s.chainId }).then(
+      (b) => !stale && setPubToken(b.tokens.find((t) => t.address === token.address)?.amount ?? null),
+      () => {},
+    );
+    return () => {
+      stale = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token?.address, account?.address]);
+
+  const intent: SendIntent = { from, to, amount: value, gasFrom: 0, via, ...(token ? { token: token.address } : {}) };
+  const priv = (token ? s.privateBalances.find((b) => b.token === token.address.toLowerCase()) : s.privateBalances[0])?.spendable ?? 0n;
+  const fromBalance = from === 'private' ? priv : token ? pubToken : (account?.balance ?? null);
+  const unit = token?.symbol ?? 'ETH'; // Private WETH is shown as ETH; it leaves as ETH.
   const gasLabel = (i: number | null) => (i == null ? '' : (s.accounts.find((x) => x.index === i)?.label ?? `#${i}`));
 
   if (hash) {
@@ -54,7 +78,7 @@ export const Send = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
     <div className="flex min-h-[calc(var(--app-h)-var(--chrome-h))] flex-col">
       <Meta>
         <Slug>
-          {unit} · {amount(fromBalance)}
+          {unit} · {amount(fromBalance, decimals)}
         </Slug>
       </Meta>
       <div className="flex flex-col gap-4 px-[18px] pt-2.5">
@@ -67,7 +91,7 @@ export const Send = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
             }}
             className="w-full rounded-sm border border-rule bg-sheet px-3 py-2.5 font-mono text-sm outline-none focus:border-accent"
           >
-            <option value="private">Private · {amount(priv)} ETH</option>
+            <option value="private">Private · {amount(priv, decimals)} {unit}</option>
             {s.accounts.map((acc) => (
               <option key={acc.index} value={acc.index}>
                 {acc.label} · {short(acc.address)}
@@ -75,6 +99,26 @@ export const Send = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
             ))}
           </select>
         </Field>
+        {tokens.length > 0 && (
+          <Field label="Token">
+            <select
+              value={tokenAddr}
+              onChange={(e) => {
+                setTokenAddr(e.target.value);
+                setPlan(null);
+              }}
+              className="w-full rounded-sm border border-rule bg-sheet px-3 py-2.5 font-mono text-sm outline-none focus:border-accent"
+            >
+              <option value="">ETH</option>
+              {tokens.map((t) => (
+                <option key={t.address} value={t.address}>
+                  {t.symbol} · {short(t.address)}
+                </option>
+              ))}
+            </select>
+            {token?.warning && <p className="pt-1.5 font-mono text-[11px] text-warn">{token.warning}</p>}
+          </Field>
+        )}
         <Field label="To" hint="name, 0x or 0zk">
           <Input
             value={to}
@@ -126,6 +170,7 @@ export const Send = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
           <div className="mt-3 border-t border-dashed border-rule">
             {plan.name && <Row label="Pays">{short(plan.to, 10, 6)}</Row>}
             {plan.name && <Row label="Via">{plan.resolvedVia === 'org.railgun' ? 'org.railgun record' : 'ETH address record'}</Row>}
+            {token && <Row label="Token">{plan.symbol} · {short(token.address, 8, 6)}</Row>}
             <Row label="Seen">{SEEN[plan.kind]}</Row>
             {plan.broadcasterFee != null ? (
               <Row label="Fee">{plan.broadcasterFee === 0n ? 'Sponsored' : `${amount(plan.broadcasterFee, 18, 6)} ETH · broadcaster`}</Row>

@@ -1,7 +1,16 @@
+import type { Token } from './networks';
+
 // The popup <-> core contract. The popup holds no keys: it renders CoreState
 // and sends one of the whitelisted Commands below. Nothing else is accepted.
 
+import type { PendingEta } from './eta';
+
 export const PORT_NAME = 'canon-popup';
+
+/** Auto-lock choices, in minutes. */
+export const AUTO_LOCK_MINS = [5, 15, 60] as const;
+export type AutoLockMin = (typeof AUTO_LOCK_MINS)[number];
+export const DEFAULT_AUTO_LOCK_MIN: AutoLockMin = 15;
 /** What kind of UI a port belongs to: `${PORT_NAME}:${UiKind}`. */
 export type UiKind = 'panel' | 'popup' | 'window' | 'tab';
 export const DAPP_PORT_NAME = 'canon-dapp';
@@ -113,6 +122,8 @@ export type RpcState = {
   status: 'off' | 'booting' | 'ready' | 'error';
   error?: string;
   bootMs?: number;
+  /** When a Nox call last failed because every TLS-tunnel exit was down or skipped; cleared by the next call that works. */
+  noTunnelsAt?: number;
   /** mixed: through Nox. clear: RPC sent directly. bootstrap: the worker's own specifier reads.
    *  sync / artifacts: bulk public downloads that name no one. other: non-RPC requests (relay, bundle). */
   counts: { mixed: number; clear: number; bootstrap: number; sync: number; artifacts: number; other: number };
@@ -133,10 +144,16 @@ export type CoreState = {
   engine: { status: 'off' | 'starting' | 'ready' | 'error'; error?: string };
   sync: SyncState;
   privateBalances: TokenBalance[];
+  /** When pending private funds may clear (shared/eta.ts). Null: no pending funds, or no data to estimate. */
+  pendingEta: PendingEta;
+  /** Tokens the user added, per chain id (see shared/networks.ts tokensOn). Empty while locked. */
+  tokens: Record<number, Token[]>;
   accounts: PublicAccount[];
   activity: Activity[];
   proof: { label: string; progress: number } | null;
   rpc: RpcState;
+  /** Minutes of no command before the wallet locks. Saved unencrypted, so it is known before unlock. */
+  autoLockMin: AutoLockMin;
   /** RAILGUN broadcasters over Waku. count: distinct broadcasters seen on Sepolia. */
   broadcaster: { status: 'off' | 'connecting' | 'connected' | 'none' | 'error'; count: number; error?: string };
   /** Browser tab id -> the site (dapp key) open in it, from the bridge connections. */
@@ -160,6 +177,8 @@ export type SendIntent = {
   from: 'private' | number;
   to: string;
   amount: string;
+  /** An ERC-20 on the private network, built-in or custom. Absent: ETH (private WETH). */
+  token?: string;
   /** Who pays gas when sending from private: Canon's sponsor (default), a RAILGUN broadcaster, or a public account. */
   via?: 'sponsor' | 'broadcaster' | 'self';
   /** Public account that pays gas when via is 'self'. */
@@ -200,12 +219,18 @@ export type Commands = {
   'send.plan': { params: SendIntent; result: SendPlan };
   'send.execute': { params: SendIntent; result: { hash: string } };
   'rpc.setMode': { params: { mode: 'nox' | 'direct' }; result: null };
+  'settings.autoLock': { params: { min: AutoLockMin }; result: null };
   'swap.quote': { params: { amount: string }; result: { swapped: bigint; out: bigint; minOut: bigint } };
   'swap.execute': { params: { amount: string }; result: { hash: string } };
-  'site.balances': { params: { address: string; chainId: number }; result: { eth: bigint; tokens: { symbol: string; decimals: number; amount: bigint }[] } };
+  'site.balances': { params: { address: string; chainId: number }; result: { eth: bigint; tokens: { address: string; symbol: string; decimals: number; amount: bigint }[] } };
   'site.fund': { params: { address: string; token: string; amount: bigint }; result: { hash: string } };
   /** A site's network, as a dapp's wallet_switchEthereumChain would set it. */
   'site.setChain': { params: { origin: string; chainId: number }; result: null };
+  /** Reads a token's symbol and decimals through the network's provider (so through Nox) and checks them. Saves nothing. */
+  'tokens.lookup': { params: { chainId: number; address: string }; result: Token };
+  /** Saves a looked-up token to the encrypted book. */
+  'tokens.add': { params: { chainId: number; address: string }; result: Token };
+  'tokens.remove': { params: { chainId: number; address: string }; result: null };
   /** RAILGUN's network. Restarts the core, which locks the wallet. */
   'net.setPrivate': { params: { net: 'sepolia' | 'arbitrum' }; result: null };
   'ens.claim': { params: { label: string }; result: { name: string } };

@@ -12,6 +12,7 @@
         "@anon-rpc/browser-extension-harness": "0.4.0",
         "@fontsource/instrument-sans": "^5.2.0",
         "@fontsource/jetbrains-mono": "^5.2.0",
+        "@hisoka-io/anon-rpc-worker": "0.4.1",
         "@railgun-community/engine": "9.9.1",
         "@railgun-community/shared-models": "8.2.1",
         "@railgun-community/waku-broadcaster-client-web": "10.0.1",
@@ -312,6 +313,8 @@
     "@graphql-yoga/subscription": ["@graphql-yoga/subscription@3.1.0", "", { "dependencies": { "@graphql-yoga/typed-event-target": "^1.0.0", "@repeaterjs/repeater": "^3.0.4", "@whatwg-node/events": "0.0.2", "tslib": "^2.3.1" } }, "sha512-Vc9lh8KzIHyS3n4jBlCbz7zCjcbtQnOBpsymcRvHhFr2cuH+knmRn0EmzimMQ58jQ8kxoRXXC3KJS3RIxSdPIg=="],
 
     "@graphql-yoga/typed-event-target": ["@graphql-yoga/typed-event-target@1.0.0", "", { "dependencies": { "@repeaterjs/repeater": "^3.0.4", "tslib": "^2.3.1" } }, "sha512-Mqni6AEvl3VbpMtKw+TIjc9qS9a8hKhiAjFtqX488yq5oJtj9TkNlFTIacAVS3vnPiswNsmDiQqvwUOcJgi1DA=="],
+
+    "@hisoka-io/anon-rpc-worker": ["@hisoka-io/anon-rpc-worker@0.4.1", "", {}, "sha512-aEkfkNOc1j8917QnAmSd36jRX7zRnzLZDLlX1TUTJ35e+iDCAYUySs2UkFEaGi/OUXdztqUOmcujQSPXCbQH2A=="],
 
     "@iden3/bigarray": ["@iden3/bigarray@0.0.2", "", {}, "sha512-Xzdyxqm1bOFF6pdIsiHLLl3HkSLjbhqJHVyqaTxXt3RqXBEnmsUmEW47H7VOi/ak7TdkRpNkxjyK5Zbkm+y52g=="],
 

@@ -16,11 +16,13 @@ Updated 2026-11-09.
 | ENS: claim `<label>.canon.eth`, pay a name privately | `e2e-sepolia.mjs name` on Sepolia |
 | Sponsored private send (sponsor pays gas, Main not involved) | `e2e-sepolia.mjs private` on Sepolia |
 | Fast proof of innocence after a sponsored send: the wallet submits a proof per output it owns | `e2e-sepolia.mjs private`: spendable again 7 min after sending |
+| Sponsored Make public (7702 unshield to Main, sponsor relay) through Nox; its change clears proof of innocence in 4 min | `WAIT_SPENDABLE=1 e2e-sepolia.mjs public`, 2026-11-09 |
 | Private swap WETH → USDC on Uniswap v4, sponsor paying gas | `e2e-sepolia.mjs swap`: 0.001 WETH → 24.95 USDC ([tx](https://sepolia.etherscan.io/tx/0x270b85b24a68c6e2986bc670d20f69e3a7f085edb9ef23da1a1d629436ee3fe3)) |
+| Activity screen: all 50 entries with status, time and explorer link, opened from Home's See all | `shot-activity.mjs` (planted entries) |
 | Side panel from the toolbar icon | `check-panel.mjs`: fits 320–560 px wide, tab bar pinned |
 | Broadcaster discovery over Waku in the extension | `e2e-sepolia.mjs broadcasters`: connected, 1 Sepolia broadcaster |
 | Public accounts, balances on demand | Manual |
-| Privacy screen with read counts and a Nox/direct switch | `e2e-create.mjs` output |
+| Privacy screen with read counts, a Nox/direct switch and the auto-lock time (5, 15 or 60 min) | `e2e-create.mjs` output |
 | Injected provider (`window.ethereum`, EIP-6963) with per-site addresses | `e2e-injected.mjs` |
 | Gasless dapp transactions from a site address (EIP-7702 to Calibur, sponsor pays) | `e2e-sepolia.mjs dapp`, `execute-probe.ts` |
 | EIP-5792: `wallet_getCapabilities`, `wallet_sendCalls`, `wallet_getCallsStatus` | `e2e-sepolia.mjs dapp` |
@@ -31,14 +33,21 @@ Updated 2026-11-09.
 | Transaction preview on dapp prompts: balance changes from `eth_simulateV1` through Nox, decoded calls, warnings for reverts and unlimited approvals | `preview-check.ts`, `e2e-injected.mjs` |
 | Fund with ETH through Nox (the 7702 unshield, sponsor relay), with a 30 s tunnel-open timeout ([anon-rpc.md](anon-rpc.md)) | `FUND_ONLY=1 e2e-sepolia.mjs dapp`, 2026-11-09 |
 | Per-dapp WalletConnect addresses: two dapps get two fresh addresses, personal_sign recovers to the right one, a reconnect keeps its address | `e2e-wc.mjs`, Canon project id |
+| Custom tokens by address: lookup through Nox, symbol checks, saved in the encrypted book, public and private balances, remove; Send moves them on all four paths ([networks.md](networks.md#tokens)) | `check-token.ts`, `e2e-create.mjs`, `e2e-fork.mjs` on an anvil fork |
 
 ## Built, not yet verified
 
+- **Spendable countdown on Home.** Logic checked by `check-eta.ts`; not yet seen against a real pending shield, because the shared test wallet was in use ([railgun.md](railgun.md#spendable-countdown)).
 - **Sponsored Make public from Home.** Same relay path as Fund with ETH, which now passes through Nox; not run separately.
+- **Custom-token sends on real Sepolia.** Proven on an anvil fork only, with Main paying gas. The sponsored and broadcaster routes for an ERC-20 are not run.
 - **Passkeys on real authenticators.** Google Password Manager, iCloud Keychain and security keys need a manual try; headless tests use a virtual one.
 
 - **Typed-data signing over WalletConnect.** Added to `e2e-wc.mjs`; a re-run stalled once at the personal_sign step after passing it the run before, so treat the script as flaky until it passes twice.
 - **A private send through a broadcaster on real Sepolia.** Discovery finds up to 4 broadcasters, the proof builds and the request reaches one, but it answers "Could not validate Proof of Innocence". Twice, minutes apart, with an input note that had cleared. Sepolia broadcasters may not be validating; unresolved.
+
+## Known issues
+
+- **Fast proof of innocence stops if the wallet closes.** After a sponsored send, Fund or Make public, `assurePOI` waits for the indexer (20 s, then every 45 s) and submits the proofs only while the core runs. Nothing resumes it after the next unlock. If the wallet closes first, the change waits for the slow route; on Sepolia two such notes (0.0124 WETH) were still pending after more than 2 hours. Fix: save the pending submissions in the book and resume them on unlock.
 
 ## Open questions
 

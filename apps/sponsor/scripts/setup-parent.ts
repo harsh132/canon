@@ -2,6 +2,7 @@
 // sponsor controls only as REGISTRAR + RENEW, then renounce the power to swap
 // that registry out. Resumable; state in .data/parent.json.
 //   bun scripts/setup-parent.ts
+import { fileURLToPath } from 'node:url';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { formatUnits, hexlify, id, randomBytes } from 'ethers';
 import { A, R, ZERO, adm, connect, labelId, registryIface } from '../src/ens';
@@ -9,8 +10,8 @@ import { A, R, ZERO, adm, connect, labelId, registryIface } from '../src/ens';
 const LABEL = process.env.PARENT_LABEL ?? 'canon';
 const YEARS = BigInt(process.env.YEARS ?? 1);
 const DURATION = YEARS * 365n * 24n * 3600n;
-const stateFile = new URL('../.data/parent.json', import.meta.url).pathname;
-mkdirSync(new URL('../.data/', import.meta.url).pathname, { recursive: true });
+const stateFile = fileURLToPath(new URL('../.data/parent.json', import.meta.url));
+mkdirSync(fileURLToPath(new URL('../.data/', import.meta.url)), { recursive: true });
 const state: Record<string, string> = existsSync(stateFile) ? JSON.parse(readFileSync(stateFile, 'utf8')) : {};
 const save = () => writeFileSync(stateFile, JSON.stringify(state, null, 2));
 

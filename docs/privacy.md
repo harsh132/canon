@@ -32,7 +32,7 @@ Since the core started:
 |---|---|
 | via Nox | RPC requests and PPOI lookups sent through the worker |
 | Clear RPC | RPC requests sent directly. Zero in Nox mode; anything else is a bug |
-| Bootstrap | The worker's own specifier reads and bundle download. They name Nox, not the user |
+| Bootstrap | The worker's one specifier read (`workerHash()`). It names Nox, not the user. The bundle is packaged, not downloaded |
 | Bulk sync | QuickSync pages and circuit artifacts |
 | Other | Any other direct request, logged to the core console |
 

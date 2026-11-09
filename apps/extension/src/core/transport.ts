@@ -5,7 +5,7 @@
 // Fails closed. If the worker cannot boot, reads error out; they never fall
 // back to a direct connection on their own. Only the user switches modes.
 import { AnonRpcWorker } from '@anon-rpc/browser-extension-harness';
-import { FetchRequest } from 'ethers';
+import { AbiCoder, FetchRequest, id, keccak256 } from 'ethers';
 import axios from 'axios';
 import { DEV, FORK, RPC_URL } from './config';
 import { emit, state } from './state';
@@ -30,17 +30,39 @@ const bump = (key: keyof typeof state.rpc.counts): void => {
 
 // The worker reads its specifier contract once per boot. That read is in the
 // clear by necessity; it names the worker, not the user.
+const rpcRead = async (method: string, params?: unknown[]): Promise<unknown> => {
+  bump('bootstrap');
+  const r = await realFetch(BOOTSTRAP_RPC, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params: params ?? [] }),
+  });
+  const j = (await r.json()) as { result?: unknown; error?: { message: string } };
+  if (j.error) throw new Error(j.error.message);
+  return j.result;
+};
+
+// The pinned Nox bundle ships in the package (copied by the build from
+// @hisoka-io/anon-rpc-worker): the Chrome Web Store allows no remotely hosted code.
+// The contract still decides: workerHash() must equal these bytes' keccak, and the
+// harness checks it again. Its resolver list is answered with a blob: URL of the
+// bytes (SPEC §4.1), so nothing is downloaded.
+const NOX_BUNDLE = '/nox/anon-rpc-worker.js';
+const SEL_HASH = id('workerHash()').slice(0, 10);
+const SEL_RESOLVERS = id('workerResolvers()').slice(0, 10);
+let bundle: Promise<{ hash: string; url: string }> | undefined;
+const localBundle = () =>
+  (bundle ??= realFetch(NOX_BUNDLE)
+    .then((r) => r.arrayBuffer())
+    .then((b) => ({ hash: keccak256(new Uint8Array(b)), url: URL.createObjectURL(new Blob([b])) })));
+
 const bootstrapProvider = {
   request: async ({ method, params }: { method: string; params?: unknown[] }) => {
-    bump('bootstrap');
-    const r = await realFetch(BOOTSTRAP_RPC, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params: params ?? [] }),
-    });
-    const j = (await r.json()) as { result?: unknown; error?: { message: string } };
-    if (j.error) throw new Error(j.error.message);
-    return j.result;
+    const data = method === 'eth_call' ? (params?.[0] as { data?: string } | undefined)?.data : undefined;
+    if (data === SEL_RESOLVERS) return AbiCoder.defaultAbiCoder().encode(['string[]'], [[(await localBundle()).url]]);
+    const result = await rpcRead(method, params);
+    if (data === SEL_HASH && result !== (await localBundle()).hash) throw new Error('Nox bundle out of date; update Canon');
+    return result;
   },
 };
 
@@ -72,12 +94,58 @@ const ensureWorker = (): AnonRpcWorker => {
 
 const via = (): typeof fetch => {
   if (state.rpc.mode !== 'nox') return realFetch;
-  return ensureWorker().fetch as typeof fetch;
+  const f = ensureWorker().fetch as typeof fetch;
+  // The worker skips a tunnel exit for 10 min after a failed open; with all of them
+  // skipped, every call fails the same way. Flag it so the UI can say why and offer direct.
+  return (async (input: RequestInfo | URL, init?: RequestInit) => {
+    try {
+      const res = await f(input, init);
+      if (state.rpc.noTunnelsAt) {
+        state.rpc.noTunnelsAt = undefined;
+        emit();
+      }
+      return res;
+    } catch (e) {
+      if (/No exit offers TLS tunnels/i.test(String((e as Error)?.message ?? e))) {
+        state.rpc.noTunnelsAt = Date.now();
+        emit();
+      }
+      throw e;
+    }
+  }) as typeof fetch;
 };
 
 type GetUrlResponse = { statusCode: number; statusMessage: string; headers: Record<string, string>; body: Uint8Array };
 
-const getUrl = async (req: FetchRequest): Promise<GetUrlResponse> => {
+// PublicNode spreads calls over backends at different heights, and Nox gives each call its
+// own path. So eth_blockNumber can come from a backend one block ahead of the one that then
+// answers eth_getLogs up to that block. The RAILGUN engine retries only timeouts; this error
+// stops its scan until the next sync. Wait for the lagging backend (or another) and ask again.
+const HEAD_LAG = /beyond current head block/i;
+const HEAD_LAG_RETRIES = 5;
+const HEAD_LAG_WAIT_MS = 2_000;
+const lagsHead = (body: Uint8Array): boolean => {
+  // Error replies are short; skip decoding large results.
+  if (body.length > 1024) return false;
+  try {
+    // A batch reply is an array.
+    const replies = [JSON.parse(new TextDecoder().decode(body))].flat() as { error?: { code?: number; message?: string } }[];
+    return replies.some((r) => r?.error?.code === -32602 && HEAD_LAG.test(r.error.message ?? ''));
+  } catch {
+    return false;
+  }
+};
+
+export const getUrl = async (req: FetchRequest): Promise<GetUrlResponse> => {
+  for (let tries = 0; ; tries++) {
+    const res = await send(req);
+    if (tries >= HEAD_LAG_RETRIES || !lagsHead(res.body)) return res;
+    console.log('[transport] node behind head, retrying', tries + 1);
+    await new Promise((r) => setTimeout(r, HEAD_LAG_WAIT_MS));
+  }
+};
+
+const send = async (req: FetchRequest): Promise<GetUrlResponse> => {
   const mixed = state.rpc.mode === 'nox';
   bump(mixed ? 'mixed' : 'clear');
   // ethers' cancel signal is not an AbortSignal; do not forward it.
@@ -98,12 +166,10 @@ const getUrl = async (req: FetchRequest): Promise<GetUrlResponse> => {
 const POI_HOSTS = ['ppoi.fdi.network'];
 // WalletConnect's analytics. Sent even with telemetry off; never needed.
 const BLOCKED_HOSTS = ['pulse.walletconnect.org', 'pulse.walletconnect.com'];
-const classify = (url: string): 'poi' | 'sync' | 'artifacts' | 'bootstrap' | 'blocked' | 'other' => {
+const classify = (url: string): 'poi' | 'sync' | 'artifacts' | 'blocked' | 'other' => {
   const host = new URL(url, location.href).host;
   if (BLOCKED_HOSTS.includes(host)) return 'blocked';
   if (POI_HOSTS.includes(host)) return 'poi';
-  // The worker's hash-pinned bundle. Names Nox, not the user.
-  if (url.includes('/anon-rpc/')) return 'bootstrap';
   if (/subsquid|squid|graph/i.test(host)) return 'sync';
   if (/ipfs|artifact/i.test(host + url)) return 'artifacts';
   return 'other';
@@ -160,6 +226,7 @@ export const installTransport = async (): Promise<void> => {
 export const setRpcMode = async (mode: RpcMode): Promise<void> => {
   state.rpc.mode = mode;
   state.rpc.error = undefined;
+  state.rpc.noTunnelsAt = undefined;
   await store.setItem(MODE_KEY, mode);
   if (mode === 'nox') ensureWorker();
   emit();

@@ -19,6 +19,8 @@ The user never picks "shield" or "unshield". Source and recipient decide:
 | Private | 0zk | `generateTransferProof` + `populateProvedTransfer` | Send privately |
 | Private | 0x | `generateUnshieldBaseTokenProof` (WETH out as ETH) | Make public |
 
+With a token picked in Send (an ERC-20 on the private network, listed or added), the same four paths move that token: `transfer`, `approve` + `populateShield`, the transfer proof, and `generateUnshieldProof` ([networks.md](networks.md#tokens)).
+
 Review shows what becomes visible, the gas fee, which public account pays gas, and whether a proof is needed. Private sends use `sendWithPublicWallet = true` with Main paying gas, for now.
 
 The shield key is `keccak256(sign(getShieldPrivateKeySignatureMessage()))` from the funding account, as RAILGUN specifies.
@@ -36,7 +38,7 @@ Ported from Ender's engine WebView build:
 ## Quirks found by testing
 
 - **Settle before spending again.** After a private send, the engine still sees the spent notes as unspent until the transaction is mined and re-scanned. A second proof over them reverts with "Note already spent". `send.ts` makes the next private send wait for the last one to settle.
-- **Incomplete scans.** A load-balanced RPC node behind head makes the slow scan stop early ("block range extends beyond current head"). The engine reports `Incomplete` without throwing; `sync()` treats that as a failure and retries.
+- **Incomplete scans.** A load-balanced RPC node behind head makes the slow scan stop early ("block range extends beyond current head"). The transport hook now retries that one reply (see [anon-rpc.md](anon-rpc.md#nodes-behind-head)). If the scan still stops, the engine reports `Incomplete` without throwing; `sync()` treats that as a failure and retries.
 - **New wallets scan from today's block.** A fresh phrase has no history; imported phrases scan from the deployment block.
 - **Engine boot can be slow.** Unlock does not wait on it; the vault is usable first and the wallet opens in the background.
 - **Shield fee.** 25 basis points: 1 ETH made private shows 0.9975 WETH.
@@ -65,6 +67,17 @@ Measured 2026-11-06 with `e2e-sepolia.mjs`:
 | Send privately with Main paying gas | Not cleared after 40+ minutes |
 
 After the self-paid private send, both new notes sat in `MissingExternalPOI`, and the engine listed the send in `getChainTxidsStillPendingSpentPOIs`. The wallet has to generate the proof itself, which needs the send in RAILGUN's TXID tree first. `sync()` now calls `generatePOIsForWallet` after every scan so the proof is built while the wallet is open. A broadcaster send attaches its proofs up front instead. `scripts/poi-probe.mjs` prints this state from a dev build.
+
+## Spendable countdown
+
+Home shows "Spendable in about N min" under pending private funds, or "Clearing proof of innocence" when the hold is over and the proof is not.
+
+- **Data.** RAILGUN's network config has no shield hold time (`NETWORK_CONFIG[...].poi` holds only `launchBlock` and `launchTimestamp`), and the POI status info has no time. Two sources work: each note's block time (`TXO.timestamp`, seconds, from `walletForID(id).TXOs()`) and its bucket (`POI.getBalanceBucket`).
+- **Hold.** `SHIELD_HOLD_MS` in `shared/eta.ts` holds the measured 12 minutes for Sepolia. A network with no entry (Arbitrum) gets no estimate for shields until someone measures it.
+- **Core.** `rebuildBalances` calls `readPendingEta` only while some balance is pending, so it adds no RPC call and no polling. The soonest pending note decides. `CoreState.pendingEta` is `{ readyAt }` (ms epoch) or null. A pending note from a private send has no hold, so `readyAt` is 0 and the text is "Clearing proof of innocence".
+- **UI.** `etaText` rounds up to whole minutes. Home re-renders every 30 s from the stored time. It asks the core for nothing.
+- **Not done.** The Recent list shows a transaction's own status, which is done once mined, so it has no countdown. A full activity screen can read `pendingEta` too.
+- **Check.** `bun scripts/check-eta.ts` covers no data, a running hold, hold over, and the oldest note winning.
 
 ## Sponsored relay (default on Sepolia)
 

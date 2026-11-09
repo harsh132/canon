@@ -4,6 +4,7 @@
 //
 // Checks: dapp A and dapp B see different addresses; A reconnecting sees the
 // same address as before; personal_sign from A recovers to A's address.
+import { fileURLToPath } from 'node:url';
 import { readFileSync } from 'node:fs';
 import { SignClient } from '@walletconnect/sign-client';
 import { hexlify, toUtf8Bytes, verifyMessage, verifyTypedData } from 'ethers';
@@ -121,6 +122,6 @@ await popup.evaluate(() => [...document.querySelectorAll('button')].find((b) => 
 await popup.evaluate(() => [...document.querySelectorAll('[role=menuitem]')].find((b) => /addresses/i.test(b.textContent)).click());
 await waitText('Main');
 log('addresses:', (await text()).slice(0, 300));
-await popup.screenshot({ path: new URL('../.cache/wc-addresses.png', import.meta.url).pathname });
+await popup.screenshot({ path: fileURLToPath(new URL('../.cache/wc-addresses.png', import.meta.url)) });
 await browser.close();
 process.exit(0);

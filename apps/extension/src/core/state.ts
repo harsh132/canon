@@ -1,4 +1,4 @@
-import type { CoreState } from '../shared/protocol';
+import { DEFAULT_AUTO_LOCK_MIN, type CoreState } from '../shared/protocol';
 import { CHAIN_ID, PRIVATE, WC_PROJECT_ID } from './config';
 
 export const state: CoreState = {
@@ -12,6 +12,8 @@ export const state: CoreState = {
   engine: { status: 'off' },
   sync: { status: 'idle', progress: 0 },
   privateBalances: [],
+  pendingEta: null,
+  tokens: {},
   accounts: [],
   activity: [],
   proof: null,
@@ -19,6 +21,7 @@ export const state: CoreState = {
   tabs: {},
   broadcaster: { status: 'off', count: 0 },
   rpc: { mode: 'nox', status: 'off', counts: { mixed: 0, clear: 0, bootstrap: 0, sync: 0, artifacts: 0, other: 0 } },
+  autoLockMin: DEFAULT_AUTO_LOCK_MIN,
   wc: { configured: Boolean(WC_PROJECT_ID), ready: false, sessions: [], proposal: null, request: null },
 };
 

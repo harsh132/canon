@@ -1,10 +1,11 @@
 // The core. Runs in the offscreen document, which outlives the popup and the
 // service worker's idle kills. Holds the only copy of the unlocked keys.
 import type { Commands, CoreMessage, Method, Request, SwMessage } from '../shared/protocol';
-import { PORT_NAME, type UiKind } from '../shared/protocol';
+import { AUTO_LOCK_MINS, PORT_NAME, type AutoLockMin, type UiKind } from '../shared/protocol';
 import { decode, encode } from '../shared/codec';
-import { accounts, activity, bindings, closeBook, createAccount, loadBook, myName, signerFor } from './book';
-import { AUTO_LOCK_MS, DEV, PRIVATE_NET_KEY, PRIVATE_TX, getProvider, netOf, providerFor } from './config';
+import { accounts, activity, bindings, closeBook, createAccount, customTokens, loadBook, myName, removeToken, saveToken, signerFor } from './book';
+import { DEV, PRIVATE_NET_KEY, PRIVATE_TX, getProvider, netOf, providerFor, type Token } from './config';
+import { checkToken, tokensOn } from '../shared/networks';
 import { bootEngine, closeRailgunWallet, openRailgunWallet, sync } from './railgun';
 import { executeSend, planSend } from './send';
 import { emit, onState, state } from './state';
@@ -27,12 +28,17 @@ import { startBroadcasters } from './broadcaster';
 import { claimName } from './ens';
 import { fundSite } from './fund';
 import { executeSwap, quoteSwap } from './swap';
-import { Contract, parseEther } from 'ethers';
+import { Contract, getAddress, parseEther } from 'ethers';
 import { FORK } from './config';
+import { store } from './store';
+
+const LOCK_KEY = 'autoLockMin';
 
 let session: Unlocked | null = null;
 let lockTimer: ReturnType<typeof setTimeout> | null = null;
 const balances = new Map<number, bigint>();
+/** Tokens the user looked up, so Add saves exactly what they were shown. */
+const looked = new Map<string, Token>();
 
 const sw = (msg: SwMessage) => chrome.runtime.sendMessage(msg).catch(() => {});
 
@@ -51,12 +57,13 @@ const rebuildAccounts = (): void => {
   state.tabs = browser.tabSites();
   state.siteChains = browser.knownChains();
   state.name = myName();
+  state.tokens = customTokens();
   emit();
 };
 
 const touch = (): void => {
   if (lockTimer) clearTimeout(lockTimer);
-  if (session) lockTimer = setTimeout(lock, AUTO_LOCK_MS);
+  if (session) lockTimer = setTimeout(lock, state.autoLockMin * 60_000);
 };
 
 const lock = (): void => {
@@ -69,6 +76,8 @@ const lock = (): void => {
   state.activity = [];
   state.sites = [];
   state.name = null;
+  state.tokens = {};
+  looked.clear();
   browser.broadcastAccounts();
   wc.refreshWc();
   emit();
@@ -113,6 +122,25 @@ const refreshPublic = async (): Promise<void> => {
     }),
   );
   rebuildAccounts();
+};
+
+const lookupToken = async (chainId: number, raw: string): Promise<Token> => {
+  let address: string;
+  try {
+    address = getAddress(raw.trim().toLowerCase());
+  } catch {
+    throw new Error('Not a token address');
+  }
+  if (tokensOn(chainId, customTokens()).some((t) => t.address.toLowerCase() === address.toLowerCase())) throw new Error('Already in the list');
+  // Through the network's provider, so through Nox like every other read.
+  const c = new Contract(address, ['function symbol() view returns (string)', 'function decimals() view returns (uint8)'], providerFor(chainId));
+  const [symbol, decimals] = await Promise.all([c.symbol(), c.decimals()]).catch(() => {
+    throw new Error('No ERC-20 token at this address on this network');
+  });
+  const t = checkToken(chainId, address, symbol, decimals);
+  const token: Token = { address, symbol: t.symbol, decimals: t.decimals, ...(t.warning ? { warning: t.warning } : {}) };
+  looked.set(`${chainId}:${address.toLowerCase()}`, token);
+  return token;
 };
 
 type Handlers = { [M in Method]: (params: Commands[M]['params']) => Promise<Commands[M]['result']> };
@@ -188,6 +216,14 @@ const handlers: Handlers = {
     await setRpcMode(mode);
     return null;
   },
+  'settings.autoLock': async ({ min }) => {
+    if (!AUTO_LOCK_MINS.includes(min)) throw new Error('Unsupported auto-lock time');
+    state.autoLockMin = min;
+    await store.setItem(LOCK_KEY, min);
+    touch(); // restart the running timer with the new time
+    emit();
+    return null;
+  },
   'swap.quote': async ({ amount }) => {
     txHere();
     need();
@@ -203,9 +239,31 @@ const handlers: Handlers = {
     need();
     const p = providerFor(chainId);
     const erc20 = (t: string) => new Contract(t, ['function balanceOf(address) view returns (uint256)'], p);
-    const known = netOf(chainId)!.tokens.map((k) => ({ symbol: k.symbol, decimals: k.decimals, token: k.address }));
-    const [eth, ...amounts] = await Promise.all([p.getBalance(address), ...known.map((k) => erc20(k.token).balanceOf(address) as Promise<bigint>)]);
-    return { eth, tokens: known.map((k, i) => ({ symbol: k.symbol, decimals: k.decimals, amount: amounts[i] })) };
+    const known = tokensOn(chainId, customTokens());
+    // Each token read stands alone: a custom token whose balanceOf reverts must not hide the others.
+    // A failed read is left out, so the UI shows it as unknown, never as zero.
+    const [eth, amounts] = await Promise.all([p.getBalance(address), Promise.allSettled(known.map((k) => erc20(k.address).balanceOf(address) as Promise<bigint>))]);
+    return {
+      eth,
+      tokens: known.flatMap((k, i) => {
+        const r = amounts[i];
+        return r.status === 'fulfilled' ? [{ address: k.address, symbol: k.symbol, decimals: k.decimals, amount: r.value }] : [];
+      }),
+    };
+  },
+  'tokens.lookup': async ({ chainId, address }) => (need(), lookupToken(chainId, address)),
+  'tokens.add': async ({ chainId, address }) => {
+    need();
+    const token = looked.get(`${chainId}:${address.trim().toLowerCase()}`) ?? (await lookupToken(chainId, address));
+    await saveToken(chainId, token);
+    rebuildAccounts();
+    return token;
+  },
+  'tokens.remove': async ({ chainId, address }) => {
+    need();
+    await removeToken(chainId, address);
+    rebuildAccounts();
+    return null;
   },
   'site.fund': async (p) => (txHere(), fundSite(p, need())),
   'site.setChain': async ({ origin, chainId }) => {
@@ -336,7 +394,7 @@ chrome.runtime.onConnect.addListener((port) => {
 });
 
 // Dev builds only: lets test scripts read core state (e.g. which site is in which tab).
-if (DEV) (globalThis as Record<string, unknown>).__canonState = state;
+if (DEV) Object.assign(globalThis, { __canonState: state, __canonEmit: emit });
 
 wc.configureWc({ isUnlocked: () => session != null, prompt });
 browser.configureDapp({
@@ -354,6 +412,8 @@ browser.configureDapp({
 void (async () => {
   // Before anything touches the network.
   await installTransport();
+  const lockMin = await store.getItem<AutoLockMin>(LOCK_KEY);
+  if (lockMin && AUTO_LOCK_MINS.includes(lockMin)) state.autoLockMin = lockMin;
   state.vault = (await vaultExists()) ? 'locked' : 'none';
   state.unlockWith = await vaultInfo();
   emit();

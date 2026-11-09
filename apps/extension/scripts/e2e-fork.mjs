@@ -4,7 +4,10 @@
 //
 // 1. create wallet  2. fund Main on the fork  3. Make private 1 ETH
 // 4. Send privately 0.2 to self  5. Make public 0.3 to a fresh 0x
-import { Wallet } from 'ethers';
+// 6. a custom token (Sepolia LINK, added by address): Make private, Send privately,
+//    Make public and a public send. TOKEN_ONLY=1 skips 3-5.
+import { fileURLToPath } from 'node:url';
+import { AbiCoder, Wallet, keccak256, toBeHex } from 'ethers';
 import { createWallet, launch } from './smoke.mjs';
 
 const RPC = 'http://127.0.0.1:8545';
@@ -50,10 +53,12 @@ log('0zk', zk.slice(0, 16), 'main', main);
 await rpc('anvil_setBalance', [main, '0x8AC7230489E80000']); // 10 ETH
 log('funded Main with 10 ETH on the fork');
 
-const send = async ({ from, to, amount, expect }) => {
+const send = async ({ from, to, amount, expect, token }) => {
   await popup.evaluate(() => [...document.querySelectorAll('nav button')].find((b) => /send/i.test(b.textContent)).click());
   await popup.waitForSelector('select');
   await popup.select('select', String(from));
+  // The second select picks the token; empty is ETH.
+  await (await popup.$$('select'))[1]?.select(token ?? '');
   const [toInput] = await popup.$$('input:not([inputmode])');
   await toInput.click({ clickCount: 3 });
   await toInput.type(to);
@@ -83,6 +88,8 @@ const waitPrivate = async (pred, label) => {
   throw new Error(`${label}: private balance never matched, last ${await privateBalance()}`);
 };
 
+const TOKEN_ONLY = process.env.TOKEN_ONLY === '1';
+if (!TOKEN_ONLY) {
 // 3. make private
 await send({ from: 0, to: zk, amount: '1', expect: 'Make private' });
 await waitPrivate((b) => b > 0.99, 'after Make private');
@@ -103,6 +110,52 @@ for (let i = 0; i < 30; i += 1) {
   await new Promise((r) => setTimeout(r, 2000));
 }
 await waitPrivate((b) => b < 0.75, 'after Make public');
-await popup.screenshot({ path: new URL('../.cache/after-flow.png', import.meta.url).pathname });
+}
+
+// 6. custom token
+const LINK = '0x779877A7B0D9E8603169DdbD7836e478b4624789';
+const linkOf = async (a) => BigInt(await rpc('eth_call', [{ to: LINK, data: `0x70a08231${a.slice(2).toLowerCase().padStart(64, '0')}` }, 'latest']));
+// Find LINK's balance slot by trying the first few mapping slots.
+for (let slot = 0; slot < 20 && (await linkOf(main)) === 0n; slot += 1) {
+  const key = keccak256(AbiCoder.defaultAbiCoder().encode(['address', 'uint256'], [main, slot]));
+  await rpc('anvil_setStorageAt', [LINK, key, toBeHex(100n * 10n ** 18n, 32)]);
+}
+log('Main LINK on fork:', Number(await linkOf(main)) / 1e18);
+await popup.click('button[title="Menu"]');
+await click('^Tokens$');
+await waitText('Add token');
+await popup.type('input[placeholder="0x…"]', LINK);
+await click('^Look up$');
+await waitText('Add LINK');
+await click('^Add LINK$');
+await waitText('· added');
+log('LINK added');
+await click('^Home$');
+const privateLink = async () => Number((await text()).match(/PRIVATE BALANCE.*?LINK ([\d.]+)/i)?.[1] ?? 0);
+const waitLink = async (pred, label) => {
+  for (let i = 0; i < 60; i += 1) {
+    const b = await privateLink();
+    if (pred(b)) return log(`${label}: private LINK ${b}`);
+    if (i % 5 === 4) await click('^(synced|sync)').catch(() => {});
+    await new Promise((r) => setTimeout(r, 4000));
+  }
+  throw new Error(`${label}: private LINK never matched, last ${await privateLink()}`);
+};
+await send({ from: 0, to: zk, amount: '10', expect: 'Make private', token: LINK });
+await waitLink((b) => b > 9.9, 'after Make private (approve + shield)');
+await send({ from: 'private', to: zk, amount: '2', expect: 'Send privately', token: LINK });
+await waitLink((b) => b > 9.9, 'after Send privately (self, so unchanged)');
+const linkTarget = Wallet.createRandom().address;
+await send({ from: 'private', to: linkTarget, amount: '3', expect: 'Make public', token: LINK });
+for (let i = 0; i < 30 && (await linkOf(linkTarget)) === 0n; i += 1) await new Promise((r) => setTimeout(r, 2000));
+log('recipient LINK on fork after Make public:', Number(await linkOf(linkTarget)) / 1e18);
+await waitLink((b) => b < 7.5, 'after Make public');
+const pubTarget = Wallet.createRandom().address;
+await send({ from: 0, to: pubTarget, amount: '1', expect: 'Send publicly', token: LINK });
+for (let i = 0; i < 30 && (await linkOf(pubTarget)) === 0n; i += 1) await new Promise((r) => setTimeout(r, 2000));
+const got = await linkOf(pubTarget);
+log('recipient LINK on fork after public send:', Number(got) / 1e18);
+if (got !== 10n ** 18n) throw new Error('public LINK send did not arrive');
+await popup.screenshot({ path: fileURLToPath(new URL('../.cache/after-flow.png', import.meta.url)) });
 log('done');
 await browser.close();

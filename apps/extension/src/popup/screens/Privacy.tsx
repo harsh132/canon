@@ -1,10 +1,10 @@
-import type { CoreState } from '../../shared/protocol';
+import { AUTO_LOCK_MINS, type CoreState } from '../../shared/protocol';
 import type { Tab } from '../App';
 import { call, useAction } from '../client';
 import { Button, Card, ErrorLine, Header, Row, Slug } from '../ui';
 
 export const Privacy = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
-  const { mode, status, counts, error, bootMs } = s.rpc;
+  const { mode, status, counts, error, bootMs, noTunnelsAt } = s.rpc;
   const a = useAction();
   const nox = mode === 'nox';
   const leaked = counts.clear;
@@ -32,6 +32,26 @@ export const Privacy = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
           <Row label="Bulk sync">{counts.sync + counts.artifacts} · public data</Row>
           <Row label="Other">{counts.other}</Row>
           <Row label="Broadcasters" last>{s.broadcaster.status}{s.broadcaster.count ? ` · ${s.broadcaster.count}` : ''}</Row>
+        </div>
+      </Card>
+      {nox && noTunnelsAt && (
+        <p role="alert" className="mx-[18px] mt-3 text-[13px] leading-snug text-warn">
+          Nox has no tunnel exits now, so reads and sends fail. They can come back within 10 minutes. Direct RPC works now, but the RPC provider sees your IP.
+        </p>
+      )}
+      <Card className="mx-[18px] mt-2.5 px-[18px] py-3.5">
+        <Slug>Auto-lock after</Slug>
+        <div className="mt-2.5 flex gap-2">
+          {AUTO_LOCK_MINS.map((m) => (
+            <Button
+              key={m}
+              variant={m === s.autoLockMin ? 'primary' : 'ghost'}
+              className="flex-1 px-0"
+              onClick={() => void a.run(() => call('settings.autoLock', { min: m }))}
+            >
+              {m === 60 ? '1 h' : `${m} min`}
+            </Button>
+          ))}
         </div>
       </Card>
       <div className="flex-1" />
