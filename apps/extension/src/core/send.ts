@@ -1,22 +1,36 @@
 import {
+  gasEstimateForShield,
   gasEstimateForShieldBaseToken,
   gasEstimateForUnprovenTransfer,
+  gasEstimateForUnprovenUnshield,
   gasEstimateForUnprovenUnshieldBaseToken,
   generateTransferProof,
   generateUnshieldBaseTokenProof,
+  generateUnshieldProof,
   getShieldPrivateKeySignatureMessage,
   populateProvedTransfer,
+  populateProvedUnshield,
   populateProvedUnshieldBaseToken,
+  populateShield,
   populateShieldBaseToken,
   validateRailgunAddress,
   calculateBroadcasterFeeERC20Amount,
 } from '@railgun-community/wallet';
-import { EVMGasType, TXIDVersion, calculateGasPrice, type TransactionGasDetails } from '@railgun-community/shared-models';
-import { getAddress, keccak256, parseEther, type TransactionRequest } from 'ethers';
+import {
+  EVMGasType,
+  NETWORK_CONFIG,
+  TXIDVersion,
+  calculateGasPrice,
+  type FeeTokenDetails,
+  type RailgunERC20AmountRecipient,
+  type TransactionGasDetails,
+} from '@railgun-community/shared-models';
+import { Contract, getAddress, keccak256, parseUnits, type TransactionRequest } from 'ethers';
 import type { SendIntent, SendKind, SendPlan } from '../shared/protocol';
 import { isHexAddress, isZk } from '../shared/format';
+import { tokensOn } from '../shared/networks';
 import { recordActivity, signerFor } from './book';
-import { NETWORK, WETH, getProvider } from './config';
+import { CHAIN_ID, NETWORK, WETH, getProvider } from './config';
 import { currentWalletId, spendable, sync } from './railgun';
 import { pickBroadcaster, submitViaBroadcaster } from './broadcaster';
 import { assurePOI } from './poi-assurance';
@@ -29,8 +43,17 @@ import type { Unlocked } from './vault';
 //   public  -> 0zk  shield     ("Make private")
 //   private -> 0zk  transfer   ("Send privately")
 //   private -> 0x   unshield   ("Make public")
+// ETH by default (private WETH, which leaves as ETH). Any listed or custom
+// ERC-20 on the private network takes the same four paths as itself.
 
 const V2 = TXIDVersion.V2_PoseidonMerkle;
+
+const ERC20 = [
+  'function transfer(address to, uint256 amount) returns (bool)',
+  'function approve(address spender, uint256 amount) returns (bool)',
+  'function allowance(address owner, address spender) view returns (uint256)',
+  'function balanceOf(address owner) view returns (uint256)',
+];
 
 const kindOf = (from: SendIntent['from'], to: string): SendKind => {
   if (isZk(to)) {
@@ -41,10 +64,10 @@ const kindOf = (from: SendIntent['from'], to: string): SendKind => {
   throw new Error('Enter a 0x or 0zk address');
 };
 
-const parseAmount = (s: string): bigint => {
+const parseAmount = (s: string, decimals: number): bigint => {
   let v: bigint;
   try {
-    v = parseEther(s.trim() || '0');
+    v = parseUnits(s.trim() || '0', decimals);
   } catch {
     throw new Error('Not an amount');
   }
@@ -81,14 +104,22 @@ const prepare = async (intent: SendIntent, u: Unlocked): Promise<Prepared> => {
   const resolved = isName(typed) ? await resolveName(typed) : null;
   const to = resolved?.address ?? typed;
   const kind = kindOf(intent.from, to);
-  const amount = parseAmount(intent.amount);
+  const isEth = !intent.token || intent.token.toLowerCase() === WETH.toLowerCase();
+  const token = isEth ? null : (tokensOn(CHAIN_ID, state.tokens).find((t) => t.address.toLowerCase() === intent.token!.toLowerCase()) ?? null);
+  if (!isEth && !token) throw new Error('Not a token in your list');
+  const amount = parseAmount(intent.amount, token?.decimals ?? 18);
   const gasFrom = intent.from === 'private' ? (intent.gasFrom ?? 0) : intent.from;
   const payer = signerFor(gasFrom).connect(getProvider());
-  const weth = { tokenAddress: WETH, amount };
+  // What moves: WETH (as ETH) or the token. Fees are always in WETH.
+  const asset = { tokenAddress: token?.address ?? WETH, amount };
+  const erc20 = token ? new Contract(token.address, ERC20, payer) : null;
   const { maxFeePerGas } = await fees();
+  if (erc20 && intent.from !== 'private' && ((await erc20.balanceOf(payer.address)) as bigint) < amount) {
+    throw new Error(`More than this account's ${token!.symbol}`);
+  }
 
   const track = (hash: string, label: string): string => {
-    const entry = { id: hash, kind, label, amount: intent.amount, hash, at: Date.now(), status: 'pending' as const };
+    const entry = { id: hash, kind, label, amount: token ? `${intent.amount} ${token.symbol}` : intent.amount, hash, at: Date.now(), status: 'pending' as const };
     void recordActivity(entry).catch(() => {});
     state.activity = [entry, ...state.activity.filter((a) => a.id !== entry.id)];
     emit();
@@ -129,25 +160,50 @@ const prepare = async (intent: SendIntent, u: Unlocked): Promise<Prepared> => {
   // Gas for private sends: Canon's sponsor (default), a RAILGUN broadcaster, or Main.
   const viaBroadcaster = intent.from === 'private' && intent.via === 'broadcaster';
   const viaSponsor = intent.from === 'private' && (intent.via ?? 'sponsor') === 'sponsor';
-  const base = { kind, from: intent.from, to, amount, symbol: 'ETH', gasFrom: intent.from === 'private' && !viaBroadcaster && !viaSponsor ? gasFrom : null, broadcasterFee: null, ...(resolved ? { name: typed.toLowerCase(), resolvedVia: resolved.via } : {}) };
+  const base = { kind, from: intent.from, to, amount, symbol: token?.symbol ?? 'ETH', gasFrom: intent.from === 'private' && !viaBroadcaster && !viaSponsor ? gasFrom : null, broadcasterFee: null, ...(resolved ? { name: typed.toLowerCase(), resolvedVia: resolved.via } : {}) };
 
   switch (kind) {
     case 'send': {
-      const tx = { to: getAddress(to), value: amount };
+      const tx = erc20
+        ? { to: token!.address, data: erc20.interface.encodeFunctionData('transfer', [getAddress(to), amount]) }
+        : { to: getAddress(to), value: amount };
       const gas = await getProvider().estimateGas({ ...tx, from: payer.address });
       return { ...base, gasFee: gas * maxFeePerGas, needsProof: false, run: () => broadcast(tx, `Sent to ${to.slice(0, 10)}…`) };
     }
 
     case 'shield': {
       const key = await shieldKey(gasFrom);
-      const { gasEstimate } = await gasEstimateForShieldBaseToken(V2, NETWORK, to, key, weth, payer.address);
+      const label = to === state.railgunAddress ? 'Made private' : 'Sent privately from public';
+      if (erc20) {
+        // An ERC-20 shield pulls the token, so RAILGUN needs an allowance first: exactly this amount.
+        const rcpt = [{ ...asset, recipientAddress: to }];
+        const spender = NETWORK_CONFIG[NETWORK].proxyContract;
+        const approve = { to: token!.address, data: erc20.interface.encodeFunctionData('approve', [spender, amount]) };
+        const needsApprove = ((await erc20.allowance(payer.address, spender)) as bigint) < amount;
+        // ponytail: a shield cannot be simulated before its approval exists, so the fee shown then
+        // assumes a typical ERC-20 shield; the real estimate runs once the approval lands.
+        const shieldGas = needsApprove ? 900_000n : (await gasEstimateForShield(V2, NETWORK, key, rcpt, [], payer.address)).gasEstimate;
+        const approveGas = needsApprove ? await getProvider().estimateGas({ ...approve, from: payer.address }) : 0n;
+        return {
+          ...base,
+          gasFee: (shieldGas + approveGas) * maxFeePerGas,
+          needsProof: false,
+          run: async () => {
+            if (needsApprove) await (await payer.sendTransaction(approve)).wait();
+            const { gasEstimate } = await gasEstimateForShield(V2, NETWORK, key, rcpt, [], payer.address);
+            const { transaction } = await populateShield(V2, NETWORK, key, rcpt, [], await gasDetails(gasEstimate));
+            return broadcast(transaction, label);
+          },
+        };
+      }
+      const { gasEstimate } = await gasEstimateForShieldBaseToken(V2, NETWORK, to, key, asset, payer.address);
       return {
         ...base,
         gasFee: gasEstimate * maxFeePerGas,
         needsProof: false,
         run: async () => {
-          const { transaction } = await populateShieldBaseToken(V2, NETWORK, to, key, weth, await gasDetails(gasEstimate));
-          return broadcast(transaction, to === state.railgunAddress ? 'Made private' : 'Sent privately from public');
+          const { transaction } = await populateShieldBaseToken(V2, NETWORK, to, key, asset, await gasDetails(gasEstimate));
+          return broadcast(transaction, label);
         },
       };
     }
@@ -155,12 +211,26 @@ const prepare = async (intent: SendIntent, u: Unlocked): Promise<Prepared> => {
     case 'transfer':
     case 'unshield': {
       await settling;
-      if (amount > spendable()) throw new Error('More than your spendable private balance');
+      if (amount > spendable(asset.tokenAddress)) throw new Error('More than your spendable private balance');
       const id = currentWalletId();
-      const recipientsB = [{ ...weth, recipientAddress: to }];
+      const recipients = [{ ...asset, recipientAddress: to }];
+      // ETH leaves through Relay Adapt, unwrapped; any other token is a plain ERC-20 unshield.
+      type Fee = RailgunERC20AmountRecipient | undefined;
+      const unshieldEstimate = (gd: TransactionGasDetails, feeToken: FeeTokenDetails | undefined, pub: boolean) =>
+        token
+          ? gasEstimateForUnprovenUnshield(V2, NETWORK, id, u.railgunKey, recipients, [], gd, feeToken, pub)
+          : gasEstimateForUnprovenUnshieldBaseToken(V2, NETWORK, to, id, u.railgunKey, asset, gd, feeToken, pub);
+      const unshieldProve = (fee: Fee, pub: boolean, minGas: bigint | undefined, cb: (p: number) => void) =>
+        token
+          ? generateUnshieldProof(V2, NETWORK, id, u.railgunKey, recipients, [], fee, pub, minGas, cb)
+          : generateUnshieldBaseTokenProof(V2, NETWORK, to, id, u.railgunKey, asset, fee, pub, minGas, cb);
+      const unshieldPopulate = (fee: Fee, pub: boolean, minGas: bigint | undefined, gd: TransactionGasDetails) =>
+        token
+          ? populateProvedUnshield(V2, NETWORK, id, recipients, [], fee, pub, minGas, gd)
+          : populateProvedUnshieldBaseToken(V2, NETWORK, to, id, asset, fee, pub, minGas, gd);
       if (viaBroadcaster || viaSponsor) {
         // Unshielding to ETH goes through the Relay Adapt contract; the broadcaster must support it.
-        const useRelayAdapt = kind === 'unshield';
+        const useRelayAdapt = kind === 'unshield' && !token;
         const b = viaBroadcaster ? pickBroadcaster(WETH, useRelayAdapt) : null;
         if (viaBroadcaster && !b) throw new Error('No broadcaster online yet. Retry, or pick another gas route');
         // The sponsor charges nothing on testnet. Its "fee" is 1 wei to this wallet,
@@ -171,18 +241,21 @@ const prepare = async (intent: SendIntent, u: Unlocked): Promise<Prepared> => {
         const t1 = (gasEstimate: bigint): TransactionGasDetails => ({ evmGasType: EVMGasType.Type1, gasEstimate, gasPrice });
         const { gasEstimate } =
           kind === 'transfer'
-            ? await gasEstimateForUnprovenTransfer(V2, NETWORK, id, u.railgunKey, undefined, recipientsB, [], t1(0n), feeToken, false)
-            : await gasEstimateForUnprovenUnshieldBaseToken(V2, NETWORK, to, id, u.railgunKey, weth, t1(0n), feeToken, false);
+            ? await gasEstimateForUnprovenTransfer(V2, NETWORK, id, u.railgunKey, undefined, recipients, [], t1(0n), feeToken, false)
+            : await unshieldEstimate(t1(0n), feeToken, false);
         const gd = t1(gasEstimate);
         const { amount: feeAmount } = await calculateBroadcasterFeeERC20Amount(feeToken, gd);
-        if (amount + (b ? feeAmount : 1n) > spendable()) throw new Error('Amount plus broadcaster fee exceeds your private balance');
+        const feeNeed = b ? feeAmount : 1n;
+        if (token ? feeNeed > spendable() : amount + feeNeed > spendable()) {
+          throw new Error(token ? 'The fee is paid in private ETH, and there is too little' : 'Amount plus broadcaster fee exceeds your private balance');
+        }
         const fee = b
           ? { tokenAddress: WETH, amount: feeAmount, recipientAddress: b.railgunAddress }
           : { tokenAddress: WETH, amount: 1n, recipientAddress: state.railgunAddress as string };
         const minGas = calculateGasPrice(gd);
         return {
           ...base,
-          symbol: 'WETH',
+          symbol: token?.symbol ?? 'WETH',
           gasFee: 0n,
           broadcasterFee: b ? feeAmount : 0n,
           needsProof: true,
@@ -190,14 +263,12 @@ const prepare = async (intent: SendIntent, u: Unlocked): Promise<Prepared> => {
             let populated;
             if (kind === 'transfer') {
               await withProof('Proving', (cb) =>
-                generateTransferProof(V2, NETWORK, id, u.railgunKey, false, undefined, recipientsB, [], fee, false, minGas, cb),
+                generateTransferProof(V2, NETWORK, id, u.railgunKey, false, undefined, recipients, [], fee, false, minGas, cb),
               );
-              populated = await populateProvedTransfer(V2, NETWORK, id, false, undefined, recipientsB, [], fee, false, minGas, gd);
+              populated = await populateProvedTransfer(V2, NETWORK, id, false, undefined, recipients, [], fee, false, minGas, gd);
             } else {
-              await withProof('Proving', (cb) =>
-                generateUnshieldBaseTokenProof(V2, NETWORK, to, id, u.railgunKey, weth, fee, false, minGas, cb),
-              );
-              populated = await populateProvedUnshieldBaseToken(V2, NETWORK, to, id, weth, fee, false, minGas, gd);
+              await withProof('Proving', (cb) => unshieldProve(fee, false, minGas, cb));
+              populated = await unshieldPopulate(fee, false, minGas, gd);
             }
             const hash = b
               ? await submitViaBroadcaster({
@@ -228,14 +299,13 @@ const prepare = async (intent: SendIntent, u: Unlocked): Promise<Prepared> => {
         };
       }
       const og = await gasDetails(0n);
-      const recipients = [{ ...weth, recipientAddress: to }];
       const { gasEstimate } =
         kind === 'transfer'
           ? await gasEstimateForUnprovenTransfer(V2, NETWORK, id, u.railgunKey, undefined, recipients, [], og, undefined, true)
-          : await gasEstimateForUnprovenUnshieldBaseToken(V2, NETWORK, to, id, u.railgunKey, weth, og, undefined, true);
+          : await unshieldEstimate(og, undefined, true);
       return {
         ...base,
-        symbol: 'WETH',
+        symbol: token?.symbol ?? 'WETH',
         gasFee: gasEstimate * maxFeePerGas,
         needsProof: true,
         run: async () => {
@@ -248,12 +318,8 @@ const prepare = async (intent: SendIntent, u: Unlocked): Promise<Prepared> => {
             );
             return broadcast(transaction, `Sent privately to ${to.slice(0, 10)}…`);
           }
-          await withProof('Proving', (cb) =>
-            generateUnshieldBaseTokenProof(V2, NETWORK, to, id, u.railgunKey, weth, undefined, true, undefined, cb),
-          );
-          const { transaction } = await populateProvedUnshieldBaseToken(
-            V2, NETWORK, to, id, weth, undefined, true, undefined, await gasDetails(gasEstimate),
-          );
+          await withProof('Proving', (cb) => unshieldProve(undefined, true, undefined, cb));
+          const { transaction } = await unshieldPopulate(undefined, true, undefined, await gasDetails(gasEstimate));
           return broadcast(transaction, `Made public to ${to.slice(0, 10)}…`);
         },
       };

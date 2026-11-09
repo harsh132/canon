@@ -31,10 +31,12 @@ Updated 2026-11-09.
 | Transaction preview on dapp prompts: balance changes from `eth_simulateV1` through Nox, decoded calls, warnings for reverts and unlimited approvals | `preview-check.ts`, `e2e-injected.mjs` |
 | Fund with ETH through Nox (the 7702 unshield, sponsor relay), with a 30 s tunnel-open timeout ([anon-rpc.md](anon-rpc.md)) | `FUND_ONLY=1 e2e-sepolia.mjs dapp`, 2026-11-09 |
 | Per-dapp WalletConnect addresses: two dapps get two fresh addresses, personal_sign recovers to the right one, a reconnect keeps its address | `e2e-wc.mjs`, Canon project id |
+| Custom tokens by address: lookup through Nox, symbol checks, saved in the encrypted book, public and private balances, remove; Send moves them on all four paths ([networks.md](networks.md#tokens)) | `check-token.ts`, `e2e-create.mjs`, `e2e-fork.mjs` on an anvil fork |
 
 ## Built, not yet verified
 
 - **Sponsored Make public from Home.** Same relay path as Fund with ETH, which now passes through Nox; not run separately.
+- **Custom-token sends on real Sepolia.** Proven on an anvil fork only, with Main paying gas. The sponsored and broadcaster routes for an ERC-20 are not run.
 - **Passkeys on real authenticators.** Google Password Manager, iCloud Keychain and security keys need a manual try; headless tests use a virtual one.
 
 - **Typed-data signing over WalletConnect.** Added to `e2e-wc.mjs`; a re-run stalled once at the personal_sign step after passing it the run before, so treat the script as flaky until it passes twice.

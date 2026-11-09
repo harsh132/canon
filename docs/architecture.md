@@ -52,7 +52,7 @@ All in the extension origin's IndexedDB. The offscreen document has no `chrome.s
 | Store | Contents | At rest |
 |---|---|---|
 | `canon/kv` → `vault` | Kind, salt or passkey credential id, IV, encrypted phrase, RAILGUN wallet id | Encrypted |
-| `canon/kv` → `book` | Public accounts, dapp bindings, activity | Encrypted |
+| `canon/kv` → `book` | Public accounts, dapp bindings, activity, site networks, custom tokens | Encrypted |
 | `canon/kv` → `rpcMode` | `nox` or `direct` | Plain |
 | `canon-railgun` | RAILGUN merkle trees (public data) and wallet data | Wallet data encrypted with the RAILGUN key |
 | `railgun-artifacts` | Circuit artifacts | Public data |
@@ -82,7 +82,7 @@ The extension id is pinned by the manifest `key` to `nigpkikilgbfgmgcmeiidiinika
 
 Every unlocked screen sits in one frame (`src/popup/frame.tsx`):
 
-- **Header:** mark, a Sepolia badge, a lock icon and a menu (Get a name, Addresses, Privacy, Recovery phrase, Reset).
+- **Header:** mark, a Sepolia badge, a lock icon and a menu (Get a name, Addresses, Tokens, Privacy, Recovery phrase, Reset).
 - **Tabs under the header:** Home, Send, Swap, Apps.
 - **One status line at the bottom:** where reads go (Nox or direct, with clear and mixed counts; taps open Privacy) and how fresh the private balance is (taps sync).
 

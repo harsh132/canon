@@ -1,3 +1,5 @@
+import type { Token } from './networks';
+
 // The popup <-> core contract. The popup holds no keys: it renders CoreState
 // and sends one of the whitelisted Commands below. Nothing else is accepted.
 
@@ -133,6 +135,8 @@ export type CoreState = {
   engine: { status: 'off' | 'starting' | 'ready' | 'error'; error?: string };
   sync: SyncState;
   privateBalances: TokenBalance[];
+  /** Tokens the user added, per chain id (see shared/networks.ts tokensOn). Empty while locked. */
+  tokens: Record<number, Token[]>;
   accounts: PublicAccount[];
   activity: Activity[];
   proof: { label: string; progress: number } | null;
@@ -160,6 +164,8 @@ export type SendIntent = {
   from: 'private' | number;
   to: string;
   amount: string;
+  /** An ERC-20 on the private network, built-in or custom. Absent: ETH (private WETH). */
+  token?: string;
   /** Who pays gas when sending from private: Canon's sponsor (default), a RAILGUN broadcaster, or a public account. */
   via?: 'sponsor' | 'broadcaster' | 'self';
   /** Public account that pays gas when via is 'self'. */
@@ -202,10 +208,15 @@ export type Commands = {
   'rpc.setMode': { params: { mode: 'nox' | 'direct' }; result: null };
   'swap.quote': { params: { amount: string }; result: { swapped: bigint; out: bigint; minOut: bigint } };
   'swap.execute': { params: { amount: string }; result: { hash: string } };
-  'site.balances': { params: { address: string; chainId: number }; result: { eth: bigint; tokens: { symbol: string; decimals: number; amount: bigint }[] } };
+  'site.balances': { params: { address: string; chainId: number }; result: { eth: bigint; tokens: { address: string; symbol: string; decimals: number; amount: bigint }[] } };
   'site.fund': { params: { address: string; token: string; amount: bigint }; result: { hash: string } };
   /** A site's network, as a dapp's wallet_switchEthereumChain would set it. */
   'site.setChain': { params: { origin: string; chainId: number }; result: null };
+  /** Reads a token's symbol and decimals through the network's provider (so through Nox) and checks them. Saves nothing. */
+  'tokens.lookup': { params: { chainId: number; address: string }; result: Token };
+  /** Saves a looked-up token to the encrypted book. */
+  'tokens.add': { params: { chainId: number; address: string }; result: Token };
+  'tokens.remove': { params: { chainId: number; address: string }; result: null };
   /** RAILGUN's network. Restarts the core, which locks the wallet. */
   'net.setPrivate': { params: { net: 'sepolia' | 'arbitrum' }; result: null };
   'ens.claim': { params: { label: string }; result: { name: string } };

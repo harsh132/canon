@@ -19,6 +19,8 @@ The user never picks "shield" or "unshield". Source and recipient decide:
 | Private | 0zk | `generateTransferProof` + `populateProvedTransfer` | Send privately |
 | Private | 0x | `generateUnshieldBaseTokenProof` (WETH out as ETH) | Make public |
 
+With a token picked in Send (an ERC-20 on the private network, listed or added), the same four paths move that token: `transfer`, `approve` + `populateShield`, the transfer proof, and `generateUnshieldProof` ([networks.md](networks.md#tokens)).
+
 Review shows what becomes visible, the gas fee, which public account pays gas, and whether a proof is needed. Private sends use `sendWithPublicWallet = true` with Main paying gas, for now.
 
 The shield key is `keccak256(sign(getShieldPrivateKeySignatureMessage()))` from the funding account, as RAILGUN specifies.

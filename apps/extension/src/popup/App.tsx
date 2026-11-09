@@ -7,6 +7,7 @@ import { Send } from './screens/Send';
 import { Receive } from './screens/Receive';
 import { Apps } from './screens/Apps';
 import { Accounts } from './screens/Accounts';
+import { Tokens } from './screens/Tokens';
 import { Privacy } from './screens/Privacy';
 import { Name } from './screens/Name';
 import { Swap } from './screens/Swap';
@@ -14,7 +15,7 @@ import { ConnectPrompt, RequestPrompt } from './screens/Prompts';
 import { Phrase, Reset } from './screens/Phrase';
 import { AppHeader, Footer, SepoliaOnly } from './frame';
 
-export type Tab = 'home' | 'send' | 'receive' | 'apps' | 'accounts' | 'privacy' | 'name' | 'swap' | 'phrase' | 'reset';
+export type Tab = 'home' | 'send' | 'receive' | 'apps' | 'accounts' | 'tokens' | 'privacy' | 'name' | 'swap' | 'phrase' | 'reset';
 
 export const App = () => {
   const s = useCore();
@@ -60,6 +61,7 @@ export const App = () => {
         {tab === 'receive' && <Receive s={s} go={go} />}
         {tab === 'apps' && <Apps s={s} />}
         {tab === 'accounts' && <Accounts s={s} go={go} />}
+        {tab === 'tokens' && <Tokens s={s} go={go} />}
         {tab === 'privacy' && <Privacy s={s} go={go} />}
         {tab === 'name' && <Name s={s} go={go} />}
         {tab === 'swap' && (s.privateNet === 'sepolia' ? <Swap s={s} go={go} /> : <SepoliaOnly />)}

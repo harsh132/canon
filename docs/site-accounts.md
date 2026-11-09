@@ -7,7 +7,7 @@ Each dapp gets its own public address ([walletconnect.md](walletconnect.md), [in
 The toolbar icon opens the side panel for the current tab only (`panel.html?tab=<id>`). Other tabs keep their own panel, or none.
 
 - The core maps each tab to the dapp connected in it, from the `canon-dapp` port Chrome stamps with the tab id.
-- The panel's site card shows the dapp's icon, origin, its address and the address's ETH, WETH and USDC, read through Nox.
+- The panel's site card shows the dapp's icon, origin, its address and the address's ETH, WETH, USDC and any token the user added for that network ([networks.md](networks.md#tokens)), read through Nox.
 - A tab with no dapp shows "No dapp in this tab".
 - With a tab's panel open, that tab's requests show in full in the panel and no popup opens ([architecture.md](architecture.md#where-prompts-appear)). Another site's waiting request shows as a bar at the top until reviewed.
 

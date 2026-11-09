@@ -36,6 +36,7 @@ export const AppHeader = ({ s, tab, go }: { s: CoreState; tab: Tab; go: (t: Tab)
   const items: { tab: Tab; label: string; cls?: string }[] = [
     { tab: 'name', label: s.name ?? 'Get a name' },
     { tab: 'accounts', label: 'Addresses' },
+    { tab: 'tokens', label: 'Tokens' },
     { tab: 'privacy', label: 'Privacy' },
     { tab: 'phrase', label: 'Recovery phrase' },
     { tab: 'reset', label: 'Reset', cls: 'text-danger' },

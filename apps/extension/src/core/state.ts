@@ -12,6 +12,7 @@ export const state: CoreState = {
   engine: { status: 'off' },
   sync: { status: 'idle', progress: 0 },
   privateBalances: [],
+  tokens: {},
   accounts: [],
   activity: [],
   proof: null,
