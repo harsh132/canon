@@ -18,8 +18,10 @@ assert.equal(etaText(pendingEta([shield(0)], HOLD), now), 'Spendable in about 12
 assert.equal(etaText(pendingEta([shield(60_000)], HOLD), now), 'Spendable in about 11 min');
 assert.equal(etaText(pendingEta([shield(HOLD - 1)], HOLD), now), 'Spendable in about 1 min');
 
-// The oldest shield decides.
-assert.equal(etaText(pendingEta([shield(0), shield(10 * 60_000)], HOLD), now), 'Spendable in about 2 min');
+// The newest shield decides: the text says when all of the pending funds could be spendable.
+assert.equal(etaText(pendingEta([shield(0), shield(10 * 60_000)], HOLD), now), 'Spendable in about 12 min');
+// A note waiting only on proof of innocence (from a private send, or stuck) does not hide a new shield's hold.
+assert.equal(etaText(pendingEta([{ shield: false, at: 0 }, shield(0)], HOLD), now), 'Spendable in about 12 min');
 
 // Hold over, proof of innocence still pending: never zero, never negative.
 assert.equal(etaText(pendingEta([shield(HOLD)], HOLD), now), 'Clearing proof of innocence');

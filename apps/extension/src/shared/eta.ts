@@ -11,13 +11,15 @@ export type PendingEta = { readyAt: number } | null;
 /** at: the note's block time in seconds, 0 when unknown. */
 export type PendingNote = { shield: boolean; at: number };
 
-/** The soonest a pending note could clear. Null when no note has the data for it. */
+/** When the last pending note with data could clear. Null when no note has the data for it.
+ *  The latest, not the soonest: a note already waiting only on proof of innocence (one from a
+ *  private send, or one stuck there) must not hide a new shield's hold. */
 export const pendingEta = (notes: PendingNote[], holdMs: number | undefined): PendingEta => {
   let readyAt: number | null = null;
   for (const n of notes) {
     // Only a shield waits out the hold; a note from a private send waits on proof of innocence alone.
     const t = !n.shield ? 0 : holdMs != null && n.at > 0 ? n.at * 1000 + holdMs : null;
-    if (t != null && (readyAt == null || t < readyAt)) readyAt = t;
+    if (t != null && (readyAt == null || t > readyAt)) readyAt = t;
   }
   return readyAt == null ? null : { readyAt };
 };

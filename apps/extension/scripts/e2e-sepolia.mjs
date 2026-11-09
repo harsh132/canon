@@ -3,7 +3,7 @@
 //   bun scripts/e2e-sepolia.mjs shield    Make private AMOUNT (default 0.01) from Main
 //   bun scripts/e2e-sepolia.mjs status    sync and print private balance (spendable / pending)
 //   bun scripts/e2e-sepolia.mjs broadcasters  wait for Waku to find Sepolia broadcasters
-//   bun scripts/e2e-sepolia.mjs private   Send privately AMOUNT to TO (default alice.canon.eth) with VIA gas
+//   bun scripts/e2e-sepolia.mjs private   Send privately AMOUNT (of TOKEN, an ERC-20 address, if set) to TO (default alice.canon.eth) with VIA gas
 //   bun scripts/e2e-sepolia.mjs swap      private swap AMOUNT (default 0.001) WETH -> USDC on Uniswap v4
 //   bun scripts/e2e-sepolia.mjs name      claim LABEL.canon.eth, then pay it from Main by name
 //   bun scripts/e2e-sepolia.mjs spend     Send privately 0.002 to self
@@ -62,6 +62,7 @@ const balances = async () => {
     spendable: t.match(/PRIVATE BALANCE ([\d.]+)/i)?.[1],
     pending: t.match(/PENDING ([\d.]+) W?ETH/i)?.[1] ?? '0',
     reads: t.match(/(\d+) clear · (\d+) mixed/)?.[0],
+    eta: t.match(/Spendable in about \d+ min|Clearing proof of innocence/i)?.[0],
   };
 };
 
@@ -107,6 +108,8 @@ const send = async ({ from, to, amount, expect }) => {
   await nav('send');
   await popup.waitForSelector('select');
   await popup.select('select', String(from));
+  // TOKEN=<address>: send that ERC-20 instead of ETH.
+  if (process.env.TOKEN) await (await popup.$$('select'))[1].select(process.env.TOKEN);
   if (from === 'private' && VIA === 'broadcaster') await click('^broadcaster$');
   if (from === 'private' && VIA === 'self') await click('^main$');
   const [toInput] = await popup.$$('input:not([inputmode])');
@@ -146,7 +149,10 @@ if (phase === 'setup') {
   log('waiting for the shield to land and sync…');
   await new Promise((r) => setTimeout(r, 30000));
   await resync();
-  log('balances:', await balances());
+  const after = await balances();
+  log('balances:', after);
+  // WAIT_SPENDABLE=1: stay open until the new notes clear, logging the countdown each minute.
+  if (process.env.WAIT_SPENDABLE) await waitSpendable(Number(after.spendable ?? 0) + Number(AMOUNT) * 0.99);
 } else if (phase === 'status') {
   // WAIT_SPENDABLE=1: stay open until some private balance is spendable, for example
   // while the wallet resumes POI submissions a closed session left.
@@ -175,7 +181,7 @@ if (phase === 'setup') {
 } else if (phase === 'private') {
   // Send privately (gas route from VIA, default sponsor) to TO, default a name.
   const to = process.env.TO ?? 'alice.canon.eth';
-  if (process.env.WAIT_SPENDABLE) await waitSpendable(Number(process.env.AMOUNT ?? '0.001'));
+  if (process.env.WAIT_SPENDABLE && !process.env.TOKEN) await waitSpendable(Number(process.env.AMOUNT ?? '0.001'));
   await send({ from: 'private', to, amount: process.env.AMOUNT ?? '0.001', expect: 'Send privately' });
   // Stay open: the wallet submits the send's POIs in the background, like a broadcaster.
   const t1 = Date.now();
