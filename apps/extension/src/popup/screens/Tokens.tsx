@@ -9,6 +9,19 @@ import { Button, Card, ErrorLine, Field, Header, Input, Row } from '../ui';
 const SELECT = 'w-full rounded-sm border border-rule bg-sheet px-3 py-2.5 font-mono text-sm outline-none focus:border-accent';
 const digits = (d: number) => (d > 6 ? 4 : 2);
 
+/** The reply while it is the newest request on `seq`; an overtaken reply or failure is
+ *  dropped (undefined), so it sets no state and shows no error. */
+const newest = async <T,>(seq: { current: number }, request: () => Promise<T>): Promise<T | undefined> => {
+  const mine = ++seq.current;
+  try {
+    const reply = await request();
+    return seq.current === mine ? reply : undefined;
+  } catch (e) {
+    if (seq.current === mine) throw e;
+    return undefined;
+  }
+};
+
 /** The tokens Canon shows per network: the built-in ones and the user's own, saved in the encrypted book. */
 export const Tokens = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
   const [chainId, setChainId] = useState(s.chainId);
@@ -18,9 +31,9 @@ export const Tokens = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
   // Main's public balances, read only when asked.
   const [pub, setPub] = useState<Record<string, bigint> | null>(null);
   const a = useAction();
-  // Only the newest balance read and the newest lookup may set state. A network change
-  // invalidates both; an address change invalidates the lookup. So a reply started before
-  // a change, or overtaken by a later request, never shows (even after A -> B -> A).
+  // Only the newest balance read and the newest lookup may set state or show an error. A
+  // network change invalidates both; an address change or an Add invalidates the lookup. So a
+  // reply started before a change, or overtaken by a later request, never shows.
   const pubSeq = useRef(0);
   const lookSeq = useRef(0);
   const main = s.accounts.find((x) => x.index === 0);
@@ -31,9 +44,8 @@ export const Tokens = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
 
   const readPublic = () =>
     a.run(async () => {
-      const mine = ++pubSeq.current;
-      const b = await call('site.balances', { address: main!.address, chainId });
-      if (pubSeq.current === mine) setPub(Object.fromEntries(b.tokens.map((t) => [t.address.toLowerCase(), t.amount])));
+      const b = await newest(pubSeq, () => call('site.balances', { address: main!.address, chainId }));
+      if (b) setPub(Object.fromEntries(b.tokens.map((t) => [t.address.toLowerCase(), t.amount])));
     });
 
   return (
@@ -107,9 +119,8 @@ export const Tokens = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
             />
             <Button variant="ghost" className="flex-none" busy={a.busy} disabled={!address.trim()} onClick={() =>
                 a.run(async () => {
-                  const mine = ++lookSeq.current;
-                  const t = await call('tokens.lookup', { chainId, address });
-                  if (lookSeq.current === mine) setFound({ ...t, chainId } as Token & { chainId: number });
+                  const t = await newest(lookSeq, () => call('tokens.lookup', { chainId, address }));
+                  if (t) setFound({ ...t, chainId } as Token & { chainId: number });
                 })
               }>
               Look up
@@ -129,6 +140,7 @@ export const Tokens = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
               onClick={() =>
                 a.run(async () => {
                   await call('tokens.add', { chainId: found.chainId, address: found.address });
+                  lookSeq.current += 1; // a lookup still running must not bring the added token back
                   setFound(null);
                   setAddress('');
                 })
