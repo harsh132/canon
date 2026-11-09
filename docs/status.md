@@ -34,6 +34,7 @@ Updated 2026-11-09.
 
 ## Built, not yet verified
 
+- **Spendable countdown on Home.** Logic checked by `check-eta.ts`; not yet seen against a real pending shield, because the shared test wallet was in use ([railgun.md](railgun.md#spendable-countdown)).
 - **Sponsored Make public from Home.** Same relay path as Fund with ETH, which now passes through Nox; not run separately.
 - **Passkeys on real authenticators.** Google Password Manager, iCloud Keychain and security keys need a manual try; headless tests use a virtual one.
 

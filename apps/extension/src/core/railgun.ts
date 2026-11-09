@@ -17,13 +17,15 @@ import {
   setOnTXIDMerkletreeScanCallback,
   setOnUTXOMerkletreeScanCallback,
   startRailgunEngine,
+  walletForID,
 } from '@railgun-community/wallet';
-import { POI, WalletBalanceBucket, type SnarkJSGroth16 } from '@railgun-community/engine';
+import { CommitmentType, POI, WalletBalanceBucket, type SnarkJSGroth16 } from '@railgun-community/engine';
 import { NETWORK_CONFIG, RailgunWalletBalanceBucket, TXIDVersion, type RailgunBalancesEvent } from '@railgun-community/shared-models';
 import leveljs from 'level-js';
 import localforage from 'localforage';
 import { groth16 } from 'snarkjs';
 import { Contract } from 'ethers';
+import { SHIELD_HOLD_MS, pendingEta } from '../shared/eta';
 import type { TokenBalance } from '../shared/protocol';
 import { CHAIN, DEV, FORK, NETWORK, POI_NODES, RPC_URL, WETH, getProvider } from './config';
 import { emit, state } from './state';
@@ -164,6 +166,23 @@ const onBalances = (ev: RailgunBalancesEvent): void => {
   void rebuildBalances();
 };
 
+// The wallet's own notes carry the shield's block time and their POI bucket, so
+// this needs no network call. Runs only when a balance changes.
+const readPendingEta = async () => {
+  try {
+    const txos = await walletForID(currentWalletId()).TXOs(TXIDVersion.V2_PoseidonMerkle, CHAIN);
+    const notes = txos
+      .filter((t) => PENDING.has(POI.getBalanceBucket(t)))
+      .map((t) => ({
+        shield: t.commitmentType === CommitmentType.ShieldCommitment || t.commitmentType === CommitmentType.LegacyGeneratedCommitment,
+        at: t.timestamp ?? 0,
+      }));
+    return pendingEta(notes, SHIELD_HOLD_MS[CHAIN.id]);
+  } catch {
+    return null;
+  }
+};
+
 const rebuildBalances = async (): Promise<void> => {
   const totals = new Map<string, { spendable: bigint; pending: bigint }>();
   for (const [bucket, amounts] of buckets) {
@@ -184,6 +203,7 @@ const rebuildBalances = async (): Promise<void> => {
   if (!list.some((b) => b.token === WETH.toLowerCase())) {
     list.unshift({ token: WETH.toLowerCase(), symbol: 'WETH', decimals: 18, spendable: 0n, pending: 0n });
   }
+  state.pendingEta = list.some((b) => b.pending > 0n) ? await readPendingEta() : null;
   state.privateBalances = list.sort((a, b) => (a.token === WETH.toLowerCase() ? -1 : b.token === WETH.toLowerCase() ? 1 : 0));
   emit();
 };
@@ -225,6 +245,7 @@ export const closeRailgunWallet = (): void => {
   buckets.clear();
   state.railgunAddress = null;
   state.privateBalances = [];
+  state.pendingEta = null;
   state.sync = { status: 'idle', progress: 0 };
 };
 

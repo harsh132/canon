@@ -66,6 +66,17 @@ Measured 2026-11-06 with `e2e-sepolia.mjs`:
 
 After the self-paid private send, both new notes sat in `MissingExternalPOI`, and the engine listed the send in `getChainTxidsStillPendingSpentPOIs`. The wallet has to generate the proof itself, which needs the send in RAILGUN's TXID tree first. `sync()` now calls `generatePOIsForWallet` after every scan so the proof is built while the wallet is open. A broadcaster send attaches its proofs up front instead. `scripts/poi-probe.mjs` prints this state from a dev build.
 
+## Spendable countdown
+
+Home shows "Spendable in about N min" under pending private funds, or "Clearing proof of innocence" when the hold is over and the proof is not.
+
+- **Data.** RAILGUN's network config has no shield hold time (`NETWORK_CONFIG[...].poi` holds only `launchBlock` and `launchTimestamp`), and the POI status info has no time. Two sources work: each note's block time (`TXO.timestamp`, seconds, from `walletForID(id).TXOs()`) and its bucket (`POI.getBalanceBucket`).
+- **Hold.** `SHIELD_HOLD_MS` in `shared/eta.ts` holds the measured 12 minutes for Sepolia. A network with no entry (Arbitrum) gets no estimate for shields until someone measures it.
+- **Core.** `rebuildBalances` calls `readPendingEta` only while some balance is pending, so it adds no RPC call and no polling. The soonest pending note decides. `CoreState.pendingEta` is `{ readyAt }` (ms epoch) or null. A pending note from a private send has no hold, so `readyAt` is 0 and the text is "Clearing proof of innocence".
+- **UI.** `etaText` rounds up to whole minutes. Home re-renders every 30 s from the stored time. It asks the core for nothing.
+- **Not done.** The Recent list shows a transaction's own status, which is done once mined, so it has no countdown. A full activity screen can read `pendingEta` too.
+- **Check.** `bun scripts/check-eta.ts` covers no data, a running hold, hold over, and the oldest note winning.
+
 ## Sponsored relay (default on Sepolia)
 
 Private sends default to Canon's sponsor paying gas (`apps/sponsor/src/relay.ts`, `POST /relay`). The wallet proves in broadcaster mode with no fee output and posts `{ to, data, minGasPrice }`; the sponsor sends it from its own address.

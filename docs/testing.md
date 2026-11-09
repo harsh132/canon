@@ -16,6 +16,7 @@ End-to-end scripts in `apps/extension/scripts`. Each launches Chromium with `dis
 | `shot-onboard.mjs` | Screenshots of the onboarding screens into `.cache/onboard-shots/` | A build |
 | `check-site-panel.mjs` | Two dapps in two tabs; each tab's panel shows its own site and address; a tab with no dapp shows none | A `--dev` build; port 8795 |
 | `apps/sponsor/scripts/execute-probe.ts` | The sponsor's `/execute` from a fresh address: first call with a 7702 authorization, then a two-call batch | The sponsor running |
+| `check-eta.ts` | The spendable countdown: no data, hold running, hold over with proof of innocence pending, oldest note wins | Nothing (`bun scripts/check-eta.ts`) |
 | `check-focus.mjs` | Every field on every screen shows one focus border and no outline (dark mode) | A build |
 | `check-panel.mjs` | Side panel behaviour and layout at several widths: tabs at the top, status line pinned to the bottom | A build |
 | `shot-frame.mjs` | Screenshots of Home, the menu, Send, Recovery phrase and a panel with a dapp, dark, into `.cache/frame-shots/` | A build; port 8797 |
@@ -40,6 +41,7 @@ CANON_PROFILE=$PWD/.cache/<new> bun scripts/e2e-fork.mjs
 
 | Date | Script | Network | Result |
 |---|---|---|---|
+| 2026-11-09 | `check-eta.ts`, `e2e-create.mjs` | None; Sepolia, Nox, Playwright Chromium on Windows | `check-eta.ts` passes. `e2e-create.mjs` synced a new wallet in 87 s with the countdown code in the build, then stopped on its own final screenshot: `ENOENT ... open 'C:C:Users....cachehome.png'` (`new URL().pathname` on Windows). That wallet has no pending notes, so the countdown path ran only for no data. Not run on real pending funds |
 | 2026-11-09 | `e2e-sepolia.mjs shield`, then `FUND_ONLY=1 e2e-sepolia.mjs dapp` | Sepolia, Nox, hosted sponsor; Playwright Chromium on Windows | Make private 0.01 ETH ([tx](https://sepolia.etherscan.io/tx/0x286ec2e1aeb1465efd76d2849f72586d3b6b15db06207e274447dc7edd5381f5)). First Fund failed: all five tunnel exits skipped while RAILGUN built the transaction, then "No exit offers TLS tunnels" on proof-of-innocence lookups. With `tlsOpenTimeoutMs: 30000`, Fund passed in 71 s, 0.00049875 ETH arrived ([tx](https://sepolia.etherscan.io/tx/0x1238478c49b6fb4acaeda124d675031b95a2d6f2d4ed5f5a28ef355c8671012b)), 0 exits skipped in 68 tunnel calls; the value batch after it passed. One run each |
 | 2026-11-09 | `e2e-sepolia.mjs setup`, `dapp` | Sepolia, Nox, hosted sponsor; Playwright Chromium on Windows | Sponsored `eth_sendTransaction` (type 4) and a two-call `wallet_sendCalls` pass. With each Nox request logged: 32 ok, 0 failed, including `eth_getTransactionCount`, `eth_getCode`, `ppoi.fdi.network` and the sponsor's `/health` and `/execute`. Fund not run: the new wallet has no private WETH. Seen once: a RAILGUN scan error "block range extends beyond current head block" |
 | 2026-11-08 | `preview-check.ts`, `e2e-injected.mjs` | Sepolia; Chrome for Testing 151 on Windows | All pass. The preview shows in about 3 s through Nox. It caught WETH9 minting with `Deposit`, not `Transfer` |
