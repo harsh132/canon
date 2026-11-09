@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { CoreState } from '../../shared/protocol';
 import { amount, short } from '../../shared/format';
 import { call, panelTab } from '../client';
@@ -20,10 +20,15 @@ export const SiteCard = ({ s, onFund }: { s: CoreState; onFund?: (address: strin
   const chainId = (origin && s.siteChains[origin]) || SEPOLIA_ID;
   const net = netOf(chainId);
 
-  // Read once per site, and on demand; never polled.
+  // Read once per site, and on demand; never polled. A reply for an address or network
+  // the card no longer shows is dropped, so a slow read cannot overwrite a newer one.
+  const shown = useRef('');
+  shown.current = `${account?.address}:${chainId}`;
   const refresh = () => {
     if (!account) return;
-    void call('site.balances', { address: account.address, chainId }).then(setBal, () => setBal(null));
+    const key = shown.current;
+    const set = (b: Balances | null) => shown.current === key && setBal(b);
+    void call('site.balances', { address: account.address, chainId }).then(set, () => set(null));
   };
   useEffect(() => {
     setBal(null);
