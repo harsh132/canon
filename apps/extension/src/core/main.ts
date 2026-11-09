@@ -240,8 +240,16 @@ const handlers: Handlers = {
     const p = providerFor(chainId);
     const erc20 = (t: string) => new Contract(t, ['function balanceOf(address) view returns (uint256)'], p);
     const known = tokensOn(chainId, customTokens());
-    const [eth, ...amounts] = await Promise.all([p.getBalance(address), ...known.map((k) => erc20(k.address).balanceOf(address) as Promise<bigint>)]);
-    return { eth, tokens: known.map((k, i) => ({ address: k.address, symbol: k.symbol, decimals: k.decimals, amount: amounts[i] })) };
+    // Each token read stands alone: a custom token whose balanceOf reverts must not hide the others.
+    // A failed read is left out, so the UI shows it as unknown, never as zero.
+    const [eth, amounts] = await Promise.all([p.getBalance(address), Promise.allSettled(known.map((k) => erc20(k.address).balanceOf(address) as Promise<bigint>))]);
+    return {
+      eth,
+      tokens: known.flatMap((k, i) => {
+        const r = amounts[i];
+        return r.status === 'fulfilled' ? [{ address: k.address, symbol: k.symbol, decimals: k.decimals, amount: r.value }] : [];
+      }),
+    };
   },
   'tokens.lookup': async ({ chainId, address }) => (need(), lookupToken(chainId, address)),
   'tokens.add': async ({ chainId, address }) => {

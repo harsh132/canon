@@ -38,7 +38,7 @@ Each network lists WETH and USDC (`src/shared/networks.ts`). The user can add an
   - A built-in or already-added address is refused.
 - **Saved per chain in the encrypted account book.** A readable list of someone's tokens is a disclosure at rest. While locked, `CoreState.tokens` is empty.
 - **Remove** on the Tokens screen deletes it from the book.
-- **Balances.** The Tokens screen shows Main's public balance of each token on request (`site.balances`, through Nox) and the private balance on the private network. The site card shows a site address's balance of every token on its network, custom ones included.
+- **Balances.** The Tokens screen shows Main's public balance of each token on request (`site.balances`, through Nox) and the private balance on the private network. The site card shows a site address's balance of every token on its network, custom ones included. Each token is read on its own: one whose `balanceOf` fails is left out ("public unknown" on the Tokens screen), and the others still show. A lookup or balance reply that arrives after the user changed the network or the address is dropped, and Add saves the token on the network it was looked up on.
 - **Private balance.** RAILGUN lists every token the wallet holds a note of, added or not. Unknown tokens go through the same symbol check, so a fake "WETH" note shows as "WETH?".
 - **Send.** On the private network, Send has a Token picker: ETH, the listed ERC-20s (not WETH, which Send shows as ETH) and the custom ones. All four paths work with an ERC-20:
 
