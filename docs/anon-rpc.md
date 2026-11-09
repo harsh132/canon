@@ -109,7 +109,7 @@ Now the Nox worker is part of the submitted package, so the first rule holds for
 
 What is left:
 
-- **RAILGUN's circuit artifacts.** At the first proof, the RAILGUN wallet SDK downloads each circuit's snarkjs witness generator (`*.wasm.br`) and proving key from `ipfs-lb.com`. It checks them against hashes that it carries (`artifact-hash.js`). That WebAssembly then runs in the core, which has extension APIs, so the sandbox exemption does not cover it. To close this, ship the artifacts in the package. This change does not do that.
+- **RAILGUN's circuit proving keys.** The snarkjs witness generators (`*.wasm.br`, code that runs in the core) are now in the package. The build fetches all 93 (91 transaction circuits and 2 POI circuits, 83 MB compressed) from IPFS once and checks each against the SDK's hashes (`artifact-v2-hashes.json`). A mismatch stops the build. The core reads them from the package and refuses any network fetch of circuit code (`transport.ts`). The proving keys (`zkey`, 894 MB for all circuits) are data, not code. They still download from `ipfs-lb.com` at the first proof that needs each one, and the SDK checks their hashes.
 - **Reviewability of the bundle.** It is 1.8 MB of minified JavaScript with embedded WebAssembly. The npm package carries its source, a provenance file and a reproducible build ([nox-sdk](https://github.com/hisoka-io/nox-sdk)). Link them in the review notes.
 - **Updates.** A new `workerHash()` on the contract stops Nox in every installed Canon until a store update ships the matching bundle. Direct RPC still works, by the user's choice.
 - **Policy changes.** Read the policy again before each submission.

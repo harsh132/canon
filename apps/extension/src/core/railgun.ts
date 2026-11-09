@@ -23,6 +23,7 @@ import { CommitmentType, POI, WalletBalanceBucket, type SnarkJSGroth16 } from '@
 import { NETWORK_CONFIG, RailgunWalletBalanceBucket, TXIDVersion, type RailgunBalancesEvent } from '@railgun-community/shared-models';
 import leveljs from 'level-js';
 import localforage from 'localforage';
+import brotliDecompress from 'brotli/decompress';
 import { groth16 } from 'snarkjs';
 import { Contract } from 'ethers';
 import { SHIELD_HOLD_MS, pendingEta } from '../shared/eta';
@@ -33,12 +34,33 @@ import { emit, state } from './state';
 import { saveRailgunWalletId, type Unlocked } from './vault';
 
 const artifacts = localforage.createInstance({ name: 'railgun-artifacts' });
+// A circuit's witness generator is code, so it ships in the package (scripts/build.mjs, which
+// checks it against the SDK's hashes) and is never downloaded: its path always "exists", and a
+// copy an older Canon downloaded is ignored. Proving keys and vkeys are data the SDK
+// downloads and hash-checks, then keeps here. SDK paths end in "<variant>/wasm".
+const bundledWasm = (path: string) => /\/wasm$/.test(path);
+const wasmCache = new Map<string, Promise<Buffer>>();
+const readBundledWasm = (path: string) => {
+  const variant = path.split('/').at(-2)!;
+  let p = wasmCache.get(variant);
+  if (!p) {
+    p = fetch(new URL(`/artifacts/${variant}.wasm.br`, location.href))
+      .then((r) => {
+        if (!r.ok) throw new Error(`Circuit ${variant} is not in this build`);
+        return r.arrayBuffer();
+      })
+      .then((b) => Buffer.from(brotliDecompress(Buffer.from(b))));
+    p.catch(() => wasmCache.delete(variant));
+    wasmCache.set(variant, p);
+  }
+  return p;
+};
 const artifactStore = new ArtifactStore(
-  async (path) => artifacts.getItem<string | Buffer>(path),
+  async (path) => (bundledWasm(path) ? readBundledWasm(path) : artifacts.getItem<string | Buffer>(path)),
   async (_dir, path, item) => {
-    await artifacts.setItem(path, item);
+    if (!bundledWasm(path)) await artifacts.setItem(path, item);
   },
-  async (path) => (await artifacts.getItem(path)) != null,
+  async (path) => bundledWasm(path) || (await artifacts.getItem(path)) != null,
 );
 
 // snarkjs spreads proving over blob: workers, which MV3's extension CSP may

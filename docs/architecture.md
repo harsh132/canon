@@ -55,7 +55,7 @@ All in the extension origin's IndexedDB. The offscreen document has no `chrome.s
 | `canon/kv` → `book` | Public accounts, dapp bindings, activity, site networks, custom tokens | Encrypted |
 | `canon/kv` → `rpcMode` | `nox` or `direct` | Plain |
 | `canon-railgun` | RAILGUN merkle trees (public data) and wallet data | Wallet data encrypted with the RAILGUN key |
-| `railgun-artifacts` | Circuit artifacts | Public data |
+| `railgun-artifacts` | Circuit proving keys and vkeys (the circuit code is in the package, `dist/artifacts`) | Public data |
 | WalletConnect's own stores | Pairings and sessions | Plain, as the SDK keeps them |
 
 The book is encrypted because a readable list of the sites someone uses is the very disclosure per-dapp addresses exist to prevent.

@@ -14,7 +14,7 @@
 | Waku peers | The IP of a browser using RAILGUN broadcasters | Broadcaster discovery and requests travel over Waku, not Nox. Requests are encrypted to the broadcaster |
 | RAILGUN QuickSync (Subsquid) | The IP of someone syncing, and from which block | Bulk public data fetched directly, about 13 MB pages. Names no address |
 | PPOI aggregator | Blinded commitments of this wallet's notes, not the IP | Sent through Nox in Nox mode; verified |
-| Circuit artifact host (IPFS) | The IP of someone about to prove | Public data, fetched directly |
+| Circuit artifact host (IPFS) | The IP of someone about to prove, and which circuit size (inputs and outputs) | Proving keys only, fetched directly once per circuit. The circuit code is in the package |
 | WalletConnect relay | The IP of the wallet and the dapps it pairs with | WebSocket, not RPC; not routable through Nox |
 | Passkey provider (Google, Apple, a security key) | Holds the passkey, so it can open a passkey wallet | The PRF output never leaves the authenticator unencrypted; the provider's account security is the wallet's ([onboarding.md](onboarding.md#risks)) |
 | Each dapp | Only the address it was given | A fresh address per dapp ([walletconnect.md](walletconnect.md)) |
@@ -33,7 +33,7 @@ Since the core started:
 | via Nox | RPC requests and PPOI lookups sent through the worker |
 | Clear RPC | RPC requests sent directly. Zero in Nox mode; anything else is a bug |
 | Bootstrap | The worker's one specifier read (`workerHash()`). It names Nox, not the user. The bundle is packaged, not downloaded |
-| Bulk sync | QuickSync pages and circuit artifacts |
+| Bulk sync | QuickSync pages and circuit proving keys |
 | Other | Any other direct request, logged to the core console |
 
 The "Nothing leaked" stamp shows only when the mode is Nox, the worker is ready and Clear RPC is zero.
@@ -48,5 +48,5 @@ The "Nothing leaked" stamp shows only when the mode is Nox, the worker is ready 
 ## Open leaks, in order of cost
 
 1. Waku sees the browser's IP when using a broadcaster. Fix: route Waku through a mixnet if one carries it.
-2. QuickSync and artifacts reveal IP and timing. Fix: fetch through a mixnet if Nox ever carries bulk data, or self-host.
+2. QuickSync and proving-key downloads reveal IP and timing. Fix: fetch through a mixnet if Nox ever carries bulk data, or self-host.
 3. The WalletConnect relay sees IPs. Inherent to WalletConnect.

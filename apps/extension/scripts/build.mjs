@@ -8,6 +8,8 @@ import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } fr
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
+import { createHash } from 'node:crypto';
+import { brotliDecompressSync } from 'node:zlib';
 import { context, build } from 'esbuild';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -164,6 +166,50 @@ const copyStatic = () => {
   for (const [pkg, file] of fonts) cpSync(nm('@fontsource', pkg, 'files', file), join(dist, 'fonts', file));
 };
 
+// RAILGUN's circuit witness generators (snarkjs .wasm) are code that runs in the core, so
+// they ship in the package instead of being fetched from IPFS at the first proof (the Chrome
+// Web Store allows no remotely hosted code). Fetched once into .cache/artifacts and checked
+// against the hashes in @railgun-community/wallet; a mismatch fails the build. Proving keys
+// are data, hash-checked by the SDK, and still download on demand (railgun.ts).
+const IPFS = 'https://ipfs-lb.com/ipfs';
+const ARTIFACTS_MAIN = 'QmUsmnK4PFc7zDp2cmC4wBZxYLjNyRgWfs5GNcJJ2uLcpU';
+const ARTIFACTS_POI = 'QmZ2MyM6TKxffkv6stuo2hFwmUfs3q4xgMYN164Sje8new';
+const artifactHashes = JSON.parse(
+  readFileSync(nm('@railgun-community', 'wallet', 'dist', 'services', 'artifacts', 'json', 'artifact-v2-hashes.json'), 'utf8'),
+);
+const circuitWasm = async () => {
+  const sdk = readFileSync(nm('@railgun-community', 'wallet', 'dist', 'services', 'artifacts', 'artifact-util.js'), 'utf8');
+  if (!sdk.includes(ARTIFACTS_MAIN) || !sdk.includes(ARTIFACTS_POI)) throw new Error('RAILGUN artifact IPFS hashes moved; update build.mjs');
+  const cache = join(app, '.cache', 'artifacts');
+  mkdirSync(cache, { recursive: true });
+  mkdirSync(join(dist, 'artifacts'), { recursive: true });
+  const url = (v) =>
+    v.startsWith('POI_')
+      ? `${IPFS}/${ARTIFACTS_POI}/prover/snarkjs/${v.replace(/^POI_(\d+)x(\d+)$/, (_, a, b) => `${a.padStart(2, '0')}x${b.padStart(2, '0')}`)}.wasm.br`
+      : `${IPFS}/${ARTIFACTS_MAIN}/prover/snarkjs/${v}.wasm.br`;
+  const ok = (br, v) => createHash('sha256').update(brotliDecompressSync(br)).digest('hex') === artifactHashes[v].wasm;
+  const fetchOne = async (v) => {
+    const file = join(cache, `${v}.wasm.br`);
+    if (!existsSync(file) || !ok(readFileSync(file), v)) {
+      for (let tries = 0; ; tries++) {
+        try {
+          const res = await fetch(url(v));
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const br = Buffer.from(await res.arrayBuffer());
+          if (!ok(br, v)) throw new Error('hash mismatch');
+          writeFileSync(file, br);
+          break;
+        } catch (e) {
+          if (tries >= 3) throw new Error(`circuit ${v}: ${e.message}`);
+        }
+      }
+    }
+    cpSync(file, join(dist, 'artifacts', `${v}.wasm.br`));
+  };
+  const queue = Object.keys(artifactHashes);
+  await Promise.all(Array.from({ length: 8 }, async () => { while (queue.length) await fetchOne(queue.shift()); }));
+};
+
 const tailwind = (w) =>
   new Promise((resolve, reject) => {
     const args = ['-i', join(app, 'src/popup/styles.css'), '-o', join(dist, 'popup.css')];
@@ -179,10 +225,11 @@ if (!watch) rmSync(dist, { recursive: true, force: true });
 copyStatic();
 const started = Date.now();
 if (watch) {
+  await circuitWasm();
   for (const t of targets) await (await context(t)).watch();
   await tailwind(true);
   console.log('watching… load dist/ as an unpacked extension');
 } else {
-  await Promise.all([...targets.map((t) => build(t)), tailwind(false)]);
+  await Promise.all([...targets.map((t) => build(t)), tailwind(false), circuitWasm()]);
   console.log(`built dist/ in ${((Date.now() - started) / 1000).toFixed(1)}s`);
 }
