@@ -2,6 +2,7 @@
 // shows that site and the address it sees. A tab with no dapp shows none.
 // Needs a --dev build (reads core state through a debug handle).
 //   CANON_PROFILE=/new/dir bun scripts/check-site-panel.mjs
+import { fileURLToPath } from 'node:url';
 import { createWallet, launch } from './smoke.mjs';
 
 const PORT = 8795;
@@ -47,7 +48,7 @@ for (const [origin, addr] of [[`http://127.0.0.1:${PORT}`, a.addr], [`http://loc
   const ok = t.includes(origin) && shown && addr.toLowerCase().startsWith(shown.split('…')[0].toLowerCase()) && addr.toLowerCase().endsWith(shown.split('…')[1].toLowerCase());
   if (!ok) fails += 1;
   console.log(ok ? 'ok  ' : 'FAIL', `tab ${tabId} panel shows ${origin} as ${shown} (dapp sees ${addr.slice(0, 8)}…)`);
-  await panel.screenshot({ path: new URL(`../.cache/site-panel-${tabId}.png`, import.meta.url).pathname, clip: { x: 0, y: 0, width: 380, height: 330 } });
+  await panel.screenshot({ path: fileURLToPath(new URL(`../.cache/site-panel-${tabId}.png`, import.meta.url)), clip: { x: 0, y: 0, width: 380, height: 330 } });
   await panel.close();
 }
 const none = await browser.newPage();

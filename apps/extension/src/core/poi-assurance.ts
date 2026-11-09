@@ -35,14 +35,12 @@ export const assurePOI = async (p: {
   const log = (...a: unknown[]) => console.log('[poi-assurance]', ...a);
   try {
     // Same check a broadcaster runs; it also extracts the first output's data.
-    const { isValid, error, extractedRailgunTransactionData } = await POIValidator.isValidSpendableTransaction(
-      currentWalletId(),
-      V2,
-      CHAIN,
-      p.transaction,
-      p.useRelayAdapt,
-      p.pois,
-    );
+    // A 7702 unshield (type 4) goes to the delegated ephemeral account, not to a RAILGUN
+    // contract, so POIValidator's address check fails; check it against its own target.
+    const is7702 = !!(p.transaction as { authorizationList?: unknown[] }).authorizationList?.length;
+    const { isValid, error, extractedRailgunTransactionData } = is7702
+      ? await walletForID(currentWalletId()).isValidSpendableTransaction(V2, CHAIN, p.transaction.to as string, p.transaction, true, p.pois, true)
+      : await POIValidator.isValidSpendableTransaction(currentWalletId(), V2, CHAIN, p.transaction, p.useRelayAdapt, p.pois);
     if (!isValid) throw new Error(`own POIs invalid: ${error}`);
     const first = extractedRailgunTransactionData?.find((d) => d.firstCommitment && d.firstCommitmentNotePublicKey != null);
     if (!first) throw new Error('first output is not ours; nothing to submit');

@@ -1,12 +1,13 @@
 // Screenshots of the wallet frame (dark): Home, menu open, Send, Recovery phrase,
 // and a panel with a connected dapp. Into .cache/frame-shots/.
 //   CANON_PROFILE=/new/dir bun scripts/shot-frame.mjs
+import { fileURLToPath } from 'node:url';
 import { createWallet, launch } from './smoke.mjs';
 
 const PORT = 8797;
 const server = Bun.serve({ port: PORT, hostname: '127.0.0.1', fetch: () => new Response('<!doctype html><title>dapp</title><h1>dapp</h1>', { headers: { 'content-type': 'text/html' } }) });
 const { browser, popup, corePage, id } = await launch();
-const out = new URL('../.cache/frame-shots/', import.meta.url).pathname;
+const out = fileURLToPath(new URL('../.cache/frame-shots/', import.meta.url));
 await Bun.write(`${out}.keep`, '');
 await popup.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: 'dark' }]);
 const click = (page, re) =>
