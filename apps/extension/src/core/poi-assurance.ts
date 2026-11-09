@@ -39,35 +39,55 @@ type Job = {
   pois: PreTransactionPOIsPerTxidLeafPerList;
   /** When the send went out; a job older than MAX_AGE_MS is dropped on resume. */
   at: number;
+  /** The private network it was sent on. The book is shared by Sepolia and Arbitrum. */
+  chainId: number;
+  /** Commitments the node already accepted, so a resumed job skips them. */
+  done: string[];
 };
 
-// ponytail: a node error on submit counts as "try again"; a job the node keeps
-// refusing retries on each unlock until MAX_AGE_MS. Parse node errors if that matters.
+// ponytail: any failure counts as "try again", including a validation result of
+// "invalid" (the SDK also reports a node timeout that way). A job that can never
+// pass retries on each unlock until MAX_AGE_MS. Classify node errors if that matters.
 const MAX_AGE_MS = 7 * 24 * 60 * 60_000;
 const running = new Set<string>();
+/** Jobs an unlock found still running from before; they start again when that run ends. */
+const rerun = new Set<string>();
 const log = (...a: unknown[]) => console.log('[poi-assurance]', ...a);
 
-export const assurePOI = async (p: Omit<Job, 'at'> & { at?: number }): Promise<void> => {
-  const job: Job = { ...p, at: p.at ?? Date.now() };
+const saved = (): Job[] => pendingPOIs().map((s) => decode<Job>(s));
+const save = (job: Job) => savePendingPOI(job.txHash, encode(job));
+
+export const assurePOI = async (p: Omit<Job, 'at' | 'chainId' | 'done'> & Partial<Pick<Job, 'at' | 'chainId' | 'done'>>): Promise<void> => {
+  const job: Job = { ...p, at: p.at ?? Date.now(), chainId: p.chainId ?? CHAIN.id, done: p.done ?? [] };
   if (running.has(job.txHash)) return;
   running.add(job.txHash);
   try {
-    await savePendingPOI(job.txHash, encode(job));
+    await save(job);
     if (await run(job)) await dropPendingPOI(job.txHash);
   } catch (e) {
     console.warn('[poi-assurance]', (e as Error).message);
   } finally {
     running.delete(job.txHash);
+    // The run an unlock skipped has ended without finishing: start it now, from its saved state.
+    if (rerun.delete(job.txHash)) {
+      const again = saved().find((j) => j.txHash === job.txHash);
+      if (again) void assurePOI(again);
+    }
   }
 };
 
 /** After unlock, once the RAILGUN wallet is open and synced: finish the jobs a closed wallet left. */
 export const resumePOI = async (): Promise<void> => {
-  for (const saved of pendingPOIs()) {
-    const job = decode<Job>(saved);
+  for (const job of saved()) {
     if (Date.now() - job.at > MAX_AGE_MS) {
       log('dropped a job older than 7 days', job.txHash);
       await dropPendingPOI(job.txHash);
+      continue;
+    }
+    // Another network's job waits until that network is the private one again.
+    if ((job.chainId ?? CHAIN.id) !== CHAIN.id) continue;
+    if (running.has(job.txHash)) {
+      rerun.add(job.txHash);
       continue;
     }
     log('resuming', job.txHash);
@@ -75,7 +95,7 @@ export const resumePOI = async (): Promise<void> => {
   }
 };
 
-/** True when the job is finished: submitted, or it can never succeed. False: try again later. */
+/** True when every owned output's proof is accepted, or nothing can be submitted. False: try again later. */
 const run = async (p: Job): Promise<boolean> => {
   try {
     // Same check a broadcaster runs; it also extracts the first output's data.
@@ -86,14 +106,19 @@ const run = async (p: Job): Promise<boolean> => {
       ? await walletForID(currentWalletId()).isValidSpendableTransaction(V2, CHAIN, p.transaction.to as string, p.transaction, true, p.pois, true)
       : await POIValidator.isValidSpendableTransaction(currentWalletId(), V2, CHAIN, p.transaction, p.useRelayAdapt, p.pois);
     if (!isValid) {
-      log('own POIs invalid:', error);
-      return true;
+      // Not proof that it is invalid: the SDK reports a node timeout the same way.
+      log('own POIs not validated:', error);
+      return false;
     }
     const first = extractedRailgunTransactionData?.find((d) => d.firstCommitment && d.firstCommitmentNotePublicKey != null);
     if (!first) {
       log('first output is not ours; nothing to submit');
       return true;
     }
+    const accepted = async (commitment: string) => {
+      p.done = [...p.done, commitment];
+      await save(p);
+    };
 
     const node = new POINodeRequest(POI_NODES);
     // Wait for the transaction to be indexed, then submit; retry like a broadcaster.
@@ -105,16 +130,19 @@ const run = async (p: Job): Promise<boolean> => {
         log('not indexed yet', attempt);
         continue;
       }
-      await node.submitSingleCommitmentProof(V2, CHAIN, {
-        commitment: first.firstCommitment as string,
-        npk: ByteUtils.nToHex(first.firstCommitmentNotePublicKey as bigint, ByteLength.UINT_256, true),
-        utxoTreeIn: Number(first.utxoTreeIn),
-        utxoTreeOut: tx.utxoTreeOut,
-        utxoPositionOut: tx.utxoBatchStartPositionOut,
-        railgunTxid: first.railgunTxid,
-        pois: p.pois,
-      });
-      log('submitted single commitment proof for', p.txHash);
+      if (!p.done.includes(first.firstCommitment as string)) {
+        await node.submitSingleCommitmentProof(V2, CHAIN, {
+          commitment: first.firstCommitment as string,
+          npk: ByteUtils.nToHex(first.firstCommitmentNotePublicKey as bigint, ByteLength.UINT_256, true),
+          utxoTreeIn: Number(first.utxoTreeIn),
+          utxoTreeOut: tx.utxoTreeOut,
+          utxoPositionOut: tx.utxoBatchStartPositionOut,
+          railgunTxid: first.railgunTxid,
+          pois: p.pois,
+        });
+        await accepted(first.firstCommitment as string);
+        log('submitted single commitment proof for', p.txHash);
+      }
 
       // A single commitment proof clears only the output it names. A broadcaster
       // needs only its fee note; we need the payment and the change too. Every
@@ -123,28 +151,34 @@ const run = async (p: Job): Promise<boolean> => {
       await sync();
       const sameTx = (a: string) => a.replace(/^0x/, '').toLowerCase() === p.txHash.replace(/^0x/, '').toLowerCase();
       const txos = await walletForID(currentWalletId()).TXOs(V2, CHAIN);
+      let failed = false;
       for (const txo of txos) {
         if (!sameTx(txo.txid) || txo.tree !== tx.utxoTreeOut) continue;
         const index = txo.position - tx.utxoBatchStartPositionOut;
-        if (index <= 0 || index >= tx.commitments.length) continue; // 0 is the one already sent
-        await node
-          .submitSingleCommitmentProof(V2, CHAIN, {
-            commitment: tx.commitments[index],
+        if (index <= 0 || index >= tx.commitments.length) continue; // 0 is the first output, above
+        const commitment = tx.commitments[index];
+        if (p.done.includes(commitment)) continue;
+        try {
+          await node.submitSingleCommitmentProof(V2, CHAIN, {
+            commitment,
             npk: ByteUtils.nToHex(txo.note.notePublicKey, ByteLength.UINT_256, true),
             utxoTreeIn: Number(first.utxoTreeIn),
             utxoTreeOut: tx.utxoTreeOut,
             utxoPositionOut: txo.position,
             railgunTxid: first.railgunTxid,
             pois: p.pois,
-          })
-          .then(
-            () => log('submitted output', index),
-            (e: unknown) => log('output', index, 'rejected:', (e as Error).message),
-          );
+          });
+          await accepted(commitment);
+          log('submitted output', index);
+        } catch (e) {
+          // That note stays on the slow route unless this proof goes in: keep the job.
+          failed = true;
+          log('output', index, 'rejected:', (e as Error).message);
+        }
       }
       await sleep(15_000);
       await sync();
-      return true;
+      return !failed;
     }
     log('gave up waiting for the index; trying again after the next unlock');
     return false;
