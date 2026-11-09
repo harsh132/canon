@@ -101,16 +101,19 @@ export type Resolved = { address: string; via: 'org.railgun' | 'addr' };
 export const resolveName = async (name: string): Promise<Resolved> => {
   const n = name.trim().toLowerCase();
   const node = namehash(n);
-  // A revert means "no such record"; anything else (Nox or RPC down) is reported as itself,
-  // not as a missing name. ResolverNotFound means the name does not exist at all.
+  // A revert with the Universal Resolver's error data means "no such record"; anything else
+  // (Nox or RPC down, an RPC error reply such as a timeout, which ethers also labels
+  // CALL_EXCEPTION but with no revert data) is reported as itself, not as a missing name.
+  // ResolverNotFound means the name does not exist at all.
   const resolve = async (data: string) => {
     try {
       const [out] = (await ur().resolve(dnsEncode(n), data)) as [string, string];
       return out;
     } catch (e) {
-      const err = e as { code?: string; data?: string };
-      if (err.code !== 'CALL_EXCEPTION') throw e;
-      if (err.data?.startsWith(RESOLVER_NOT_FOUND)) throw new Error(`${n} is not registered`);
+      const err = e as { code?: string; data?: unknown; info?: { error?: { message?: string } } };
+      const reverted = err.code === 'CALL_EXCEPTION' && typeof err.data === 'string' && /^0x[0-9a-f]{8}/i.test(err.data);
+      if (!reverted) throw new Error(`Name lookup failed: ${err.info?.error?.message ?? (e as Error).message}`);
+      if ((err.data as string).startsWith(RESOLVER_NOT_FOUND)) throw new Error(`${n} is not registered`);
       return null;
     }
   };

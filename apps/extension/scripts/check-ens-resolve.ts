@@ -21,8 +21,26 @@ assert.match(alice.address, /^0zk/);
 
 await assert.rejects(resolveName('nobody-canon-check.canon.eth'), /is not registered/);
 
+const notMissing = (e: Error) => !/has no address|is not registered/.test(e.message);
 rpc = 'http://127.0.0.1:9';
-await assert.rejects(resolveName('alice.pangolin.eth'), (e: Error) => !/has no address|is not registered/.test(e.message));
+await assert.rejects(resolveName('alice.pangolin.eth'), notMissing);
+
+// An RPC error reply (ethers labels it CALL_EXCEPTION too, with no revert data): reported,
+// never read as a missing record. The text lookup fails, the addr lookup would succeed.
+let calls = 0;
+const fake = Bun.serve({
+  port: 0,
+  fetch: async (req) => {
+    const { id } = (await req.json()) as { id: number };
+    calls += 1;
+    if (calls === 1) return Response.json({ jsonrpc: '2.0', id, error: { code: -32000, message: 'upstream request timed out' } });
+    return Response.json({ jsonrpc: '2.0', id, result: '0x' });
+  },
+});
+rpc = `http://127.0.0.1:${fake.port}`;
+await assert.rejects(resolveName('alice.pangolin.eth'), (e: Error) => notMissing(e) && /timed out/.test(e.message));
+assert.equal(calls, 1, 'no fall-through to the addr lookup');
+fake.stop();
 
 console.log('pass  ens-resolve');
 process.exit(0);
