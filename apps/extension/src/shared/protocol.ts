@@ -113,6 +113,8 @@ export type RpcState = {
   status: 'off' | 'booting' | 'ready' | 'error';
   error?: string;
   bootMs?: number;
+  /** When a Nox call last failed because every TLS-tunnel exit was down or skipped; cleared by the next call that works. */
+  noTunnelsAt?: number;
   /** mixed: through Nox. clear: RPC sent directly. bootstrap: the worker's own specifier reads.
    *  sync / artifacts: bulk public downloads that name no one. other: non-RPC requests (relay, bundle). */
   counts: { mixed: number; clear: number; bootstrap: number; sync: number; artifacts: number; other: number };

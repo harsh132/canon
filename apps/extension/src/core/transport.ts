@@ -72,7 +72,25 @@ const ensureWorker = (): AnonRpcWorker => {
 
 const via = (): typeof fetch => {
   if (state.rpc.mode !== 'nox') return realFetch;
-  return ensureWorker().fetch as typeof fetch;
+  const f = ensureWorker().fetch as typeof fetch;
+  // The worker skips a tunnel exit for 10 min after a failed open; with all of them
+  // skipped, every call fails the same way. Flag it so the UI can say why and offer direct.
+  return (async (input: RequestInfo | URL, init?: RequestInit) => {
+    try {
+      const res = await f(input, init);
+      if (state.rpc.noTunnelsAt) {
+        state.rpc.noTunnelsAt = undefined;
+        emit();
+      }
+      return res;
+    } catch (e) {
+      if (/No exit offers TLS tunnels/i.test(String((e as Error)?.message ?? e))) {
+        state.rpc.noTunnelsAt = Date.now();
+        emit();
+      }
+      throw e;
+    }
+  }) as typeof fetch;
 };
 
 type GetUrlResponse = { statusCode: number; statusMessage: string; headers: Record<string, string>; body: Uint8Array };
@@ -160,6 +178,7 @@ export const installTransport = async (): Promise<void> => {
 export const setRpcMode = async (mode: RpcMode): Promise<void> => {
   state.rpc.mode = mode;
   state.rpc.error = undefined;
+  state.rpc.noTunnelsAt = undefined;
   await store.setItem(MODE_KEY, mode);
   if (mode === 'nox') ensureWorker();
   emit();

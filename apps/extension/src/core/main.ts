@@ -336,7 +336,7 @@ chrome.runtime.onConnect.addListener((port) => {
 });
 
 // Dev builds only: lets test scripts read core state (e.g. which site is in which tab).
-if (DEV) (globalThis as Record<string, unknown>).__canonState = state;
+if (DEV) Object.assign(globalThis, { __canonState: state, __canonEmit: emit });
 
 wc.configureWc({ isUnlocked: () => session != null, prompt });
 browser.configureDapp({

@@ -45,6 +45,8 @@ The Nox worker (`tls: "required"`, its default) sends every https call through a
 
 Proving and RAILGUN's transaction building block the core's renderer for seconds. With the 5 s default, one Fund skipped all five exits and failed. `transport.ts` passes `config: { tlsOpenTimeoutMs: 30_000 }`; with it, the same Fund passed with no skipped exit (2026-11-09).
 
+When a Nox call still fails that way, the transport sets `rpc.noTunnelsAt`. The status line shows "Nox · no exits", and the Privacy screen says why calls fail and that direct RPC works but shows the user's IP to the provider. The next Nox call that works, or a switch of mode, clears it. Canon does not switch to direct by itself: it fails closed.
+
 ## Measured (Chromium 155, real Sepolia, 2026-11-06)
 
 | What | Result |

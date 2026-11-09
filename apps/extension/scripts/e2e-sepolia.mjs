@@ -210,7 +210,7 @@ if (phase === 'setup') {
   }
 } else if (phase === 'broadcasters') {
   // Waku discovery takes a while; read the Privacy screen until one shows up.
-  await popup.evaluate(() => [...document.querySelectorAll('button')].find((b) => /clear ·/.test(b.textContent)).click());
+  await popup.evaluate(() => [...document.querySelectorAll('button')].find((b) => /clear ·|no exits/.test(b.textContent)).click());
   for (let i = 0; i < 36; i += 1) {
     const row = (await text()).match(/BROADCASTERS (\S+)( · \d+)?/i)?.[0];
     log(row);
@@ -238,7 +238,7 @@ if (phase === 'setup') {
 // RPC_DIRECT=1: reads go direct for this run (when Nox has no TLS exits), then back to Nox.
 const setRpc = async (mode) => {
   await nav('home');
-  await popup.evaluate(() => [...document.querySelectorAll('button')].find((b) => /clear ·/.test(b.textContent)).click());
+  await popup.evaluate(() => [...document.querySelectorAll('button')].find((b) => /clear ·|no exits/.test(b.textContent)).click());
   await waitText('use direct rpc|route through nox');
   const want = mode === 'direct' ? 'use direct rpc' : 'route through nox';
   if (new RegExp(want, 'i').test(await text())) await click(`^${want}$`);
