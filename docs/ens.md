@@ -44,8 +44,13 @@ The sponsor learns the label, owner address and 0zk (all published on-chain anyw
 
 ## Verified
 
-`e2e-sepolia.mjs name`, 2026-11-06, before the parent was renamed to `canon.eth`; the name lives at `alice.pangolin.eth`. As of 2026-11-09 no name is claimed under `canon.eth`, so every `*.canon.eth` lookup fails with "is not registered":
+`e2e-sepolia.mjs name`, 2026-11-06, before the parent was renamed to `canon.eth`; the name lives at `alice.pangolin.eth`:
 
 - Claimed `alice.pangolin.eth`; owner `0x81d7…f2C6` with 0 ETH.
 - Paying `alice.pangolin.eth` from Main resolved through Nox to the wallet's 0zk via `org.railgun` and ran as Make private ([tx](https://sepolia.etherscan.io/tx/0xd0da0f458b05c311471ad0d4ab7588b10318fcdc6d7380031cec29509a103f42)).
 - A claim whose reply was lost is adopted on retry, because the name already pays this wallet.
+
+`e2e-sepolia.mjs name`, 2026-11-09, the first name under `canon.eth`:
+
+- The claim request timed out in a Nox tunnel ("TunnelTimeoutError ... no reply at all"), but the claim landed ([tx](https://sepolia.etherscan.io/tx/0x245bd6acad1576f5e309a62852a7ed5ca3d801cbf0093aedd372dbfa5754c5d4)). The retry got "taken", found that `alice.canon.eth` already pays this wallet, and kept it (3 s).
+- Paying `alice.canon.eth` from Main resolved through Nox and ran as Make private ([tx](https://sepolia.etherscan.io/tx/0x3f28a1b3518ca7e843ebf7a972bca916161a6ae0a555ddf1975e54f185f56f3c)).
