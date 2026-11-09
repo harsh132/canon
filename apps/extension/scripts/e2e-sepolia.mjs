@@ -148,6 +148,9 @@ if (phase === 'setup') {
   await resync();
   log('balances:', await balances());
 } else if (phase === 'status') {
+  // WAIT_SPENDABLE=1: stay open until some private balance is spendable, for example
+  // while the wallet resumes POI submissions a closed session left.
+  if (process.env.WAIT_SPENDABLE) await waitSpendable(0.0001);
   log('balances:', await balances());
 } else if (phase === 'name') {
   // Claim LABEL.canon.eth through the sponsor, then pay it from Main by name.
