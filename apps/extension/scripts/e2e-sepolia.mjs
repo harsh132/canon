@@ -155,6 +155,8 @@ if (phase === 'setup') {
   await click('^check$').catch(() => {});
   await new Promise((r) => setTimeout(r, 8000));
   log('public:', (await text()).match(/PUBLIC ([\d.]+ ETH|Check)/i)?.[1]);
+  // The wait below reads 4-decimal UI totals: an amount near that step cannot be told from rounding.
+  if (process.env.WAIT_SPENDABLE && !(Number(AMOUNT) >= 0.001)) throw new Error('WAIT_SPENDABLE needs AMOUNT >= 0.001');
   const before = await balances();
   await send({ from: 0, to: zk, amount: AMOUNT, expect: 'Make private' });
   log('waiting for the shield to land and sync…');
