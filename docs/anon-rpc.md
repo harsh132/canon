@@ -45,6 +45,12 @@ The Nox worker (`tls: "required"`, its default) sends every https call through a
 
 Proving and RAILGUN's transaction building block the core's renderer for seconds. With the 5 s default, one Fund skipped all five exits and failed. `transport.ts` passes `config: { tlsOpenTimeoutMs: 30_000 }`; with it, the same Fund passed with no skipped exit (2026-11-09).
 
+## Nodes behind head
+
+PublicNode spreads calls over backends at different heights, and Nox gives each call its own path. So the engine can read the head from one backend, then ask a backend one block behind for logs up to that head. That backend answers `-32602` "block range extends beyond current head block". The engine retries only its own timeouts, so the scan stopped until the next sync (seen once, 2026-11-09).
+
+`getUrl` in `transport.ts` checks each short JSON-RPC reply for that error. It waits 2 s and sends the same request again, up to 5 times, then passes the error on. The check is in the hook, so it covers every provider: ours and each one the engine builds, in Nox and in direct mode. Clamping `toBlock` would not do: the engine would record blocks it never scanned. `scripts/check-head-lag.ts` checks the retry with a fake reply.
+
 ## Measured (Chromium 155, real Sepolia, 2026-11-06)
 
 | What | Result |

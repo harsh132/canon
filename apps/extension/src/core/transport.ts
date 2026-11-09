@@ -77,7 +77,35 @@ const via = (): typeof fetch => {
 
 type GetUrlResponse = { statusCode: number; statusMessage: string; headers: Record<string, string>; body: Uint8Array };
 
-const getUrl = async (req: FetchRequest): Promise<GetUrlResponse> => {
+// PublicNode spreads calls over backends at different heights, and Nox gives each call its
+// own path. So eth_blockNumber can come from a backend one block ahead of the one that then
+// answers eth_getLogs up to that block. The RAILGUN engine retries only timeouts; this error
+// stops its scan until the next sync. Wait for the lagging backend (or another) and ask again.
+const HEAD_LAG = /beyond current head block/i;
+const HEAD_LAG_RETRIES = 5;
+const HEAD_LAG_WAIT_MS = 2_000;
+const lagsHead = (body: Uint8Array): boolean => {
+  // Error replies are short; skip decoding large results.
+  if (body.length > 1024) return false;
+  try {
+    // A batch reply is an array.
+    const replies = [JSON.parse(new TextDecoder().decode(body))].flat() as { error?: { code?: number; message?: string } }[];
+    return replies.some((r) => r?.error?.code === -32602 && HEAD_LAG.test(r.error.message ?? ''));
+  } catch {
+    return false;
+  }
+};
+
+export const getUrl = async (req: FetchRequest): Promise<GetUrlResponse> => {
+  for (let tries = 0; ; tries++) {
+    const res = await send(req);
+    if (tries >= HEAD_LAG_RETRIES || !lagsHead(res.body)) return res;
+    console.log('[transport] node behind head, retrying', tries + 1);
+    await new Promise((r) => setTimeout(r, HEAD_LAG_WAIT_MS));
+  }
+};
+
+const send = async (req: FetchRequest): Promise<GetUrlResponse> => {
   const mixed = state.rpc.mode === 'nox';
   bump(mixed ? 'mixed' : 'clear');
   // ethers' cancel signal is not an AbortSignal; do not forward it.
