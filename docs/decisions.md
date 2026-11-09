@@ -1,6 +1,8 @@
 # Decisions
 
-Newest last. Each entry: what, why, and what would change it.
+Newest last (roughly). Each entry: what, why, and what would change it.
+
+## Decisions
 
 | Date | Decision | Why |
 |---|---|---|
@@ -67,3 +69,47 @@ Newest last. Each entry: what, why, and what would change it.
 | 2026-11-09 | ERC-20 Make private approves exactly the amount, only when the allowance is short | No standing unlimited allowance to RAILGUN's proxy from a public account |
 | 2026-11-09 | Ship the Nox worker bundle in the package; the contract's `workerHash()` must still match it | The Chrome Web Store asks that all logic be in the package. The harness takes the bytes from a local `blob:` resolver (SPEC §4.1). Cost: a new Nox bundle needs a Canon release; until then Nox fails closed |
 | 2026-11-09 | Check a 7702 unshield's own POIs against its target, the delegated ephemeral account | `POIValidator` compares `tx.to` with a RAILGUN contract, which a type-4 unshield never matches; the wallet method takes the contract address and has a 7702 mode. Without it, Fund and sponsored Make public change waited hours for the slow route |
+| 2026-11-09 | Save each POI submission in the encrypted book before it runs; resume it after unlock | The wallet can submit only while the core runs, so a closed wallet left notes on the slow route. A job keeps its network and each accepted proof with its tree position, survives any failure, and is dropped after 7 days |
+| 2026-11-09 | Ship RAILGUN's circuit witness generators (`.wasm`, 83 MB) in the package; keep downloading the proving keys | The `.wasm` is code that runs in the core; the Chrome Web Store asks for all logic in the package. The proving keys are data (894 MB for all circuits), and the SDK checks their hashes. The build checks every `.wasm` against the SDK's hashes; the transport refuses any fetch under `/prover/`. Cost: a large package, and IPFS still sees the IP at a first proof |
+| 2026-11-09 | The countdown shows the newest shield's hold, not the soonest note | Notes stuck on proof of innocence count as ready now and hid a new shield's countdown |
+| 2026-11-09 | A failed name lookup is reported, never read as "no record" | Ethers labels an RPC timeout `CALL_EXCEPTION`; reading it as a missing `org.railgun` record let Send fall through to the public address. Only a revert with error data counts; `ResolverNotFound` reads "is not registered" |
+| 2026-11-09 | Start the RAILGUN engine with `shouldDebug` true in every build; show "Proof sync paused" | The SDK connects no engine logger otherwise, so production builds never saw an engine error. Canon's log function still prints only in dev. The warning clears when the local TXID index reaches the POI node's |
+| 2026-11-09 | Only the newest request may set UI state (a counter per request kind) | Comparing the current inputs let an older reply win after A → B → A or a double click. Used in the site card and the Tokens screen |
+| 2026-11-10 | A graphify knowledge graph of the repo, not committed | Agents query a scoped subgraph before they search files. The output regenerates (`/graphify .`), so `graphify-out/` is ignored, as in Ender |
+| 2026-11-10 | Docs are only summary, decisions, operations and research | User request. The per-feature docs and the test log drifted from the code. The code and the graph show the structure; git history keeps the old docs |
+
+## Why the code looks unusual
+
+Each item is a workaround that a later reader could remove by mistake.
+
+### RAILGUN in an MV3 page
+
+- **Node shims** (`scripts/build.mjs`): `crypto` to `crypto-browserify`, plus `stream`, `path` and `buffer`; Node-only modules to an empty module; `process` and `Buffer` injected at the top of the bundle.
+- **`@graphql-mesh/cross-helpers` is pinned to its browser build.** Otherwise QuickSync returns nothing and gives no error, and the engine falls back to a slow scan from the deployment block.
+- **The Poseidon and curve25519 `.wasm` files are inlined.** Their loaders use `import.meta.url`, which fails in a bundle. The engine then falls back to a JS Poseidon about 24 times slower, and gives no error.
+- **The QuickSync timeout is raised from 20 s to 300 s.** A page is about 13 MB. The build fails if the patched line moves.
+- **`ethers` and `axios` are aliased to one build each.** Otherwise esbuild bundles the CommonJS and ESM builds side by side, and the transport hook on one copy misses the other's traffic.
+- **`axios.defaults.adapter = 'fetch'`.** The POI client otherwise uses XHR, which the fetch patch cannot see.
+- **`src/shims/inject.js` replaces `fetch` with a forwarder before any module loads.** The QuickSync client captures `fetch` when its module loads, before the transport exists.
+- **Do not pass ethers' cancel signal to `worker.fetch`.** It is not an `AbortSignal`.
+- **CSP:** `extension_pages` needs `'wasm-unsafe-eval'`. The core checks at start whether snarkjs can use blob workers, and proves on one thread if not.
+- **The Anon-RPC harness runs in place in the core** (its `PageWorker` mode). An extension can have only one offscreen document, and the core already is one.
+- **Fork builds patch the engine's POI** (`patchPoiForFork`): no POI node watches a fork.
+- **Engine errors that are not problems are filtered** (`BENIGN`): note decryption failures, and the TXID queue waiting for the UTXO tree.
+
+### RAILGUN behaviour
+
+- **Settle before spending again.** Until the transaction is mined and scanned again, the engine sees spent notes as unspent, and a second proof over them reverts with "Note already spent". The next private send waits for the last one (at most 10 minutes, because a relayed transaction can be replaced under a new hash).
+- **An `Incomplete` scan is a failure.** The engine reports it without throwing; `sync()` retries.
+- **A node behind head:** PublicNode answers from backends at different heights, and Nox gives each call its own path. The transport retries "block range extends beyond current head block" up to 5 times, 2 s apart. Clamping `toBlock` would let the engine record blocks it never scanned.
+- **New wallets scan from today's block.** Imported phrases scan from the deployment block.
+- **A 7702 unshield's own POIs are checked against its target** (the delegated ephemeral account) with the wallet method's 7702 mode. `POIValidator` compares `tx.to` with a RAILGUN contract, which a type-4 unshield never matches.
+- **Sponsored sends carry a 1-wei fee note to the wallet itself.** The POI node keys a single commitment proof on the first output's note key, which only that output's receiver can decrypt.
+- **Nox TLS tunnel-open timeout is 30 s.** Proving blocks the core's renderer for seconds; with the 5 s default, every exit was skipped for 10 minutes.
+
+### Chrome
+
+- **The service worker attaches `popup.html` to the icon only while it opens it,** then detaches it, so the next icon click opens the side panel again.
+- **The offscreen document has no `chrome.storage`,** so everything is in IndexedDB.
+- **Passkey dialogs run in the visible page.** The offscreen core can show no dialog, and the toolbar popup can close while the dialog has focus.
+

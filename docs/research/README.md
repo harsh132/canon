@@ -1,6 +1,6 @@
 # Research notes
 
-Findings from the proofs of concept run before and during the hackathon (ETHGlobal Mumbai, November 2026), and the Uniswap developer feedback written then ([uniswap-feedback.md](uniswap-feedback.md)). Copied as written; script paths refer to the `ethglobal-mumbai/poc` folder they came from, not to this repo.
+Findings from the proofs of concept run before and during the hackathon (ETHGlobal Mumbai, November 2026), and the Uniswap developer feedback written then ([uniswap-feedback.md](uniswap-feedback.md)). The hackathon notes are copied as written; their script paths refer to the `ethglobal-mumbai/poc` folder they came from, not to this repo. Later notes are Canon's own investigations.
 
 | Note | What it covers |
 |---|---|
@@ -9,3 +9,4 @@ Findings from the proofs of concept run before and during the hackathon (ETHGlob
 | [ens-v2.md](ens-v2.md) | Sponsored ENSv2 subnames on the live Sepolia deployment, gotchas, trust left after renouncing |
 | [ender-wallet.md](ender-wallet.md) | What Canon borrows from the Ender wallet, and what it leaves out |
 | [railgun-broadcaster.md](railgun-broadcaster.md) | How the public RAILGUN broadcaster validates and submits proof of innocence, and what Canon copies |
+| [railgun-poi.md](railgun-poi.md) | Who makes which proof of innocence, why a swap's output waits for its unshield's POI, and the broken Sepolia TXID index (2026-11-09) |

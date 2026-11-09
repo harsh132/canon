@@ -10,3 +10,7 @@ build/
 .DS_Store
 *.tsbuildinfo
 apps/extension/key.pem
+
+# graphify knowledge graph: regenerable from the source tree with `/graphify .`;
+# graph.html and graph.json are ~2 MB of generated output.
+graphify-out/

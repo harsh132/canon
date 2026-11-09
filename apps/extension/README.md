@@ -1,49 +1,27 @@
 # Canon extension
 
-Chrome MV3 wallet. RAILGUN private balance, every RPC read through Anon-RPC (Nox), and a fresh public address for every dapp you connect over WalletConnect. Full docs: [`docs/`](../../docs/README.md).
+Chrome MV3 wallet: a RAILGUN private balance, every RPC read through Anon-RPC (Nox), and a fresh public address for every dapp.
 
-## Run
+- What it is and how it works: [docs/summary.md](../../docs/summary.md)
+- Build, load, test and deploy: [docs/operations.md](../../docs/operations.md)
+
+## Quick start
 
 ```bash
-bun install            # from the repo root
-cp apps/extension/.env.example apps/extension/.env   # set CANON_WC_PROJECT_ID
-bun run --filter @canon/extension build
+bun install                      # from the repo root
+cd apps/extension
+bun run build
 ```
 
-Load `apps/extension/dist` at `chrome://extensions` with Developer mode on. The toolbar icon opens Canon in Chrome's side panel. Dapp requests open the small toolbar popup when the panel is closed. The extension id is pinned by the manifest `key`:
-
-```
-nigpkikilgbfgmgcmeiidiinikafjpjg
-```
-
-Add `chrome-extension://nigpkikilgbfgmgcmeiidiinikafjpjg` to the WalletConnect project's allowed origins, or the relay refuses the wallet.
+Load `apps/extension/dist` at `chrome://extensions` with Developer mode on. The toolbar icon opens Canon in the side panel.
 
 ## Layout
 
 | Path | Runs in | Holds |
 |---|---|---|
-| `src/core` | offscreen document | vault, RAILGUN engine, Anon-RPC worker, WalletConnect, account book |
-| `src/background` | service worker | keeps the core alive, opens prompts |
-| `src/popup` | popup | UI only; sends whitelisted commands, never sees keys |
-| `src/shared/protocol.ts` | both | the command whitelist and pushed state |
-
-Keys: one BIP-39 phrase. Public addresses are `m/44'/60'/0'/0/i`; index 0 is Main, each new dapp gets the next index. The RAILGUN wallet derives from the same phrase. A password stretch (PBKDF2, 600k) yields the vault key, the RAILGUN encryption key and the account-book key; the book (addresses, dapp bindings, activity) is encrypted at rest.
-
-Send has one form. Source and recipient decide the operation: public to 0x sends, public to 0zk makes private, private to 0zk sends privately, private to 0x makes public. Private sends currently pay gas from Main; a broadcaster is next.
-
-## Test
-
-```bash
-bun scripts/e2e-create.mjs     # new wallet, first Sepolia sync
-bun scripts/e2e-wc.mjs         # two dapps get two addresses; reconnect keeps it; personal_sign
-```
-
-Full private flow on a local fork, since Sepolia faucets need a human:
-
-```bash
-anvil --fork-url https://ethereum-sepolia-rpc.publicnode.com --fork-block-number <head-12> --chain-id 11155111
-CANON_FORK=1 CANON_SEPOLIA_RPC=http://127.0.0.1:8545 bun scripts/build.mjs --dev
-bun scripts/e2e-fork.mjs       # make private, send privately, make public
-```
-
-`CANON_FORK=1` turns off proof-of-innocence checks, because no PPOI node watches a fork. Never ship that build. Each script takes `CANON_PROFILE=<new dir>` for a clean Chromium profile.
+| `src/core` | Offscreen document | Vault, RAILGUN engine, Nox worker, WalletConnect, account book |
+| `src/background` | Service worker | Keeps the core alive, opens prompts |
+| `src/popup` | Side panel, toolbar popup, onboarding tab | UI only; sends whitelisted commands, never sees keys |
+| `src/inpage` | Each web page | EIP-1193 provider and the bridge to the core |
+| `src/shared/protocol.ts` | All | The command whitelist and the pushed state |
+| `scripts/` | Bun, Chromium | The build and the test scripts |
