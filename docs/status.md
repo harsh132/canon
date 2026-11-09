@@ -34,13 +34,14 @@ Updated 2026-11-09.
 | Transaction preview on dapp prompts: balance changes from `eth_simulateV1` through Nox, decoded calls, warnings for reverts and unlimited approvals | `preview-check.ts`, `e2e-injected.mjs` |
 | Fund with ETH through Nox (the 7702 unshield, sponsor relay), with a 30 s tunnel-open timeout ([anon-rpc.md](anon-rpc.md)) | `FUND_ONLY=1 e2e-sepolia.mjs dapp`, 2026-11-09 |
 | Per-dapp WalletConnect addresses: two dapps get two fresh addresses, personal_sign recovers to the right one, a reconnect keeps its address | `e2e-wc.mjs`, Canon project id |
+| Circuit code ships in the package: the 93 snarkjs witness generators are fetched and hash-checked at build time, served from `dist/artifacts`, and never downloaded at run time; proving keys still download, hash-checked | `build.mjs`, a live private swap on Sepolia (2026-11-09) |
 | Custom tokens by address: lookup through Nox, symbol checks, saved in the encrypted book, public and private balances, remove; Send moves them on all four paths ([networks.md](networks.md#tokens)) | `check-token.ts`, `e2e-create.mjs`, `e2e-fork.mjs` on an anvil fork |
 
 ## Built, not yet verified
 
-- **Spendable countdown on Home.** Logic checked by `check-eta.ts`; not yet seen against a real pending shield, because the shared test wallet was in use ([railgun.md](railgun.md#spendable-countdown)).
+- **Spendable countdown on Home.** Logic checked by `check-eta.ts`. The first live shield (2026-11-09) showed no countdown, because stuck notes hid it; fixed in #13, not yet seen live after the fix ([railgun.md](railgun.md#spendable-countdown)).
 - **Sponsored Make public from Home.** Same relay path as Fund with ETH, which now passes through Nox; not run separately.
-- **Custom-token sends on real Sepolia.** Proven on an anvil fork only, with Main paying gas. The sponsored and broadcaster routes for an ERC-20 are not run.
+- **Custom-token sends on real Sepolia.** Proven on an anvil fork only, with Main paying gas. The sponsored and broadcaster routes for an ERC-20 are not run: the test wallet's only USDC is the stuck Relay Adapt shield below.
 - **Passkeys on real authenticators.** Google Password Manager, iCloud Keychain and security keys need a manual try; headless tests use a virtual one.
 
 - **Typed-data signing over WalletConnect.** Added to `e2e-wc.mjs`; a re-run stalled once at the personal_sign step after passing it the run before, so treat the script as flaky until it passes twice.
@@ -48,6 +49,7 @@ Updated 2026-11-09.
 
 ## Known issues
 
+- **A private swap's output token stays pending.** The swap's USDC returns as a Relay Adapt shield; on 2026-11-09 the POI node still reported it Missing after more than 2 hours, while the swap's WETH outputs cleared. Cause under investigation.
 - **Two old notes stay on the slow route.** On the Sepolia test wallet, 0.0124 WETH of change from sends made before `resumePOI` (2026-11-09) is still pending. Their proofs were never saved, so nothing can resume them; they clear only if the slow route does.
 
 ## Open questions
