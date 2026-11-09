@@ -13,6 +13,7 @@ export const state: CoreState = {
   sync: { status: 'idle', progress: 0 },
   privateBalances: [],
   pendingEta: null,
+  tokens: {},
   accounts: [],
   activity: [],
   proof: null,

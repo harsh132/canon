@@ -4,7 +4,8 @@
 // in their path), so the same address works on each of these. Each site picks
 // its own network; reads and transactions go to that network, through Nox.
 
-export type Token = { symbol: string; address: string; decimals: number };
+/** `warning`: set on a custom token whose symbol copies a known one (see checkToken). */
+export type Token = { symbol: string; address: string; decimals: number; warning?: string };
 export type Net = { chainId: number; name: string; native: string; rpc: string; explorer: string; tokens: Token[]; testnet?: boolean };
 
 export const SEPOLIA_ID = 11155111;
@@ -32,5 +33,34 @@ export const NETS: Net[] = [
 
 export const netOf = (chainId: number): Net | undefined => NETS.find((n) => n.chainId === chainId);
 export const hexChain = (chainId: number): string => `0x${chainId.toString(16)}`;
+
+/** A network's built-in tokens plus the user's own (`custom`, from CoreState.tokens). */
+export const tokensOn = (chainId: number, custom: Record<number, Token[]> = {}): Token[] => [...(netOf(chainId)?.tokens ?? []), ...(custom[chainId] ?? [])];
+
+export const MAX_SYMBOL = 11;
+
+/**
+ * What a token contract says about itself is the contract's claim, not a fact.
+ * Plain ASCII and a short symbol only. A symbol that a listed token or the native
+ * coin already uses comes back marked with "?" and a warning, so a fake "WETH"
+ * can never pass as the real one anywhere in the UI.
+ */
+export const checkToken = (chainId: number, address: string, symbol: unknown, decimals: unknown): { symbol: string; decimals: number; warning: string | null } => {
+  const sym = typeof symbol === 'string' ? symbol.trim() : '';
+  if (!/^[!-~]+$/.test(sym)) throw new Error('Token symbol is not plain text');
+  if (sym.length > MAX_SYMBOL) throw new Error(`Token symbol is longer than ${MAX_SYMBOL} characters`);
+  const dec = Number(decimals);
+  if (!Number.isInteger(dec) || dec < 0 || dec > 36) throw new Error('Token decimals out of range');
+  const net = netOf(chainId);
+  const listed = net?.tokens.find((t) => t.address.toLowerCase() === address.toLowerCase());
+  if (listed) return { symbol: listed.symbol, decimals: listed.decimals, warning: null };
+  // Letters and digits only, any case, so "W-ETH" or "usdc" are caught too.
+  const bare = (x: string) => x.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const known = ['ETH', 'WETH', 'USDC', ...(net ? [net.native, ...net.tokens.map((t) => t.symbol)] : [])].map(bare);
+  const k = known.find((x) => x === bare(sym));
+  return k
+    ? { symbol: `${sym}?`, decimals: dec, warning: `Calls itself ${sym}, but it is not the ${k} Canon lists` }
+    : { symbol: sym, decimals: dec, warning: null };
+};
 
 export const explorerTx = (hash: string, chainId: number = SEPOLIA_ID): string => `${netOf(chainId)?.explorer ?? 'https://sepolia.etherscan.io'}/tx/${hash}`;

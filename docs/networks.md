@@ -26,6 +26,32 @@ Sepolia, Ethereum, Arbitrum, Base, Optimism, Polygon (`src/shared/networks.ts`).
 - Reads from a dapp go to its network's RPC, through Nox. A pending request keeps the network it was made on, even if the site switches before it is approved.
 - WalletConnect sessions advertise all six; each request runs on the chain it names.
 
+## Tokens
+
+Each network lists WETH and USDC (`src/shared/networks.ts`). The user can add any other ERC-20 by its contract address: menu → Tokens.
+
+- **Lookup.** The core reads `symbol()` and `decimals()` through that network's provider, so through Nox. The user sees the symbol, the decimals and the full address, then adds it.
+- **Checks** (`checkToken` in `src/shared/networks.ts`; `scripts/check-token.ts` tests it):
+  - The symbol must be 1 to 11 printable ASCII characters. This refuses lookalikes in other scripts, such as a Cyrillic "С" in "USDС".
+  - Decimals must be an integer from 0 to 36.
+  - A symbol that copies a listed one (ETH, WETH, USDC, the native coin; any case, punctuation ignored) gets a "?" and a warning: "WETH?" can never pass as WETH.
+  - A built-in or already-added address is refused.
+- **Saved per chain in the encrypted account book.** A readable list of someone's tokens is a disclosure at rest. While locked, `CoreState.tokens` is empty.
+- **Remove** on the Tokens screen deletes it from the book.
+- **Balances.** The Tokens screen shows Main's public balance of each token on request (`site.balances`, through Nox) and the private balance on the private network. The site card shows a site address's balance of every token on its network, custom ones included.
+- **Private balance.** RAILGUN lists every token the wallet holds a note of, added or not. Unknown tokens go through the same symbol check, so a fake "WETH" note shows as "WETH?".
+- **Send.** On the private network, Send has a Token picker: ETH, the listed ERC-20s (not WETH, which Send shows as ETH) and the custom ones. All four paths work with an ERC-20:
+
+| From → to | Operation |
+|---|---|
+| Public → 0x | `transfer` |
+| Public → 0zk | Make private: an `approve` of exactly the amount to RAILGUN's proxy (only when the allowance is short), then `populateShield`. Review shows an assumed 900,000-gas shield fee until the approval exists |
+| Private → 0zk | Send privately: the same transfer proof, with the token |
+| Private → 0x | Make public: an ERC-20 unshield (`generateUnshieldProof`), arriving as the token |
+
+- Fees stay in WETH. With the sponsor, the 1-wei fee note is WETH, so a private ERC-20 send needs a little private WETH, as Fund does.
+- Swap still trades WETH → USDC only.
+
 ## What stays on Sepolia
 
 | Feature | Why |

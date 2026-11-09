@@ -27,7 +27,8 @@ import { groth16 } from 'snarkjs';
 import { Contract } from 'ethers';
 import { SHIELD_HOLD_MS, pendingEta } from '../shared/eta';
 import type { TokenBalance } from '../shared/protocol';
-import { CHAIN, DEV, FORK, NETWORK, POI_NODES, RPC_URL, WETH, getProvider } from './config';
+import { CHAIN, CHAIN_ID, DEV, FORK, NETWORK, POI_NODES, RPC_URL, WETH, getProvider } from './config';
+import { checkToken, tokensOn } from '../shared/networks';
 import { emit, state } from './state';
 import { saveRailgunWalletId, type Unlocked } from './vault';
 
@@ -146,13 +147,20 @@ const tokenMeta = new Map<string, { symbol: string; decimals: number }>([
   [WETH.toLowerCase(), { symbol: 'WETH', decimals: 18 }],
 ]);
 
+// Anyone can send a note of any token, so a token's own symbol is checked
+// (checkToken) before it is shown: a fake "WETH" must not pass as the real one.
 const metaFor = async (token: string) => {
   const key = token.toLowerCase();
+  const listed = tokensOn(CHAIN_ID, state.tokens).find((t) => t.address.toLowerCase() === key);
+  if (listed) return { symbol: listed.symbol, decimals: listed.decimals };
   const known = tokenMeta.get(key);
   if (known) return known;
   const c = new Contract(token, ['function symbol() view returns (string)', 'function decimals() view returns (uint8)'], getProvider());
   const meta = await Promise.all([c.symbol(), c.decimals()])
-    .then(([symbol, decimals]) => ({ symbol: String(symbol), decimals: Number(decimals) }))
+    .then(([symbol, decimals]) => {
+      const t = checkToken(CHAIN_ID, token, symbol, decimals);
+      return { symbol: t.symbol, decimals: t.decimals };
+    })
     .catch(() => ({ symbol: `${token.slice(0, 6)}…`, decimals: 18 }));
   tokenMeta.set(key, meta);
   return meta;

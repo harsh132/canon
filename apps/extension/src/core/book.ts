@@ -1,5 +1,6 @@
 import type { HDNodeWallet } from 'ethers';
 import type { Activity, Verification } from '../shared/protocol';
+import type { Token } from '../shared/networks';
 import { store } from './store';
 import { ALL_CHAINS, accountPath, appPath, dappPurposeId, deriveAt, open, seal, type Unlocked } from './vault';
 
@@ -28,6 +29,8 @@ type BookData = {
   name?: string;
   /** Each site's network (chain id), as the dapp last switched it. */
   chains?: Record<string, number>;
+  /** Tokens the user added, per chain id. Which tokens someone holds is private too. */
+  tokens?: Record<number, Token[]>;
 };
 
 const KEY = 'book';
@@ -161,6 +164,22 @@ export const siteChains = (): Record<string, number> => ({ ...(data?.chains ?? {
 export const saveSiteChain = async (origin: string, chainId: number): Promise<void> => {
   if (!data) return;
   data.chains = { ...(data.chains ?? {}), [origin]: chainId };
+  await persist();
+};
+
+/** Custom tokens per chain id. Empty while locked. */
+export const customTokens = (): Record<number, Token[]> => ({ ...(data?.tokens ?? {}) });
+
+export const saveToken = async (chainId: number, token: Token): Promise<void> => {
+  const book = need();
+  const list = (book.tokens?.[chainId] ?? []).filter((t) => t.address.toLowerCase() !== token.address.toLowerCase());
+  book.tokens = { ...(book.tokens ?? {}), [chainId]: [...list, token] };
+  await persist();
+};
+
+export const removeToken = async (chainId: number, address: string): Promise<void> => {
+  const book = need();
+  book.tokens = { ...(book.tokens ?? {}), [chainId]: (book.tokens?.[chainId] ?? []).filter((t) => t.address.toLowerCase() !== address.toLowerCase()) };
   await persist();
 };
 
