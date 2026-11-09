@@ -18,7 +18,7 @@ Started at ETHGlobal Mumbai in November 2026. The hackathon is over, and the pro
 | `apps/extension` | the Chrome extension (MV3, esbuild, React, Tailwind) |
 | `apps/sponsor` | the sponsor: ENS names and gasless calls (Cloudflare Worker, or a local Bun server) |
 | `packages/` | shared libraries as they split out of the extension |
-| `docs/` | architecture, privacy, decisions, testing, status ([index](docs/README.md)) |
+| `docs/` | [summary](docs/summary.md), [decisions](docs/decisions.md), [operations](docs/operations.md) (build, test, deploy) and [research](docs/research/README.md) |
 
 ## Install
 
@@ -44,7 +44,7 @@ Settings are optional; put them in `apps/extension/.env` (see `.env.example`) an
 | `CANON_SEPOLIA_RPC` | Sepolia reads use PublicNode |
 | `CANON_SPONSOR_URL` | Name claims and gasless calls use the hosted sponsor, `https://canon-sponsor.prakashharsh32.workers.dev` |
 
-`bun run build` is a production build. `bun scripts/build.mjs --dev` adds development options used by the tests ([docs/testing.md](docs/testing.md)).
+`bun run build` is a production build. `bun scripts/build.mjs --dev` adds development options used by the tests ([docs/operations.md](docs/operations.md#tests)).
 
 **Network.** Private balances run on Sepolia. Get test ETH from a Sepolia faucet, for example [Google Cloud's](https://cloud.google.com/application/web3/faucet/ethereum/sepolia), send it to your Main address (Receive), then **Make private**. Reads go through Anon-RPC's Nox mixnet by default; the Privacy screen switches to direct RPC if the mixnet is slow.
 
