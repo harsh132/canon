@@ -1,6 +1,7 @@
 // Side panel check: the service worker opens the panel on icon click, and the
 // panel page fills narrow, medium and wide panels at full height.
 //   CANON_PROFILE=/new/dir bun scripts/check-panel.mjs
+import { fileURLToPath } from 'node:url';
 import { createWallet, launch } from './smoke.mjs';
 
 const { browser, popup, id } = await launch();
@@ -37,7 +38,7 @@ for (const [w, h] of [[320, 900], [420, 900], [560, 900], [420, 520]]) {
   });
   const fits = m.scrollW <= w && m.bodyW === w && m.navTop < 80 && m.footBottom === m.viewH;
   console.log(`${fits ? 'ok  ' : 'FAIL'} ${w}x${h}`, JSON.stringify(m));
-  await panel.screenshot({ path: new URL(`../.cache/panel-${w}x${h}.png`, import.meta.url).pathname });
+  await panel.screenshot({ path: fileURLToPath(new URL(`../.cache/panel-${w}x${h}.png`, import.meta.url)) });
 }
 await browser.close();
 process.exit(0);

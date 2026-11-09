@@ -86,7 +86,9 @@ Every unlocked screen sits in one frame (`src/popup/frame.tsx`):
 - **Tabs under the header:** Home, Send, Swap, Apps.
 - **One status line at the bottom:** where reads go (Nox or direct, with clear and mixed counts; taps open Privacy) and how fresh the private balance is (taps sync).
 
-Home shows the site card (side panel, only when the tab has a dapp), the private balance in ETH, Main's public balance on demand, Receive, and recent activity. Locking returns the frame to Home.
+Home shows the site card (side panel, only when the tab has a dapp), the private balance in ETH, Main's public balance on demand, Receive, and the last four activity entries with a See all link. Locking returns the frame to Home.
+
+Activity (`screens/Activity.tsx`, opened from See all; no tab, back returns Home) lists all entries the book keeps (the last 50), newest first. Each row shows the label, the amount or status, the status and time, and links to the transaction on its network's explorer. Home and Activity share one row component, `ActivityRow`.
 
 ## Where prompts appear
 
