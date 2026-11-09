@@ -63,13 +63,16 @@ const balances = async () => {
     pending: t.match(/PENDING ([\d.]+) W?ETH/i)?.[1] ?? '0',
     reads: t.match(/(\d+) clear · (\d+) mixed/)?.[0],
     eta: t.match(/Spendable in about \d+ min|Clearing proof of innocence/i)?.[0],
+    usdc: t.match(/USDC [\d.]+( · [\d.]+ pending)?/)?.[0],
   };
 };
 
 // WAIT_SPENDABLE=1: stay open, resyncing, until enough clears proof of innocence
 // (the wallet submits those proofs only while it runs).
-const waitSpendable = async (need) => {
-  for (let i = 0; i < 25 && !(Number((await balances()).spendable) >= need); i += 1) {
+// pendingAtMost: also wait until pending falls back to that total.
+const waitSpendable = async (need, pendingAtMost = Infinity) => {
+  const done = (b) => Number(b.spendable) >= need && Number(b.pending) <= pendingAtMost;
+  for (let i = 0; i < 25 && !done(await balances()); i += 1) {
     await new Promise((r) => setTimeout(r, 60_000));
     await resync();
     log(`waiting to clear +${i + 1}m`, await balances());
@@ -109,7 +112,14 @@ const send = async ({ from, to, amount, expect }) => {
   await popup.waitForSelector('select');
   await popup.select('select', String(from));
   // TOKEN=<address>: send that ERC-20 instead of ETH.
-  if (process.env.TOKEN) await (await popup.$$('select'))[1].select(process.env.TOKEN);
+  if (process.env.TOKEN) {
+    const want = process.env.TOKEN.toLowerCase();
+    const tokenSelect = (await popup.$$('select'))[1];
+    const value = await tokenSelect?.evaluate((el, w) => [...el.options].find((o) => o.value.toLowerCase() === w)?.value, want);
+    if (!value) throw new Error(`token ${process.env.TOKEN} is not offered in Send`);
+    const picked = await tokenSelect.select(value);
+    if (picked[0] !== value) throw new Error(`could not pick token ${value}`);
+  }
   if (from === 'private' && VIA === 'broadcaster') await click('^broadcaster$');
   if (from === 'private' && VIA === 'self') await click('^main$');
   const [toInput] = await popup.$$('input:not([inputmode])');
@@ -145,14 +155,18 @@ if (phase === 'setup') {
   await click('^check$').catch(() => {});
   await new Promise((r) => setTimeout(r, 8000));
   log('public:', (await text()).match(/PUBLIC ([\d.]+ ETH|Check)/i)?.[1]);
+  const before = await balances();
   await send({ from: 0, to: zk, amount: AMOUNT, expect: 'Make private' });
   log('waiting for the shield to land and sync…');
   await new Promise((r) => setTimeout(r, 30000));
   await resync();
   const after = await balances();
   log('balances:', after);
-  // WAIT_SPENDABLE=1: stay open until the new notes clear, logging the countdown each minute.
-  if (process.env.WAIT_SPENDABLE) await waitSpendable(Number(after.spendable ?? 0) + Number(AMOUNT) * 0.99);
+  // WAIT_SPENDABLE=1: stay open until the new notes clear, logging the countdown each minute:
+  // spendable up by the shield and pending back to its total, both read before the submit.
+  // ponytail: totals, not per-note; an older pending note clearing meanwhile can end the wait
+  // early. Track the shield's own notes if a run ever has other notes clearing at once.
+  if (process.env.WAIT_SPENDABLE) await waitSpendable(Number(before.spendable ?? 0) + Number(AMOUNT) * 0.99, Number(before.pending));
 } else if (phase === 'status') {
   // WAIT_SPENDABLE=1: stay open until some private balance is spendable, for example
   // while the wallet resumes POI submissions a closed session left.
