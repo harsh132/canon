@@ -6,12 +6,21 @@ import { Button, Card, Slug } from '../ui';
 import { ActivityRow } from './Activity';
 import { SiteCard } from './SiteCard';
 import { Fund } from './Fund';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { etaText } from '../../shared/eta';
 
 export const Home = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
   const [funding, setFunding] = useState<{ address: string; origin: string } | null>(null);
   const [weth, ...others] = s.privateBalances;
   const main = s.accounts.find((a) => a.index === 0);
+  // Re-render from the stored time; the core sends no new state for this.
+  const [, tick] = useState(0);
+  useEffect(() => {
+    if (!s.pendingEta) return;
+    const id = setInterval(() => tick((n) => n + 1), 30_000);
+    return () => clearInterval(id);
+  }, [s.pendingEta]);
+  const eta = s.privateBalances.some((b) => b.pending > 0n) ? etaText(s.pendingEta, Date.now()) : null;
 
   if (funding) return <Fund s={s} address={funding.address} origin={funding.origin} onDone={() => setFunding(null)} />;
 
@@ -40,6 +49,7 @@ export const Home = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
             </span>
           </div>
         ))}
+        {eta && <div className="pt-2 text-right text-[12px] text-muted">{eta}</div>}
       </Card>
 
       {main && (

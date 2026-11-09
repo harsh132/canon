@@ -1,6 +1,8 @@
 // The popup <-> core contract. The popup holds no keys: it renders CoreState
 // and sends one of the whitelisted Commands below. Nothing else is accepted.
 
+import type { PendingEta } from './eta';
+
 export const PORT_NAME = 'canon-popup';
 
 /** Auto-lock choices, in minutes. */
@@ -140,6 +142,8 @@ export type CoreState = {
   engine: { status: 'off' | 'starting' | 'ready' | 'error'; error?: string };
   sync: SyncState;
   privateBalances: TokenBalance[];
+  /** When pending private funds may clear (shared/eta.ts). Null: no pending funds, or no data to estimate. */
+  pendingEta: PendingEta;
   accounts: PublicAccount[];
   activity: Activity[];
   proof: { label: string; progress: number } | null;
