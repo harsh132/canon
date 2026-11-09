@@ -20,7 +20,7 @@ Updated 2026-11-09.
 | Side panel from the toolbar icon | `check-panel.mjs`: fits 320–560 px wide, tab bar pinned |
 | Broadcaster discovery over Waku in the extension | `e2e-sepolia.mjs broadcasters`: connected, 1 Sepolia broadcaster |
 | Public accounts, balances on demand | Manual |
-| Privacy screen with read counts and a Nox/direct switch | `e2e-create.mjs` output |
+| Privacy screen with read counts, a Nox/direct switch and the auto-lock time (5, 15 or 60 min) | `e2e-create.mjs` output |
 | Injected provider (`window.ethereum`, EIP-6963) with per-site addresses | `e2e-injected.mjs` |
 | Gasless dapp transactions from a site address (EIP-7702 to Calibur, sponsor pays) | `e2e-sepolia.mjs dapp`, `execute-probe.ts` |
 | EIP-5792: `wallet_getCapabilities`, `wallet_sendCalls`, `wallet_getCallsStatus` | `e2e-sepolia.mjs dapp` |
