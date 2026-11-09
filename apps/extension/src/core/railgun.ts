@@ -8,6 +8,7 @@ import {
   getTXOsReceivedPOIStatusInfoForWallet,
   getChainTxidsStillPendingSpentPOIs,
   getLatestRailgunTxidData,
+  POINodeRequest,
   setOnWalletPOIProofProgressCallback,
   getProver,
   loadProvider,
@@ -82,17 +83,20 @@ const BENIGN = ['Failed to decrypt', 'Could not decrypt', 'Stopping queue of Rai
 // The TXID tree's data source broke its hash chain (seen on Sepolia's squid from index 4188).
 // Until it is fixed, the SDK cannot prove this wallet's spends, so pending notes may not clear.
 const TXID_STALL = 'Stopping queue of Railgun TXIDs - Invalid verification hash';
-// The TXID tree's index when it stopped; the flag clears once a sync finds the tree past it.
-// Engine-wide, not per sync: a scan already running makes refreshBalances skip its own.
-let txidStallIndex: number | null = null;
+// Set by the engine's error (engine-wide: a scan already running makes refreshBalances skip
+// its own, so a sync cannot tell by itself). Cleared by a sync that finds the local tree caught
+// up with the POI node's validated index: the tree is healthy then, however it recovered.
 const markTxidStall = (): void => {
   if (state.txidStalled) return;
   state.txidStalled = true;
   emit();
-  getLatestRailgunTxidData(TXIDVersion.V2_PoseidonMerkle, NETWORK).then(
-    (d) => (txidStallIndex = d.txidIndex),
-    () => {},
-  );
+};
+const txidCaughtUp = async (): Promise<boolean> => {
+  const [local, node] = await Promise.all([
+    getLatestRailgunTxidData(TXIDVersion.V2_PoseidonMerkle, NETWORK),
+    new POINodeRequest(POI_NODES).getLatestValidatedRailgunTxid(TXIDVersion.V2_PoseidonMerkle, CHAIN),
+  ]).catch(() => [null, null] as const);
+  return local != null && node?.validatedTxidIndex != null && local.txidIndex >= node.validatedTxidIndex;
 };
 const describe = (err: unknown, depth = 0): string => {
   if (!(err instanceof Error)) return String(err);
@@ -319,13 +323,7 @@ export const sync = (): Promise<void> =>
       try {
         scanIncomplete = false;
         await refreshBalances(CHAIN, [id]);
-        if (state.txidStalled && txidStallIndex != null) {
-          const now = await getLatestRailgunTxidData(TXIDVersion.V2_PoseidonMerkle, NETWORK).catch(() => null);
-          if (now && now.txidIndex > txidStallIndex) {
-            state.txidStalled = false;
-            txidStallIndex = null;
-          }
-        }
+        if (state.txidStalled && (await txidCaughtUp())) state.txidStalled = false;
         if (scanIncomplete) throw new Error('Scan stopped early');
         // Notes from our own private sends stay pending until this wallet proves
         // them clean and submits that to the PPOI node. Do it now, while open,
