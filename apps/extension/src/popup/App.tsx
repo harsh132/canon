@@ -10,11 +10,12 @@ import { Accounts } from './screens/Accounts';
 import { Privacy } from './screens/Privacy';
 import { Name } from './screens/Name';
 import { Swap } from './screens/Swap';
+import { ActivityList } from './screens/Activity';
 import { ConnectPrompt, RequestPrompt } from './screens/Prompts';
 import { Phrase, Reset } from './screens/Phrase';
 import { AppHeader, Footer, SepoliaOnly } from './frame';
 
-export type Tab = 'home' | 'send' | 'receive' | 'apps' | 'accounts' | 'privacy' | 'name' | 'swap' | 'phrase' | 'reset';
+export type Tab = 'home' | 'send' | 'receive' | 'apps' | 'accounts' | 'privacy' | 'name' | 'swap' | 'activity' | 'phrase' | 'reset';
 
 export const App = () => {
   const s = useCore();
@@ -63,6 +64,7 @@ export const App = () => {
         {tab === 'privacy' && <Privacy s={s} go={go} />}
         {tab === 'name' && <Name s={s} go={go} />}
         {tab === 'swap' && (s.privateNet === 'sepolia' ? <Swap s={s} go={go} /> : <SepoliaOnly />)}
+        {tab === 'activity' && <ActivityList s={s} go={go} />}
         {tab === 'phrase' && <Phrase s={s} go={go} />}
         {tab === 'reset' && <Reset go={go} />}
       </div>

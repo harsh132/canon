@@ -17,6 +17,7 @@ Updated 2026-11-09.
 | Sponsored private send (sponsor pays gas, Main not involved) | `e2e-sepolia.mjs private` on Sepolia |
 | Fast proof of innocence after a sponsored send: the wallet submits a proof per output it owns | `e2e-sepolia.mjs private`: spendable again 7 min after sending |
 | Private swap WETH → USDC on Uniswap v4, sponsor paying gas | `e2e-sepolia.mjs swap`: 0.001 WETH → 24.95 USDC ([tx](https://sepolia.etherscan.io/tx/0x270b85b24a68c6e2986bc670d20f69e3a7f085edb9ef23da1a1d629436ee3fe3)) |
+| Activity screen: all 50 entries with status, time and explorer link, opened from Home's See all | `shot-activity.mjs` (planted entries) |
 | Side panel from the toolbar icon | `check-panel.mjs`: fits 320–560 px wide, tab bar pinned |
 | Broadcaster discovery over Waku in the extension | `e2e-sepolia.mjs broadcasters`: connected, 1 Sepolia broadcaster |
 | Public accounts, balances on demand | Manual |
