@@ -25,6 +25,7 @@ import {
 import { TXIDVersion, type PreTransactionPOIsPerTxidLeafPerList } from '@railgun-community/shared-models';
 import type { ContractTransaction } from 'ethers';
 import { CHAIN, POI_NODES } from './config';
+import { SEPOLIA_ID } from '../shared/networks';
 import { currentWalletId, sync } from './railgun';
 import { dropPendingPOI, pendingPOIs, savePendingPOI } from './book';
 import { decode, encode } from '../shared/codec';
@@ -41,7 +42,8 @@ type Job = {
   at: number;
   /** The private network it was sent on. The book is shared by Sepolia and Arbitrum. */
   chainId: number;
-  /** Commitments the node already accepted, so a resumed job skips them. */
+  /** Proofs the node already accepted, as `commitment@tree:position`: an acceptance counts only
+   *  for that inclusion, so a transaction re-included elsewhere after a re-org is submitted again. */
   done: string[];
 };
 
@@ -54,7 +56,9 @@ const running = new Set<string>();
 const rerun = new Set<string>();
 const log = (...a: unknown[]) => console.log('[poi-assurance]', ...a);
 
-const saved = (): Job[] => pendingPOIs().map((s) => decode<Job>(s));
+// Jobs saved before chainId existed came only from Sepolia, the only network that ran
+// relayed private sends then; never stamp them with whatever network is open now.
+const saved = (): Job[] => pendingPOIs().map((s) => ({ chainId: SEPOLIA_ID, done: [], ...decode<Partial<Job>>(s) }) as Job);
 const save = (job: Job) => savePendingPOI(job.txHash, encode(job));
 
 export const assurePOI = async (p: Omit<Job, 'at' | 'chainId' | 'done'> & Partial<Pick<Job, 'at' | 'chainId' | 'done'>>): Promise<void> => {
@@ -85,7 +89,7 @@ export const resumePOI = async (): Promise<void> => {
       continue;
     }
     // Another network's job waits until that network is the private one again.
-    if ((job.chainId ?? CHAIN.id) !== CHAIN.id) continue;
+    if (job.chainId !== CHAIN.id) continue;
     if (running.has(job.txHash)) {
       rerun.add(job.txHash);
       continue;
@@ -115,8 +119,9 @@ const run = async (p: Job): Promise<boolean> => {
       log('first output is not ours; nothing to submit');
       return true;
     }
-    const accepted = async (commitment: string) => {
-      p.done = [...p.done, commitment];
+    const key = (commitment: string, tree: number, position: number) => `${commitment}@${tree}:${position}`;
+    const accepted = async (k: string) => {
+      p.done = [...p.done, k];
       await save(p);
     };
 
@@ -130,7 +135,8 @@ const run = async (p: Job): Promise<boolean> => {
         log('not indexed yet', attempt);
         continue;
       }
-      if (!p.done.includes(first.firstCommitment as string)) {
+      const firstKey = key(first.firstCommitment as string, tx.utxoTreeOut, tx.utxoBatchStartPositionOut);
+      if (!p.done.includes(firstKey)) {
         await node.submitSingleCommitmentProof(V2, CHAIN, {
           commitment: first.firstCommitment as string,
           npk: ByteUtils.nToHex(first.firstCommitmentNotePublicKey as bigint, ByteLength.UINT_256, true),
@@ -140,7 +146,7 @@ const run = async (p: Job): Promise<boolean> => {
           railgunTxid: first.railgunTxid,
           pois: p.pois,
         });
-        await accepted(first.firstCommitment as string);
+        await accepted(firstKey);
         log('submitted single commitment proof for', p.txHash);
       }
 
@@ -157,7 +163,8 @@ const run = async (p: Job): Promise<boolean> => {
         const index = txo.position - tx.utxoBatchStartPositionOut;
         if (index <= 0 || index >= tx.commitments.length) continue; // 0 is the first output, above
         const commitment = tx.commitments[index];
-        if (p.done.includes(commitment)) continue;
+        const k = key(commitment, tx.utxoTreeOut, txo.position);
+        if (p.done.includes(k)) continue;
         try {
           await node.submitSingleCommitmentProof(V2, CHAIN, {
             commitment,
@@ -168,7 +175,7 @@ const run = async (p: Job): Promise<boolean> => {
             railgunTxid: first.railgunTxid,
             pois: p.pois,
           });
-          await accepted(commitment);
+          await accepted(k);
           log('submitted output', index);
         } catch (e) {
           // That note stays on the slow route unless this proof goes in: keep the job.

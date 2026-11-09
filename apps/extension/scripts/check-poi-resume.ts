@@ -17,7 +17,10 @@ let indexed = true;
 let rejectOutput = false;
 let gate: Promise<void> | null = null;
 let failOnce = false;
+let start = 0; // where the indexer says the transaction's outputs begin
+const chain = { type: 0, id: 11155111 };
 const submitted: string[] = [];
+const positions: number[] = [];
 let runs = 0;
 let lastTx: { value?: unknown } = {};
 // The wallet's own note at position 1 of each transaction: its change.
@@ -38,7 +41,7 @@ mock.module('../src/core/railgun', () => ({
   },
   sync: async () => {},
 }));
-mock.module('../src/core/config', () => ({ CHAIN: { type: 0, id: 11155111 }, POI_NODES: [] }));
+mock.module('../src/core/config', () => ({ CHAIN: chain, POI_NODES: [] }));
 const first = { firstCommitment: '0xc0', firstCommitmentNotePublicKey: 1n, utxoTreeIn: 0n, railgunTxid: '0x01' };
 mock.module('@railgun-community/wallet', () => ({
   POIValidator: {
@@ -56,11 +59,12 @@ mock.module('@railgun-community/wallet', () => ({
     },
   },
   walletForID: () => ({ TXOs: async () => txos }),
-  getRailgunTransactionsForTxid: async () => (indexed ? [{ commitments: ['0xc0', '0xc1'], utxoTreeOut: 0, utxoBatchStartPositionOut: 0 }] : []),
+  getRailgunTransactionsForTxid: async () => (indexed ? [{ commitments: ['0xc0', '0xc1'], utxoTreeOut: 0, utxoBatchStartPositionOut: start }] : []),
   POINodeRequest: class {
-    submitSingleCommitmentProof = async (_v: unknown, _c: unknown, p: { commitment: string }) => {
+    submitSingleCommitmentProof = async (_v: unknown, _c: unknown, p: { commitment: string; utxoPositionOut: number }) => {
       if (rejectOutput && p.commitment === '0xc1') throw new Error('node timeout');
       submitted.push(p.commitment);
+      positions.push(p.utxoPositionOut);
     };
   },
   ByteLength: { UINT_256: 32 },
@@ -76,7 +80,7 @@ const job = (txHash: string, extra: Record<string, unknown> = {}) => ({
   pois: {},
   ...extra,
 });
-const ownChange = (txHash: string) => (txos = [{ txid: txHash, tree: 0, position: 1, note: { notePublicKey: 2n } }]);
+const ownChange = (txHash: string, at = 1) => (txos = [{ txid: txHash, tree: 0, position: at, note: { notePublicKey: 2n } }]);
 const settle = async (n = 50) => {
   for (let i = 0; i < n; i += 1) await new Promise((r) => queueMicrotask(() => r(null)));
 };
@@ -101,7 +105,7 @@ ownChange('0x3');
 rejectOutput = true;
 await assurePOI(job('0x3'));
 assert.ok(book.has('0x3'), 'a job with a rejected owned output is kept');
-assert.deepEqual(saved('0x3').done, ['0xc0']);
+assert.deepEqual(saved('0x3').done, ['0xc0@0:0'], 'an accepted proof is saved with its position');
 rejectOutput = false;
 
 // Locked mid-way: kept.
@@ -152,5 +156,33 @@ await old;
 await settle();
 assert.equal(runs, 2, 'the skipped job ran again after the old run ended');
 assert.ok(!book.has('0x8'), 'and finished');
+
+// A job saved before chainId existed came from Sepolia: on Arbitrum it is neither run
+// nor stamped as Arbitrum's, and on Sepolia it runs.
+const legacy = encode({ ...job('0x9'), at: Date.now(), done: [] });
+book.set('0x9', legacy);
+chain.id = 42161;
+runs = 0;
+await resumePOI();
+await settle();
+assert.equal(runs, 0, 'a legacy job does not run on Arbitrum');
+assert.equal(book.get('0x9'), legacy, 'and is not changed there');
+chain.id = 11155111;
+ownChange('0x9');
+await resumePOI();
+await settle();
+assert.ok(!book.has('0x9'), 'a legacy job runs on Sepolia');
+
+// Re-org: accepted at position 0, then re-included at 10. Both outputs go in again there.
+submitted.length = 0;
+positions.length = 0;
+start = 10;
+ownChange('0xa', 11);
+book.set('0xa', encode({ ...job('0xa'), at: Date.now(), chainId: 11155111, done: ['0xc0@0:0'] }));
+await resumePOI();
+await settle();
+assert.deepEqual(positions, [10, 11], 'a re-included transaction is submitted at its new position');
+assert.ok(!book.has('0xa'));
+start = 0;
 
 console.log('pass  poi-resume');
