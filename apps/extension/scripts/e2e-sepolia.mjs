@@ -3,7 +3,7 @@
 //   bun scripts/e2e-sepolia.mjs shield    Make private AMOUNT (default 0.01) from Main
 //   bun scripts/e2e-sepolia.mjs status    sync and print private balance (spendable / pending)
 //   bun scripts/e2e-sepolia.mjs broadcasters  wait for Waku to find Sepolia broadcasters
-//   bun scripts/e2e-sepolia.mjs private   Send privately AMOUNT (of TOKEN, an ERC-20 address, if set) to TO (default alice.pangolin.eth) with VIA gas
+//   bun scripts/e2e-sepolia.mjs private   Send privately AMOUNT (of TOKEN, an ERC-20 address, if set) to TO (default alice.canon.eth) with VIA gas
 //   bun scripts/e2e-sepolia.mjs swap      private swap AMOUNT (default 0.001) WETH -> USDC on Uniswap v4
 //   bun scripts/e2e-sepolia.mjs name      claim LABEL.canon.eth, then pay it from Main by name
 //   bun scripts/e2e-sepolia.mjs spend     Send privately 0.002 to self
@@ -205,7 +205,7 @@ if (phase === 'setup') {
   await send({ from: 0, to: name, amount: process.env.AMOUNT ?? '0.001', expect: 'Make private' });
 } else if (phase === 'private') {
   // Send privately (gas route from VIA, default sponsor) to TO, default a name.
-  const to = process.env.TO ?? 'alice.pangolin.eth';
+  const to = process.env.TO ?? 'alice.canon.eth';
   if (process.env.WAIT_SPENDABLE && !process.env.TOKEN) await waitSpendable(Number(process.env.AMOUNT ?? '0.001'));
   await send({ from: 'private', to, amount: process.env.AMOUNT ?? '0.001', expect: 'Send privately' });
   // Stay open: the wallet submits the send's POIs in the background, like a broadcaster.
