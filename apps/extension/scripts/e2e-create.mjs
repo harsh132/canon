@@ -7,6 +7,10 @@ import { createWallet, launch } from './smoke.mjs';
 const shot = (rel) => fileURLToPath(new URL(rel, import.meta.url));
 const PASSWORD = process.env.CANON_PASSWORD ?? 'correct horse battery';
 const { browser, popup, corePage } = await launch();
+// Every request the core makes off the extension, so a run shows what still goes out in the clear.
+corePage.on('request', (r) => {
+  if (!/^(chrome-extension|blob|data):/.test(r.url())) console.log('[net]', r.method(), r.url().slice(0, 120));
+});
 corePage.on('requestfailed', (r) => console.log('[net:fail]', r.url().slice(0, 120), r.failure()?.errorText));
 corePage.on('response', (r) => {
   if (r.status() >= 400) console.log(`[net:${r.status()}]`, r.url().slice(0, 140));

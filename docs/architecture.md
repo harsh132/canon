@@ -10,7 +10,7 @@
 | Inpage provider | Each http(s) page's own world | `src/inpage/provider.ts` | Nothing. EIP-1193 provider, EIP-6963 announcement |
 | Bridge | Each page, isolated world | `src/inpage/bridge.ts` | Nothing. Relays calls to the core over a port Chrome stamps with the tab's origin |
 | Sponsor | Cloudflare Worker + Durable Object (`apps/sponsor`); `bun src/server.ts` locally | `apps/sponsor/src` | The gas key. Pays for private sends, swaps, Fund, name claims and site-address calls ([sponsor.md](sponsor.md)) |
-| Anon-RPC sandbox | Null-origin iframe inside the core | `dist/anon-rpc/<ver>/sandbox.html` | The hash-pinned Nox worker bundle |
+| Anon-RPC sandbox | Null-origin iframe inside the core | `dist/anon-rpc/<ver>/sandbox.html` | The hash-pinned Nox worker bundle, packaged at `dist/nox/anon-rpc-worker.js` |
 
 The core lives in the offscreen document because the service worker is killed when idle and has no DOM. The offscreen document stays up, so the engine, its IndexedDB store and the WalletConnect socket survive the popup closing.
 

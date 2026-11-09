@@ -150,6 +150,10 @@ const copyStatic = () => {
   const anon = nm('@anon-rpc', 'browser-extension-harness', 'dist', 'static', 'anon-rpc');
   rmSync(join(dist, 'anon-rpc'), { recursive: true, force: true });
   cpSync(anon, join(dist, 'anon-rpc'), { recursive: true });
+  // The Nox worker bundle, packaged so nothing is downloaded at run time. The
+  // specifier's workerHash() must still match it (transport.ts).
+  mkdirSync(join(dist, 'nox'), { recursive: true });
+  cpSync(nm('@hisoka-io', 'anon-rpc-worker', 'dist', 'anon-rpc-worker.js'), join(dist, 'nox', 'anon-rpc-worker.js'));
   const fonts = [
     ['instrument-sans', 'instrument-sans-latin-400-normal.woff2'],
     ['instrument-sans', 'instrument-sans-latin-500-normal.woff2'],

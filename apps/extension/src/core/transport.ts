@@ -5,7 +5,7 @@
 // Fails closed. If the worker cannot boot, reads error out; they never fall
 // back to a direct connection on their own. Only the user switches modes.
 import { AnonRpcWorker } from '@anon-rpc/browser-extension-harness';
-import { FetchRequest } from 'ethers';
+import { AbiCoder, FetchRequest, id, keccak256 } from 'ethers';
 import axios from 'axios';
 import { DEV, FORK, RPC_URL } from './config';
 import { emit, state } from './state';
@@ -30,17 +30,39 @@ const bump = (key: keyof typeof state.rpc.counts): void => {
 
 // The worker reads its specifier contract once per boot. That read is in the
 // clear by necessity; it names the worker, not the user.
+const rpcRead = async (method: string, params?: unknown[]): Promise<unknown> => {
+  bump('bootstrap');
+  const r = await realFetch(BOOTSTRAP_RPC, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params: params ?? [] }),
+  });
+  const j = (await r.json()) as { result?: unknown; error?: { message: string } };
+  if (j.error) throw new Error(j.error.message);
+  return j.result;
+};
+
+// The pinned Nox bundle ships in the package (copied by the build from
+// @hisoka-io/anon-rpc-worker): the Chrome Web Store allows no remotely hosted code.
+// The contract still decides: workerHash() must equal these bytes' keccak, and the
+// harness checks it again. Its resolver list is answered with a blob: URL of the
+// bytes (SPEC §4.1), so nothing is downloaded.
+const NOX_BUNDLE = '/nox/anon-rpc-worker.js';
+const SEL_HASH = id('workerHash()').slice(0, 10);
+const SEL_RESOLVERS = id('workerResolvers()').slice(0, 10);
+let bundle: Promise<{ hash: string; url: string }> | undefined;
+const localBundle = () =>
+  (bundle ??= realFetch(NOX_BUNDLE)
+    .then((r) => r.arrayBuffer())
+    .then((b) => ({ hash: keccak256(new Uint8Array(b)), url: URL.createObjectURL(new Blob([b])) })));
+
 const bootstrapProvider = {
   request: async ({ method, params }: { method: string; params?: unknown[] }) => {
-    bump('bootstrap');
-    const r = await realFetch(BOOTSTRAP_RPC, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params: params ?? [] }),
-    });
-    const j = (await r.json()) as { result?: unknown; error?: { message: string } };
-    if (j.error) throw new Error(j.error.message);
-    return j.result;
+    const data = method === 'eth_call' ? (params?.[0] as { data?: string } | undefined)?.data : undefined;
+    if (data === SEL_RESOLVERS) return AbiCoder.defaultAbiCoder().encode(['string[]'], [[(await localBundle()).url]]);
+    const result = await rpcRead(method, params);
+    if (data === SEL_HASH && result !== (await localBundle()).hash) throw new Error('Nox bundle out of date; update Canon');
+    return result;
   },
 };
 
@@ -144,12 +166,10 @@ const send = async (req: FetchRequest): Promise<GetUrlResponse> => {
 const POI_HOSTS = ['ppoi.fdi.network'];
 // WalletConnect's analytics. Sent even with telemetry off; never needed.
 const BLOCKED_HOSTS = ['pulse.walletconnect.org', 'pulse.walletconnect.com'];
-const classify = (url: string): 'poi' | 'sync' | 'artifacts' | 'bootstrap' | 'blocked' | 'other' => {
+const classify = (url: string): 'poi' | 'sync' | 'artifacts' | 'blocked' | 'other' => {
   const host = new URL(url, location.href).host;
   if (BLOCKED_HOSTS.includes(host)) return 'blocked';
   if (POI_HOSTS.includes(host)) return 'poi';
-  // The worker's hash-pinned bundle. Names Nox, not the user.
-  if (url.includes('/anon-rpc/')) return 'bootstrap';
   if (/subsquid|squid|graph/i.test(host)) return 'sync';
   if (/ipfs|artifact/i.test(host + url)) return 'artifacts';
   return 'other';
