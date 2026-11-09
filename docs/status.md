@@ -49,8 +49,9 @@ Updated 2026-11-09.
 
 ## Known issues
 
-- **A private swap's output token stays pending.** The swap's USDC returns as a Relay Adapt shield; on 2026-11-09 the POI node still reported it Missing after more than 2 hours, while the swap's WETH outputs cleared. Cause under investigation.
-- **Two old notes stay on the slow route.** On the Sepolia test wallet, 0.0124 WETH of change from sends made before `resumePOI` (2026-11-09) is still pending. Their proofs were never saved, so nothing can resume them; they clear only if the slow route does.
+- **Sepolia's TXID index is broken, so the SDK proves no spends there.** The RAILGUN squid for Sepolia lost part of tx [`0x4b78372a…`](https://sepolia.etherscan.io/tx/0x4b78372a9f06a8ab7ccb8a02373d279fc385515139c6ef157d2fe79ee147e932) (block 11816741): at least 3 nullifier events on chain, one record with 1 nullifier in the squid. Its `verificationHash` at index 4188 does not chain, so every wallet's TXID tree stops at 4177 with "Invalid verification hash", a new wallet too. Sepolia has no `Action` event, so the engine's RPC source cannot fill the gap. Without the TXID tree the SDK makes no full transact proofs: spent notes get no POI, and Relay Adapt shields wait for an unshield POI that never comes. Reported to a RAILGUN developer on 2026-11-09. Home shows "Proof sync paused" while it lasts. Single commitment proofs (`poi-assurance.ts`) do not need the tree, so sponsored sends still clear. Arbitrum's squid chains through all 71,995 records and matches the POI node (checked 2026-11-09).
+  - **A private swap's output token stays pending.** The USDC of both Sepolia swaps (2026-11-06 and 2026-11-09) is still `Missing` at the POI node.
+  - **Two old notes stay on the slow route.** 0.0124 WETH of change from sends made before `resumePOI` (2026-11-09) is still pending. The slow route is the TXID tree above.
 
 ## Open questions
 

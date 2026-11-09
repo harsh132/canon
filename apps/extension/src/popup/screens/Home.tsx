@@ -50,6 +50,9 @@ export const Home = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
           </div>
         ))}
         {eta && <div className="pt-2 text-right text-[12px] text-muted">{eta}</div>}
+        {s.txidStalled && s.privateBalances.some((b) => b.pending > 0n) && (
+          <div className="pt-1.5 text-right text-[12px] text-warn">Proof sync paused: RAILGUN's transaction index does not verify. Some pending funds wait for it.</div>
+        )}
       </Card>
 
       {main && (

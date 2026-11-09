@@ -17,6 +17,7 @@ export const state: CoreState = {
   accounts: [],
   activity: [],
   proof: null,
+  txidStalled: false,
   sites: [],
   tabs: {},
   broadcaster: { status: 'off', count: 0 },

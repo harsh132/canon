@@ -50,6 +50,6 @@ Gas goes through the sponsored relay like other private sends (`useRelayAdapt` i
 
 ## Verified on Sepolia
 
-2026-11-06, `e2e-sepolia.mjs swap`: 0.001 private WETH became 24.95 private USDC through the v4 ETH/USDC 0.3% pool, sponsor paying gas, no inner-call error ([tx](https://sepolia.etherscan.io/tx/0x270b85b24a68c6e2986bc670d20f69e3a7f085edb9ef23da1a1d629436ee3fe3)). The leftover WETH was spendable within minutes after the wallet's proof submissions. The USDC comes back through the Relay Adapt re-shield, so it waits RAILGUN's normal shield hold (about 12 minutes on Sepolia).
+2026-11-06, `e2e-sepolia.mjs swap`: 0.001 private WETH became 24.95 private USDC through the v4 ETH/USDC 0.3% pool, sponsor paying gas, no inner-call error ([tx](https://sepolia.etherscan.io/tx/0x270b85b24a68c6e2986bc670d20f69e3a7f085edb9ef23da1a1d629436ee3fe3)). The leftover WETH was spendable within minutes after the wallet's proof submissions. The USDC comes back through the Relay Adapt re-shield. The POI list provider allows such a shield only after the swap's unshield has a valid POI, and only a full transact proof gives one; the SDK makes it from the TXID tree. On Sepolia that tree stops at index 4177 (see [status.md](status.md#known-issues)), so on 2026-11-09 the USDC of both swaps was still `Missing` at the POI node: 3 days after the first swap and 2 hours after the second.
 
 Developer feedback written for Uniswap during the hackathon: [research/uniswap-feedback.md](research/uniswap-feedback.md).
