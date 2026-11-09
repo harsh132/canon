@@ -41,10 +41,15 @@ export const Send = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
   useEffect(() => {
     setPubToken(null);
     if (!token || !account) return;
+    // A reply for the token or account picked before must not overwrite the current one.
+    let stale = false;
     void call('site.balances', { address: account.address, chainId: s.chainId }).then(
-      (b) => setPubToken(b.tokens.find((t) => t.address === token.address)?.amount ?? null),
+      (b) => !stale && setPubToken(b.tokens.find((t) => t.address === token.address)?.amount ?? null),
       () => {},
     );
+    return () => {
+      stale = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token?.address, account?.address]);
 
