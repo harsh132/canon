@@ -12,6 +12,8 @@ export const launch = async ({ headful = process.argv.includes('--headful') } = 
   // Read at call time: importers may set it after this module has loaded.
   const profile = process.env.CANON_PROFILE ?? join(app, '.cache', 'profile');
   mkdirSync(profile, { recursive: true });
+  // Scripts save screenshots here; a fresh checkout has no .cache yet.
+  mkdirSync(join(app, '.cache'), { recursive: true });
   const browser = await puppeteer.launch({
     executablePath: process.env.CHROME ?? '/usr/bin/chromium',
     headless: !headful,
