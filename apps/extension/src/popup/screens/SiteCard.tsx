@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { CoreState } from '../../shared/protocol';
 import { amount, short } from '../../shared/format';
 import { call, panelTab } from '../client';
@@ -20,10 +20,14 @@ export const SiteCard = ({ s, onFund }: { s: CoreState; onFund?: (address: strin
   const chainId = (origin && s.siteChains[origin]) || SEPOLIA_ID;
   const net = netOf(chainId);
 
-  // Read once per site, and on demand; never polled.
+  // Read once per site, and on demand; never polled. Only the latest read may set the
+  // balances: a slow reply from before a switch or an earlier Refresh is dropped.
+  const latest = useRef(0);
   const refresh = () => {
+    const mine = ++latest.current;
     if (!account) return;
-    void call('site.balances', { address: account.address, chainId }).then(setBal, () => setBal(null));
+    const set = (b: Balances | null) => latest.current === mine && setBal(b);
+    void call('site.balances', { address: account.address, chainId }).then(set, () => set(null));
   };
   useEffect(() => {
     setBal(null);
