@@ -4,7 +4,7 @@
 //
 // esbuild rather than Vite: the RAILGUN stack is CommonJS-heavy and Ender's
 // esbuild shim table is already proven against it. Tailwind runs as its CLI.
-import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
@@ -187,7 +187,14 @@ const circuitWasm = async () => {
     v.startsWith('POI_')
       ? `${IPFS}/${ARTIFACTS_POI}/prover/snarkjs/${v.replace(/^POI_(\d+)x(\d+)$/, (_, a, b) => `${a.padStart(2, '0')}x${b.padStart(2, '0')}`)}.wasm.br`
       : `${IPFS}/${ARTIFACTS_MAIN}/prover/snarkjs/${v}.wasm.br`;
-  const ok = (br, v) => createHash('sha256').update(brotliDecompressSync(br)).digest('hex') === artifactHashes[v].wasm;
+  // A truncated or corrupt file (an interrupted build) is a cache miss, not a build failure.
+  const ok = (br, v) => {
+    try {
+      return createHash('sha256').update(brotliDecompressSync(br)).digest('hex') === artifactHashes[v].wasm;
+    } catch {
+      return false;
+    }
+  };
   const fetchOne = async (v) => {
     const file = join(cache, `${v}.wasm.br`);
     if (!existsSync(file) || !ok(readFileSync(file), v)) {
@@ -197,7 +204,8 @@ const circuitWasm = async () => {
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           const br = Buffer.from(await res.arrayBuffer());
           if (!ok(br, v)) throw new Error('hash mismatch');
-          writeFileSync(file, br);
+          writeFileSync(`${file}.tmp`, br);
+          renameSync(`${file}.tmp`, file);
           break;
         } catch (e) {
           if (tries >= 3) throw new Error(`circuit ${v}: ${e.message}`);
