@@ -85,6 +85,7 @@ All storage is in the extension origin's IndexedDB. The offscreen document has n
 | `canon/kv` → `rpcMode`, `autoLockMin` | Nox or direct; 5, 15 or 60 minutes | Plain, because the core needs them before unlock |
 | `canon-railgun` | RAILGUN merkle trees and wallet data | Wallet data encrypted |
 | `railgun-artifacts` | Circuit proving keys and vkeys | Public data |
+| WalletConnect's own stores | Pairings and sessions (the dapps the wallet paired with) | **Plain**, as the SDK keeps them. The book's encryption does not cover them |
 
 The book is encrypted because a list of the sites that someone uses is the disclosure that site addresses exist to prevent. The wallet locks after 5, 15 (default) or 60 minutes without a command, or on the Lock button.
 
@@ -113,8 +114,9 @@ The book is encrypted because a list of the sites that someone uses is the discl
 - **Connections:** the injected provider (`window.ethereum` only if no other wallet set it; EIP-6963 always) and WalletConnect. Both key the binding by origin, so a site gets one address however it connects.
 - **Rules:** the full host is the dapp's identity. First contact gets a fresh site address, written to the book before the session exists. Reconnects get the same address. Nothing is approved without a prompt. Dapp requests for an EIP-7702 delegation are refused.
 - **Per-tab side panel:** each tab's panel shows that tab's dapp, its address and its balances. Fund moves private balance to the site address in one unshield (WETH arrives as ETH).
-- **Gasless site addresses:** a site address delegates to Uniswap's Calibur through EIP-7702. The wallet signs a Calibur batch with the site key, and the sponsor sends it. The sponsor is the only allowed executor. Only site addresses are delegated, and only to Calibur.
-- **EIP-5792:** `wallet_sendCalls` runs a batch atomically as one Calibur call. The batch id is the transaction hash.
+- **Gasless site addresses (Sepolia only):** a site address delegates to Uniswap's Calibur through EIP-7702. The wallet signs a Calibur batch with the site key, and the sponsor sends it. The sponsor is the only allowed executor. Only site addresses are delegated, and only to Calibur. On other networks, a site address sends ordinary transactions and pays its own gas.
+- **EIP-5792 (Sepolia only):** `wallet_sendCalls` runs a batch atomically as one Calibur call. The batch id is the transaction hash. On other networks, `wallet_sendCalls` fails with 5710.
+- **Sepolia only, too:** Fund (it unshields on the private network) and names (ENSv2 is on Sepolia).
 - **Transaction preview:** prompts show balance changes from `eth_simulateV1`, decoded calls, and warnings for reverts and unlimited approvals.
 
 ### Names

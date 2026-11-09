@@ -62,7 +62,7 @@ Hosted at `https://canon-sponsor.prakashharsh32.workers.dev` (Cloudflare Worker 
 
 What `/relay` and `/execute` refuse:
 
-- `/relay`: any `to` other than the RAILGUN proxy or Relay Adapt; a type-4 transaction without exactly one authorization to RelayAdapt7702 on Sepolia, signed by the transaction's own target; a simulation that fails at the real gas price; more than 4M gas.
+- `/relay`: a `to` that is not the RAILGUN proxy or Relay Adapt, unless it is RAILGUN's 7702 unshield target (the one-off ephemeral address). Such a target must bring exactly one authorization to RelayAdapt7702 on Sepolia, signed by the target itself, and have no code or only that delegation. Fund with ETH and sponsored Make public depend on this path. The relay also refuses bad calldata, a simulation that fails at the real gas price, and more than 4M gas.
 - `/execute`: a chain other than Sepolia; an executor other than this sponsor; 0 or more than 10 calls; a call into the account, `address(0)` or the EntryPoint; a deadline in the past or more than 1 hour ahead; an account that does not run Calibur and brings no authorization to Calibur; a failed simulation; more than 3M gas.
 
 Gas price: the sponsor prices legacy gas from the latest base fee ×2 plus a tip. Do not use `eth_gasPrice`: on Sepolia it lagged the base fee and left a transaction that could not be mined.
@@ -210,7 +210,7 @@ CANON_PROFILE=$PWD/.cache/<new> bun scripts/e2e-fork.mjs
 | `swap` | Private swap `AMOUNT` (default 0.001) WETH to USDC |
 | `name` | Claims `LABEL.canon.eth` (default `alice`), then pays it from Main |
 | `broadcasters` | Waits until Waku finds a Sepolia broadcaster |
-| `dapp` | A local dapp: EIP-5792, sponsored 7702 calls, then Fund |
+| `dapp` | A local dapp: EIP-5792, sponsored 7702 calls, then Fund. **Needs a `--dev` build** (it reads `__canonState`; a production build fails after the sponsored transactions have run) and spendable private WETH for Fund |
 
 | Variable | Effect |
 |---|---|
