@@ -36,7 +36,7 @@ Ported from Ender's engine WebView build:
 ## Quirks found by testing
 
 - **Settle before spending again.** After a private send, the engine still sees the spent notes as unspent until the transaction is mined and re-scanned. A second proof over them reverts with "Note already spent". `send.ts` makes the next private send wait for the last one to settle.
-- **Incomplete scans.** A load-balanced RPC node behind head makes the slow scan stop early ("block range extends beyond current head"). The engine reports `Incomplete` without throwing; `sync()` treats that as a failure and retries.
+- **Incomplete scans.** A load-balanced RPC node behind head makes the slow scan stop early ("block range extends beyond current head"). The transport hook now retries that one reply (see [anon-rpc.md](anon-rpc.md#nodes-behind-head)). If the scan still stops, the engine reports `Incomplete` without throwing; `sync()` treats that as a failure and retries.
 - **New wallets scan from today's block.** A fresh phrase has no history; imported phrases scan from the deployment block.
 - **Engine boot can be slow.** Unlock does not wait on it; the vault is usable first and the wallet opens in the background.
 - **Shield fee.** 25 basis points: 1 ETH made private shows 0.9975 WETH.
