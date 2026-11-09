@@ -20,14 +20,13 @@ export const SiteCard = ({ s, onFund }: { s: CoreState; onFund?: (address: strin
   const chainId = (origin && s.siteChains[origin]) || SEPOLIA_ID;
   const net = netOf(chainId);
 
-  // Read once per site, and on demand; never polled. A reply for an address or network
-  // the card no longer shows is dropped, so a slow read cannot overwrite a newer one.
-  const shown = useRef('');
-  shown.current = `${account?.address}:${chainId}`;
+  // Read once per site, and on demand; never polled. Only the latest read may set the
+  // balances: a slow reply from before a switch or an earlier Refresh is dropped.
+  const latest = useRef(0);
   const refresh = () => {
+    const mine = ++latest.current;
     if (!account) return;
-    const key = shown.current;
-    const set = (b: Balances | null) => shown.current === key && setBal(b);
+    const set = (b: Balances | null) => latest.current === mine && setBal(b);
     void call('site.balances', { address: account.address, chainId }).then(set, () => set(null));
   };
   useEffect(() => {
