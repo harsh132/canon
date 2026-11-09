@@ -23,7 +23,7 @@ The **owner** is a fresh address on the app path with `canon.eth` as the app, `m
 
 ## Trust after issue
 
-Verified on Sepolia for `alice.canon.eth`: the sponsor's attempts to rewrite the record, unregister the name and repoint its resolver all revert with `EACUnauthorizedAccountRoles`. The sponsor also renounced `SET_SUBREGISTRY` on `canon.eth`, so it cannot swap the whole namespace.
+Verified on Sepolia for `alice.pangolin.eth`: the sponsor's attempts to rewrite the record, unregister the name and repoint its resolver all revert with `EACUnauthorizedAccountRoles`. The sponsor also renounced `SET_SUBREGISTRY` on `canon.eth`, so it cannot swap the whole namespace.
 
 What the sponsor still controls:
 
@@ -44,8 +44,8 @@ The sponsor learns the label, owner address and 0zk (all published on-chain anyw
 
 ## Verified
 
-`e2e-sepolia.mjs name`, 2026-11-06:
+`e2e-sepolia.mjs name`, 2026-11-06, before the parent was renamed to `canon.eth`; the name lives at `alice.pangolin.eth`. As of 2026-11-09 no name is claimed under `canon.eth`, so every `*.canon.eth` lookup fails with "is not registered":
 
-- Claimed `alice.canon.eth`; owner `0x81d7…f2C6` with 0 ETH.
-- Paying `alice.canon.eth` from Main resolved through Nox to the wallet's 0zk via `org.railgun` and ran as Make private ([tx](https://sepolia.etherscan.io/tx/0xd0da0f458b05c311471ad0d4ab7588b10318fcdc6d7380031cec29509a103f42)).
+- Claimed `alice.pangolin.eth`; owner `0x81d7…f2C6` with 0 ETH.
+- Paying `alice.pangolin.eth` from Main resolved through Nox to the wallet's 0zk via `org.railgun` and ran as Make private ([tx](https://sepolia.etherscan.io/tx/0xd0da0f458b05c311471ad0d4ab7588b10318fcdc6d7380031cec29509a103f42)).
 - A claim whose reply was lost is adopted on retry, because the name already pays this wallet.

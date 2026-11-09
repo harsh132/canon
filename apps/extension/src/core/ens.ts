@@ -1,7 +1,7 @@
 // Names: <label>.canon.eth, issued free by the sponsor, owned by an
 // unfunded identity address, with an org.railgun record holding the 0zk.
 // Every lookup goes through the core's provider, so through Nox.
-import { AbiCoder, Contract, Interface, dnsEncode, getAddress, namehash } from 'ethers';
+import { AbiCoder, Contract, Interface, dnsEncode, getAddress, id, namehash } from 'ethers';
 import { createAccount, previewAccount, setName, signerFor, accounts } from './book';
 import { SPONSOR_URL, sepolia } from './config';
 import { privateFetch, replyJson } from './transport';
@@ -10,6 +10,7 @@ import { emit, state } from './state';
 export const PARENT = 'canon.eth';
 export const TEXT_KEY = 'org.railgun';
 const UNIVERSAL_RESOLVER = '0xeEeEEEeE14D718C2B47D9923Deab1335E144EeEe';
+const RESOLVER_NOT_FOUND = id('ResolverNotFound(bytes)').slice(0, 10);
 const LABEL = /^[a-z0-9](?:[a-z0-9-]{1,30}[a-z0-9])$/;
 
 const textIface = new Interface(['function text(bytes32 node, string key) view returns (string)']);
@@ -100,11 +101,19 @@ export type Resolved = { address: string; via: 'org.railgun' | 'addr' };
 export const resolveName = async (name: string): Promise<Resolved> => {
   const n = name.trim().toLowerCase();
   const node = namehash(n);
+  // A revert with the Universal Resolver's error data means "no such record"; anything else
+  // (Nox or RPC down, an RPC error reply such as a timeout, which ethers also labels
+  // CALL_EXCEPTION but with no revert data) is reported as itself, not as a missing name.
+  // ResolverNotFound means the name does not exist at all.
   const resolve = async (data: string) => {
     try {
       const [out] = (await ur().resolve(dnsEncode(n), data)) as [string, string];
       return out;
-    } catch {
+    } catch (e) {
+      const err = e as { code?: string; data?: unknown; info?: { error?: { message?: string } } };
+      const reverted = err.code === 'CALL_EXCEPTION' && typeof err.data === 'string' && /^0x[0-9a-f]{8}/i.test(err.data);
+      if (!reverted) throw new Error(`Name lookup failed: ${err.info?.error?.message ?? (e as Error).message}`);
+      if ((err.data as string).startsWith(RESOLVER_NOT_FOUND)) throw new Error(`${n} is not registered`);
       return null;
     }
   };
