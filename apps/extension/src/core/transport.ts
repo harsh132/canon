@@ -178,6 +178,8 @@ const classify = (url: string): 'poi' | 'sync' | 'artifacts' | 'blocked' | 'othe
 const patchedFetch: typeof fetch = async (input, init) => {
   const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
   if (url.startsWith('chrome-extension:') || url.startsWith('blob:') || url.startsWith('data:')) return realFetch(input, init);
+  // Circuit code ships in the package (railgun.ts); never run a downloaded copy.
+  if (/\/prover\//.test(url)) throw new Error('Circuit code is bundled; refusing to download it');
   const kind = classify(url);
   if (kind === 'poi' && state.rpc.mode === 'nox') {
     bump('mixed');

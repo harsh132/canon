@@ -9,3 +9,7 @@ declare module 'snarkjs' {
     verify: (...args: unknown[]) => Promise<boolean>;
   };
 }
+declare module 'brotli/decompress' {
+  const decompress: (input: Uint8Array) => Uint8Array;
+  export default decompress;
+}
