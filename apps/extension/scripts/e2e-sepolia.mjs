@@ -64,6 +64,7 @@ const balances = async () => {
     reads: t.match(/(\d+) clear · (\d+) mixed/)?.[0],
     eta: t.match(/Spendable in about \d+ min|Clearing proof of innocence/i)?.[0],
     usdc: t.match(/USDC [\d.]+( · [\d.]+ pending)?/)?.[0],
+    stalled: /Proof sync paused/.test(t),
   };
 };
 
@@ -175,6 +176,13 @@ if (phase === 'setup') {
   // while the wallet resumes POI submissions a closed session left.
   if (process.env.WAIT_SPENDABLE) await waitSpendable(0.0001);
   log('balances:', await balances());
+  // STAY_MIN=N: stay open N minutes, syncing each minute, for state that comes from
+  // background work (for example the TXID scan behind "Proof sync paused").
+  for (let i = 0; i < Number(process.env.STAY_MIN ?? 0); i += 1) {
+    await new Promise((r) => setTimeout(r, 60_000));
+    await resync();
+    log(`+${i + 1}m`, await balances());
+  }
 } else if (phase === 'name') {
   // Claim LABEL.canon.eth through the sponsor, then pay it from Main by name.
   const label = process.env.LABEL ?? 'alice';

@@ -7,6 +7,7 @@ import {
   getTXOsSpentPOIStatusInfoForWallet,
   getTXOsReceivedPOIStatusInfoForWallet,
   getChainTxidsStillPendingSpentPOIs,
+  getLatestRailgunTxidData,
   setOnWalletPOIProofProgressCallback,
   getProver,
   loadProvider,
@@ -76,7 +77,23 @@ const blobWorkersAllowed = (): boolean => {
   }
 };
 
-const BENIGN = ['Failed to decrypt', 'Could not decrypt', 'Stopping queue of Railgun TXIDs'];
+// "missing a commitment or unshield" is the TXID tree waiting for the UTXO tree: it passes.
+const BENIGN = ['Failed to decrypt', 'Could not decrypt', 'Stopping queue of Railgun TXIDs - missing a commitment'];
+// The TXID tree's data source broke its hash chain (seen on Sepolia's squid from index 4188).
+// Until it is fixed, the SDK cannot prove this wallet's spends, so pending notes may not clear.
+const TXID_STALL = 'Stopping queue of Railgun TXIDs - Invalid verification hash';
+// The TXID tree's index when it stopped; the flag clears once a sync finds the tree past it.
+// Engine-wide, not per sync: a scan already running makes refreshBalances skip its own.
+let txidStallIndex: number | null = null;
+const markTxidStall = (): void => {
+  if (state.txidStalled) return;
+  state.txidStalled = true;
+  emit();
+  getLatestRailgunTxidData(TXIDVersion.V2_PoseidonMerkle, NETWORK).then(
+    (d) => (txidStallIndex = d.txidIndex),
+    () => {},
+  );
+};
 const describe = (err: unknown, depth = 0): string => {
   if (!(err instanceof Error)) return String(err);
   const cause = (err as { cause?: unknown }).cause;
@@ -109,11 +126,15 @@ export const bootEngine = (): Promise<void> =>
       (m: string) => DEV && console.log('[railgun]', m),
       (e: string | Error) => {
         const msg = describe(e);
+        if (msg.includes(TXID_STALL)) markTxidStall();
         if (!BENIGN.some((b) => msg.includes(b))) console.error('[railgun]', msg);
       },
     );
     if (FORK) delete (NETWORK_CONFIG[NETWORK] as { poi?: unknown }).poi;
-    await startRailgunEngine('canon', leveljs('canon-railgun'), DEV, artifactStore, false, false, POI_NODES);
+    // shouldDebug true in every build: without it the SDK connects no engine logger at all, so a
+    // production build never sees engine errors such as the TXID stall. The log function above
+    // still prints only in dev.
+    await startRailgunEngine('canon', leveljs('canon-railgun'), true, artifactStore, false, false, POI_NODES);
     if (FORK) patchPoiForFork();
 
     const singleThread = !blobWorkersAllowed();
@@ -298,6 +319,13 @@ export const sync = (): Promise<void> =>
       try {
         scanIncomplete = false;
         await refreshBalances(CHAIN, [id]);
+        if (state.txidStalled && txidStallIndex != null) {
+          const now = await getLatestRailgunTxidData(TXIDVersion.V2_PoseidonMerkle, NETWORK).catch(() => null);
+          if (now && now.txidIndex > txidStallIndex) {
+            state.txidStalled = false;
+            txidStallIndex = null;
+          }
+        }
         if (scanIncomplete) throw new Error('Scan stopped early');
         // Notes from our own private sends stay pending until this wallet proves
         // them clean and submits that to the PPOI node. Do it now, while open,

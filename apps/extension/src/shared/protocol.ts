@@ -151,6 +151,10 @@ export type CoreState = {
   accounts: PublicAccount[];
   activity: Activity[];
   proof: { label: string; progress: number } | null;
+  /** The TXID tree stopped at a record whose verification hash does not chain (a broken RAILGUN
+   *  index, or a re-org for a few minutes); clears when the tree moves past it. Spent notes get no
+   *  POI from the SDK meanwhile. */
+  txidStalled: boolean;
   rpc: RpcState;
   /** Minutes of no command before the wallet locks. Saved unencrypted, so it is known before unlock. */
   autoLockMin: AutoLockMin;
