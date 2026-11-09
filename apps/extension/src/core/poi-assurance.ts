@@ -10,6 +10,10 @@
 // The node keys the submission on the first output's note public key, which
 // only that output's receiver can decrypt. So sponsored sends put a 1-wei fee
 // note to this wallet first, and this wallet plays the broadcaster's part.
+//
+// It can only do that while the core runs. Each job is saved in the encrypted book
+// first and removed when done, so a wallet closed or locked mid-way resumes it
+// after the next unlock (resumePOI) instead of leaving the notes on the slow route.
 import {
   POINodeRequest,
   POIValidator,
@@ -22,17 +26,57 @@ import { TXIDVersion, type PreTransactionPOIsPerTxidLeafPerList } from '@railgun
 import type { ContractTransaction } from 'ethers';
 import { CHAIN, POI_NODES } from './config';
 import { currentWalletId, sync } from './railgun';
+import { dropPendingPOI, pendingPOIs, savePendingPOI } from './book';
+import { decode, encode } from '../shared/codec';
 
 const V2 = TXIDVersion.V2_PoseidonMerkle;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-export const assurePOI = async (p: {
+type Job = {
   txHash: string;
   transaction: ContractTransaction;
   useRelayAdapt: boolean;
   pois: PreTransactionPOIsPerTxidLeafPerList;
-}): Promise<void> => {
-  const log = (...a: unknown[]) => console.log('[poi-assurance]', ...a);
+  /** When the send went out; a job older than MAX_AGE_MS is dropped on resume. */
+  at: number;
+};
+
+// ponytail: a node error on submit counts as "try again"; a job the node keeps
+// refusing retries on each unlock until MAX_AGE_MS. Parse node errors if that matters.
+const MAX_AGE_MS = 7 * 24 * 60 * 60_000;
+const running = new Set<string>();
+const log = (...a: unknown[]) => console.log('[poi-assurance]', ...a);
+
+export const assurePOI = async (p: Omit<Job, 'at'> & { at?: number }): Promise<void> => {
+  const job: Job = { ...p, at: p.at ?? Date.now() };
+  if (running.has(job.txHash)) return;
+  running.add(job.txHash);
+  try {
+    await savePendingPOI(job.txHash, encode(job));
+    if (await run(job)) await dropPendingPOI(job.txHash);
+  } catch (e) {
+    console.warn('[poi-assurance]', (e as Error).message);
+  } finally {
+    running.delete(job.txHash);
+  }
+};
+
+/** After unlock, once the RAILGUN wallet is open and synced: finish the jobs a closed wallet left. */
+export const resumePOI = async (): Promise<void> => {
+  for (const saved of pendingPOIs()) {
+    const job = decode<Job>(saved);
+    if (Date.now() - job.at > MAX_AGE_MS) {
+      log('dropped a job older than 7 days', job.txHash);
+      await dropPendingPOI(job.txHash);
+      continue;
+    }
+    log('resuming', job.txHash);
+    void assurePOI(job);
+  }
+};
+
+/** True when the job is finished: submitted, or it can never succeed. False: try again later. */
+const run = async (p: Job): Promise<boolean> => {
   try {
     // Same check a broadcaster runs; it also extracts the first output's data.
     // A 7702 unshield (type 4) goes to the delegated ephemeral account, not to a RAILGUN
@@ -41,9 +85,15 @@ export const assurePOI = async (p: {
     const { isValid, error, extractedRailgunTransactionData } = is7702
       ? await walletForID(currentWalletId()).isValidSpendableTransaction(V2, CHAIN, p.transaction.to as string, p.transaction, true, p.pois, true)
       : await POIValidator.isValidSpendableTransaction(currentWalletId(), V2, CHAIN, p.transaction, p.useRelayAdapt, p.pois);
-    if (!isValid) throw new Error(`own POIs invalid: ${error}`);
+    if (!isValid) {
+      log('own POIs invalid:', error);
+      return true;
+    }
     const first = extractedRailgunTransactionData?.find((d) => d.firstCommitment && d.firstCommitmentNotePublicKey != null);
-    if (!first) throw new Error('first output is not ours; nothing to submit');
+    if (!first) {
+      log('first output is not ours; nothing to submit');
+      return true;
+    }
 
     const node = new POINodeRequest(POI_NODES);
     // Wait for the transaction to be indexed, then submit; retry like a broadcaster.
@@ -94,10 +144,13 @@ export const assurePOI = async (p: {
       }
       await sleep(15_000);
       await sync();
-      return;
+      return true;
     }
-    log('gave up waiting for the index; the slow route still applies');
+    log('gave up waiting for the index; trying again after the next unlock');
+    return false;
   } catch (e) {
+    // Locked mid-way, or a network or node error: keep the job for the next unlock.
     console.warn('[poi-assurance]', (e as Error).message);
+    return false;
   }
 };

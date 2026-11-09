@@ -16,6 +16,7 @@ Updated 2026-11-09.
 | ENS: claim `<label>.canon.eth`, pay a name privately | `e2e-sepolia.mjs name` on Sepolia |
 | Sponsored private send (sponsor pays gas, Main not involved) | `e2e-sepolia.mjs private` on Sepolia |
 | Fast proof of innocence after a sponsored send: the wallet submits a proof per output it owns | `e2e-sepolia.mjs private`: spendable again 7 min after sending |
+| Fast proof of innocence resumes after the wallet closes: saved in the book, run again after unlock | `check-poi-resume.ts`; on Sepolia, Make public closed before its submission, then the next session resumed it and the change was spendable within 2 min, 2026-11-09 |
 | Sponsored Make public (7702 unshield to Main, sponsor relay) through Nox; its change clears proof of innocence in 4 min | `WAIT_SPENDABLE=1 e2e-sepolia.mjs public`, 2026-11-09 |
 | Private swap WETH → USDC on Uniswap v4, sponsor paying gas | `e2e-sepolia.mjs swap`: 0.001 WETH → 24.95 USDC ([tx](https://sepolia.etherscan.io/tx/0x270b85b24a68c6e2986bc670d20f69e3a7f085edb9ef23da1a1d629436ee3fe3)) |
 | Activity screen: all 50 entries with status, time and explorer link, opened from Home's See all | `shot-activity.mjs` (planted entries) |
@@ -47,7 +48,7 @@ Updated 2026-11-09.
 
 ## Known issues
 
-- **Fast proof of innocence stops if the wallet closes.** After a sponsored send, Fund or Make public, `assurePOI` waits for the indexer (20 s, then every 45 s) and submits the proofs only while the core runs. Nothing resumes it after the next unlock. If the wallet closes first, the change waits for the slow route; on Sepolia two such notes (0.0124 WETH) were still pending after more than 2 hours. Fix: save the pending submissions in the book and resume them on unlock.
+- **Two old notes stay on the slow route.** On the Sepolia test wallet, 0.0124 WETH of change from sends made before `resumePOI` (2026-11-09) is still pending. Their proofs were never saved, so nothing can resume them; they clear only if the slow route does.
 
 ## Open questions
 

@@ -7,6 +7,7 @@ End-to-end scripts in `apps/extension/scripts`. Each launches Chromium with `dis
 | `smoke.mjs` | The extension loads, the core boots, the popup renders | A build |
 | `e2e-create.mjs` | New wallet, backup screen, first RAILGUN sync; Tokens: a built-in address refused, Sepolia LINK looked up through Nox and added, Main's balances read, LINK offered in Send, then removed | A build; network |
 | `e2e-fork.mjs` | Make private 1 ETH, Send privately 0.2, Make public 0.3 to a fresh address; then LINK added by address: Make private 10 (approve + shield), Send privately 2, Make public 3, a public send of 1. `TOKEN_ONLY=1` runs only the LINK part | Anvil fork and a fork build |
+| `check-poi-resume.ts` | POI assurance: a job is saved before it runs, dropped when submitted or invalid, kept when locked mid-way or not indexed, resumed after unlock with its bigints intact, dropped after 7 days, run once at a time | Nothing |
 | `check-token.ts` | `checkToken`: symbol length and plain ASCII, decimals range, a copied WETH/USDC/ETH symbol marked with "?" | Nothing |
 | `e2e-create.mjs` | New wallet, backup screen, first RAILGUN sync; logs every request that the core makes off the extension (`[net]`) | A build; network |
 | `e2e-fork.mjs` | Make private 1 ETH, Send privately 0.2, Make public 0.3 to a fresh address | Anvil fork and a fork build |
@@ -47,6 +48,7 @@ CANON_PROFILE=$PWD/.cache/<new> bun scripts/e2e-fork.mjs
 
 | Date | Script | Network | Result |
 |---|---|---|---|
+| 2026-11-09 | `check-poi-resume.ts`; `e2e-sepolia.mjs public`, then `WAIT_SPENDABLE=1 e2e-sepolia.mjs status`, then `status` | Sepolia, Nox, hosted sponsor; Playwright Chromium on Windows | `check-poi-resume` passes, and fails when the save before the run is removed. Make public 0.002 ([tx](https://sepolia.etherscan.io/tx/0x02a0a345ed8edbbaca27014f50b4687f2ea31d29db914184b86776f0b2c32f6f)); the session closed after "not indexed yet 0", change pending. Next session: "resuming", both proofs submitted, 0.0009 spendable within 2 min. A third session resumed nothing. 0 tunnel exits skipped |
 | 2026-11-09 | `check-no-exits.mjs`, `e2e-create.mjs`, `check-panel.mjs` | Playwright Chromium on Windows; Sepolia through Nox | `check-no-exits` all 4 pass. `e2e-create` synced through Nox (0 clear, 25 mixed) and `check-panel` passed 320×900, then both stopped at their screenshot: `new URL(...).pathname` gives `/C:/...` on Windows |
 | 2026-11-09 | `check-head-lag.ts` | None (fake fetch) | 4 of 4 pass: no lag (1 call), lags twice (3 calls, then ok), other `-32602` (1 call, error passed on), lags for good (6 calls, error passed on) |
 | 2026-11-09 | `e2e-create.mjs`, after the head-lag retry | Sepolia, Nox; Playwright Chromium on Windows | Synced in 90 s; 25 via Nox, 0 clear. The head-lag error did not occur, so the retry did not run live. The first run synced in 81 s, then failed to save its screenshot ("ENOENT ... '/C:/Users/...'"); the script now resolves the path with `fileURLToPath` |
