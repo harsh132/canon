@@ -18,10 +18,11 @@ export const Tokens = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
   // Main's public balances, read only when asked.
   const [pub, setPub] = useState<Record<string, bigint> | null>(null);
   const a = useAction();
-  // What the inputs are now. A reply for an older network or address is dropped, so a
-  // lookup or balance read started before a change never shows under the new choice.
-  const now = useRef({ chainId, address });
-  now.current = { chainId, address };
+  // Only the newest balance read and the newest lookup may set state. A network change
+  // invalidates both; an address change invalidates the lookup. So a reply started before
+  // a change, or overtaken by a later request, never shows (even after A -> B -> A).
+  const pubSeq = useRef(0);
+  const lookSeq = useRef(0);
   const main = s.accounts.find((x) => x.index === 0);
   const list = tokensOn(chainId, s.tokens);
   const custom = new Set((s.tokens[chainId] ?? []).map((t) => t.address.toLowerCase()));
@@ -30,9 +31,9 @@ export const Tokens = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
 
   const readPublic = () =>
     a.run(async () => {
-      const asked = chainId;
-      const b = await call('site.balances', { address: main!.address, chainId: asked });
-      if (now.current.chainId === asked) setPub(Object.fromEntries(b.tokens.map((t) => [t.address.toLowerCase(), t.amount])));
+      const mine = ++pubSeq.current;
+      const b = await call('site.balances', { address: main!.address, chainId });
+      if (pubSeq.current === mine) setPub(Object.fromEntries(b.tokens.map((t) => [t.address.toLowerCase(), t.amount])));
     });
 
   return (
@@ -44,6 +45,8 @@ export const Tokens = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
             value={chainId}
             onChange={(e) => {
               setChainId(Number(e.target.value));
+              pubSeq.current += 1;
+              lookSeq.current += 1;
               setPub(null);
               setFound(null);
             }}
@@ -98,14 +101,15 @@ export const Tokens = ({ s, go }: { s: CoreState; go: (t: Tab) => void }) => {
               placeholder="0x…"
               onChange={(e) => {
                 setAddress(e.target.value);
+                lookSeq.current += 1;
                 setFound(null);
               }}
             />
             <Button variant="ghost" className="flex-none" busy={a.busy} disabled={!address.trim()} onClick={() =>
                 a.run(async () => {
-                  const asked = { chainId, address };
-                  const t = await call('tokens.lookup', asked);
-                  if (now.current.chainId === asked.chainId && now.current.address === asked.address) setFound({ ...t, chainId: asked.chainId } as Token & { chainId: number });
+                  const mine = ++lookSeq.current;
+                  const t = await call('tokens.lookup', { chainId, address });
+                  if (lookSeq.current === mine) setFound({ ...t, chainId } as Token & { chainId: number });
                 })
               }>
               Look up
