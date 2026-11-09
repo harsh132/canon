@@ -16,6 +16,7 @@ Updated 2026-11-09.
 | ENS: claim `<label>.canon.eth`, pay a name privately | `e2e-sepolia.mjs name` on Sepolia |
 | Sponsored private send (sponsor pays gas, Main not involved) | `e2e-sepolia.mjs private` on Sepolia |
 | Fast proof of innocence after a sponsored send: the wallet submits a proof per output it owns | `e2e-sepolia.mjs private`: spendable again 7 min after sending |
+| Sponsored Make public (7702 unshield to Main, sponsor relay) through Nox; its change clears proof of innocence in 4 min | `WAIT_SPENDABLE=1 e2e-sepolia.mjs public`, 2026-11-09 |
 | Private swap WETH → USDC on Uniswap v4, sponsor paying gas | `e2e-sepolia.mjs swap`: 0.001 WETH → 24.95 USDC ([tx](https://sepolia.etherscan.io/tx/0x270b85b24a68c6e2986bc670d20f69e3a7f085edb9ef23da1a1d629436ee3fe3)) |
 | Side panel from the toolbar icon | `check-panel.mjs`: fits 320–560 px wide, tab bar pinned |
 | Broadcaster discovery over Waku in the extension | `e2e-sepolia.mjs broadcasters`: connected, 1 Sepolia broadcaster |
@@ -34,11 +35,14 @@ Updated 2026-11-09.
 
 ## Built, not yet verified
 
-- **Sponsored Make public from Home.** Same relay path as Fund with ETH, which now passes through Nox; not run separately.
 - **Passkeys on real authenticators.** Google Password Manager, iCloud Keychain and security keys need a manual try; headless tests use a virtual one.
 
 - **Typed-data signing over WalletConnect.** Added to `e2e-wc.mjs`; a re-run stalled once at the personal_sign step after passing it the run before, so treat the script as flaky until it passes twice.
 - **A private send through a broadcaster on real Sepolia.** Discovery finds up to 4 broadcasters, the proof builds and the request reaches one, but it answers "Could not validate Proof of Innocence". Twice, minutes apart, with an input note that had cleared. Sepolia broadcasters may not be validating; unresolved.
+
+## Known issues
+
+- **Fast proof of innocence stops if the wallet closes.** After a sponsored send, Fund or Make public, `assurePOI` waits for the indexer (20 s, then every 45 s) and submits the proofs only while the core runs. Nothing resumes it after the next unlock. If the wallet closes first, the change waits for the slow route; on Sepolia two such notes (0.0124 WETH) were still pending after more than 2 hours. Fix: save the pending submissions in the book and resume them on unlock.
 
 ## Open questions
 
