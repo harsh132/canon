@@ -1,9 +1,10 @@
 // Screenshots of the onboarding screens (light), into .cache/onboard-shots/.
 //   CANON_PROFILE=/new/dir bun scripts/shot-onboard.mjs
+import { fileURLToPath } from 'node:url';
 import { launch } from './smoke.mjs';
 
 const { browser, popup } = await launch();
-const out = new URL('../.cache/onboard-shots/', import.meta.url).pathname;
+const out = fileURLToPath(new URL('../.cache/onboard-shots/', import.meta.url));
 await Bun.write(`${out}.keep`, '');
 const click = (re, last = false) =>
   popup.evaluate(

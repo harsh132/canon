@@ -1,5 +1,6 @@
 // Creates a wallet in a fresh profile and waits for the first RAILGUN sync.
 //   CANON_PROFILE=/some/new/dir bun scripts/e2e-create.mjs
+import { fileURLToPath } from 'node:url';
 import { createWallet, launch } from './smoke.mjs';
 
 const PASSWORD = process.env.CANON_PASSWORD ?? 'correct horse battery';
@@ -25,9 +26,9 @@ for (let i = 0; i < 50; i += 1) {
   console.log(`[${Math.round((Date.now() - t0) / 1000)}s]`, t.slice(0, 170));
   if (/Synced|Sync failed|Engine error/i.test(t)) break;
 }
-await popup.screenshot({ path: new URL('../.cache/home.png', import.meta.url).pathname });
+await popup.screenshot({ path: fileURLToPath(new URL('../.cache/home.png', import.meta.url)) });
 await click('clear ·');
 await popup.waitForFunction(() => /network reads/i.test(document.body.innerText), { timeout: 5000 });
 console.log('privacy:', (await text()).slice(0, 220));
-await popup.screenshot({ path: new URL('../.cache/privacy.png', import.meta.url).pathname });
+await popup.screenshot({ path: fileURLToPath(new URL('../.cache/privacy.png', import.meta.url)) });
 await browser.close();

@@ -1,8 +1,9 @@
 // Prints proof-of-innocence state for the Sepolia test wallet. Needs a --dev build.
 //   bun scripts/poi-probe.mjs
+import { fileURLToPath } from 'node:url';
 import { launch } from './smoke.mjs';
 
-process.env.CANON_PROFILE ??= new URL('../.cache/sepolia/profile', import.meta.url).pathname;
+process.env.CANON_PROFILE ??= fileURLToPath(new URL('../.cache/sepolia/profile', import.meta.url));
 const { browser, popup, corePage } = await launch();
 const text = async () => (await popup.evaluate(() => document.body.innerText)).replace(/\s+/g, ' ');
 await popup.waitForFunction(() => /password/i.test(document.body.innerText), { timeout: 30000 });
@@ -31,6 +32,6 @@ const out = await corePage.evaluate(async () => {
   );
 });
 console.log(out.slice(0, 4000));
-await Bun.write(new URL('../.cache/poi-probe.json', import.meta.url).pathname, out);
+await Bun.write(fileURLToPath(new URL('../.cache/poi-probe.json', import.meta.url)), out);
 await browser.close();
 process.exit(0);

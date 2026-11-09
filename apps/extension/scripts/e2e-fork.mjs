@@ -4,6 +4,7 @@
 //
 // 1. create wallet  2. fund Main on the fork  3. Make private 1 ETH
 // 4. Send privately 0.2 to self  5. Make public 0.3 to a fresh 0x
+import { fileURLToPath } from 'node:url';
 import { Wallet } from 'ethers';
 import { createWallet, launch } from './smoke.mjs';
 
@@ -103,6 +104,6 @@ for (let i = 0; i < 30; i += 1) {
   await new Promise((r) => setTimeout(r, 2000));
 }
 await waitPrivate((b) => b < 0.75, 'after Make public');
-await popup.screenshot({ path: new URL('../.cache/after-flow.png', import.meta.url).pathname });
+await popup.screenshot({ path: fileURLToPath(new URL('../.cache/after-flow.png', import.meta.url)) });
 log('done');
 await browser.close();

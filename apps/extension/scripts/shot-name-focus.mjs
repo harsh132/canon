@@ -1,5 +1,6 @@
 // Visual check: the name field focused, in dark mode. Fresh profile each run.
 //   CANON_PROFILE=/new/dir bun scripts/shot-name-focus.mjs
+import { fileURLToPath } from 'node:url';
 import { createWallet, launch } from './smoke.mjs';
 
 const { browser, popup } = await launch();
@@ -13,6 +14,6 @@ await click('get a name');
 const input = await popup.waitForSelector('input[aria-label="Name label"]');
 await input.type('alice');
 console.log('focused input outline-style:', await popup.evaluate(() => getComputedStyle(document.activeElement).outlineStyle));
-await popup.screenshot({ path: new URL('../.cache/name-focus.png', import.meta.url).pathname, clip: { x: 0, y: 0, width: 380, height: 200 } });
+await popup.screenshot({ path: fileURLToPath(new URL('../.cache/name-focus.png', import.meta.url)), clip: { x: 0, y: 0, width: 380, height: 200 } });
 await browser.close();
 process.exit(0);
