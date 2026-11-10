@@ -222,11 +222,17 @@ const onBalances = (ev: RailgunBalancesEvent): void => {
 };
 
 // Block times by block number. A failed read is not kept, so the next balance change tries again.
+// A backend behind the new block answers null: that is a failure too.
 const blockTimes = new Map<number, Promise<number>>();
 const blockTime = (n: number): Promise<number> => {
   let p = blockTimes.get(n);
   if (!p) {
-    p = getProvider().getBlock(n).then((b) => b?.timestamp ?? 0);
+    p = getProvider()
+      .getBlock(n)
+      .then((b) => {
+        if (!b) throw new Error(`no block ${n}`);
+        return b.timestamp;
+      });
     p.catch(() => blockTimes.delete(n));
     blockTimes.set(n, p);
   }
@@ -253,7 +259,11 @@ const readPendingEta = async () => {
   }
 };
 
+/** Bumped by each rebuild and by a lock: an older rebuild that resolves late writes nothing. */
+let rebuilds = 0;
+
 const rebuildBalances = async (): Promise<void> => {
+  const mine = ++rebuilds;
   const totals = new Map<string, { spendable: bigint; pending: bigint }>();
   for (const [bucket, amounts] of buckets) {
     const isSpendable = bucket === RailgunWalletBalanceBucket.Spendable;
@@ -273,8 +283,16 @@ const rebuildBalances = async (): Promise<void> => {
   if (!list.some((b) => b.token === WETH.toLowerCase())) {
     list.unshift({ token: WETH.toLowerCase(), symbol: 'WETH', decimals: 18, spendable: 0n, pending: 0n });
   }
-  state.pendingEta = list.some((b) => b.pending > 0n) ? await readPendingEta() : null;
+  if (mine !== rebuilds) return;
+  // Balances first: the ETA can wait on block reads through Nox.
+  const pending = list.some((b) => b.pending > 0n);
   state.privateBalances = list.sort((a, b) => (a.token === WETH.toLowerCase() ? -1 : b.token === WETH.toLowerCase() ? 1 : 0));
+  if (!pending) state.pendingEta = null;
+  emit();
+  if (!pending) return;
+  const eta = await readPendingEta();
+  if (mine !== rebuilds) return;
+  state.pendingEta = eta;
   emit();
 };
 
@@ -312,6 +330,7 @@ export const openRailgunWallet = async (u: Unlocked, imported: boolean): Promise
 
 export const closeRailgunWallet = (): void => {
   walletId = null;
+  rebuilds += 1;
   buckets.clear();
   state.railgunAddress = null;
   state.privateBalances = [];
