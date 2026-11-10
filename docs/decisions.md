@@ -103,6 +103,7 @@ Each item is a workaround that a later reader could remove by mistake.
 - **An `Incomplete` scan is a failure.** The engine reports it without throwing; `sync()` retries.
 - **A node behind head:** PublicNode answers from backends at different heights, and Nox gives each call its own path. The transport retries "block range extends beyond current head block" up to 5 times, 2 s apart. Clamping `toBlock` would let the engine record blocks it never scanned.
 - **New wallets scan from today's block.** Imported phrases scan from the deployment block.
+- **A note from the RPC scan has no time.** The engine stores `timestamp: undefined` for events it reads over RPC; only notes from the squid carry one. A new shield usually arrives through the RPC scan, so the countdown reads a shield's time from its block when the note has none.
 - **A 7702 unshield's own POIs are checked against its target** (the delegated ephemeral account) with the wallet method's 7702 mode. `POIValidator` compares `tx.to` with a RAILGUN contract, which a type-4 unshield never matches.
 - **Sponsored sends carry a 1-wei fee note to the wallet itself.** The POI node keys a single commitment proof on the first output's note key, which only that output's receiver can decrypt.
 - **Nox TLS tunnel-open timeout is 30 s.** Proving blocks the core's renderer for seconds; with the 5 s default, every exit was skipped for 10 minutes.

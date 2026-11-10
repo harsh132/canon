@@ -221,24 +221,49 @@ const onBalances = (ev: RailgunBalancesEvent): void => {
   void rebuildBalances();
 };
 
-// The wallet's own notes carry the shield's block time and their POI bucket, so
-// this needs no network call. Runs only when a balance changes.
+// Block times by block number. A failed read is not kept, so the next balance change tries again.
+// A backend behind the new block answers null: that is a failure too.
+const blockTimes = new Map<number, Promise<number>>();
+const blockTime = (n: number): Promise<number> => {
+  let p = blockTimes.get(n);
+  if (!p) {
+    p = getProvider()
+      .getBlock(n)
+      .then((b) => {
+        if (!b) throw new Error(`no block ${n}`);
+        return b.timestamp;
+      });
+    p.catch(() => blockTimes.delete(n));
+    blockTimes.set(n, p);
+  }
+  return p.catch(() => 0);
+};
+
+// The wallet's own notes carry their POI bucket and, from the squid, their block time.
+// The engine's RPC scan (which finds a new shield first) stores no time, so a shield
+// without one reads it from its block. Runs only when a balance changes.
 const readPendingEta = async () => {
   try {
     const txos = await walletForID(currentWalletId()).TXOs(TXIDVersion.V2_PoseidonMerkle, CHAIN);
-    const notes = txos
-      .filter((t) => PENDING.has(POI.getBalanceBucket(t)))
-      .map((t) => ({
-        shield: t.commitmentType === CommitmentType.ShieldCommitment || t.commitmentType === CommitmentType.LegacyGeneratedCommitment,
-        at: t.timestamp ?? 0,
-      }));
+    const notes = await Promise.all(
+      txos
+        .filter((t) => PENDING.has(POI.getBalanceBucket(t)))
+        .map(async (t) => {
+          const shield = t.commitmentType === CommitmentType.ShieldCommitment || t.commitmentType === CommitmentType.LegacyGeneratedCommitment;
+          return { shield, at: t.timestamp || (shield ? await blockTime(t.blockNumber) : 0) };
+        }),
+    );
     return pendingEta(notes, SHIELD_HOLD_MS[CHAIN.id]);
   } catch {
     return null;
   }
 };
 
+/** Bumped by each rebuild and by a lock: an older rebuild that resolves late writes nothing. */
+let rebuilds = 0;
+
 const rebuildBalances = async (): Promise<void> => {
+  const mine = ++rebuilds;
   const totals = new Map<string, { spendable: bigint; pending: bigint }>();
   for (const [bucket, amounts] of buckets) {
     const isSpendable = bucket === RailgunWalletBalanceBucket.Spendable;
@@ -258,8 +283,16 @@ const rebuildBalances = async (): Promise<void> => {
   if (!list.some((b) => b.token === WETH.toLowerCase())) {
     list.unshift({ token: WETH.toLowerCase(), symbol: 'WETH', decimals: 18, spendable: 0n, pending: 0n });
   }
-  state.pendingEta = list.some((b) => b.pending > 0n) ? await readPendingEta() : null;
+  if (mine !== rebuilds) return;
+  // Balances first: the ETA can wait on block reads through Nox.
+  const pending = list.some((b) => b.pending > 0n);
   state.privateBalances = list.sort((a, b) => (a.token === WETH.toLowerCase() ? -1 : b.token === WETH.toLowerCase() ? 1 : 0));
+  if (!pending) state.pendingEta = null;
+  emit();
+  if (!pending) return;
+  const eta = await readPendingEta();
+  if (mine !== rebuilds) return;
+  state.pendingEta = eta;
   emit();
 };
 
@@ -297,6 +330,7 @@ export const openRailgunWallet = async (u: Unlocked, imported: boolean): Promise
 
 export const closeRailgunWallet = (): void => {
   walletId = null;
+  rebuilds += 1;
   buckets.clear();
   state.railgunAddress = null;
   state.privateBalances = [];
