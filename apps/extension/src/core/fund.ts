@@ -41,8 +41,9 @@ export const fundSite = async (p: { address: string; token: string; amount: bigi
   const recipients = [{ tokenAddress: p.token, amount: p.amount, recipientAddress: to }];
   const gasPrice = (await getProvider().getFeeData()).gasPrice ?? 1_000_000_000n;
   const t1 = (gasEstimate: bigint): TransactionGasDetails => ({ evmGasType: EVMGasType.Type1, gasEstimate, gasPrice });
-  // Broadcaster mode with no fee note. The estimate runs as a public-wallet one: the SDK's
-  // dummy fee would need private WETH. The sponsor sets the gas itself.
+  // Broadcaster mode with no fee note. The estimate runs as a public-wallet one: a
+  // broadcaster-mode estimate adds a WETH fee output that this unshield does not have.
+  // The sponsor sets the gas itself.
   const fee = undefined;
   const { gasEstimate } = await gasEstimateForUnprovenUnshield(V2, NETWORK, id, u.railgunKey, recipients, [], t1(0n), undefined, true);
   const gd = t1(gasEstimate);

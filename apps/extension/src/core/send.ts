@@ -235,8 +235,8 @@ const prepare = async (intent: SendIntent, u: Unlocked): Promise<Prepared> => {
         // A broadcaster takes a fee note in private WETH. The sponsor charges nothing on
         // testnet. In broadcaster mode the SDK's Relay Adapt dummy proofs need a fee note,
         // so WETH made public as ETH carries 1 wei to this wallet; other sponsored sends
-        // carry none and estimate as public-wallet ones, because the SDK's dummy fee would
-        // need private WETH. The sponsor sets the gas itself.
+        // carry none and estimate as public-wallet ones, because a broadcaster-mode estimate
+        // adds a WETH fee output that they do not have. The sponsor sets the gas itself.
         const feeToken = b || useRelayAdapt ? { tokenAddress: WETH, feePerUnitGas: b?.feePerUnitGas ?? 0n } : undefined;
         // Broadcasters commit to one minimum gas price, so the SDK requires type-1 gas here.
         const gasPrice = (await getProvider().getFeeData()).gasPrice ?? 1_000_000_000n;
