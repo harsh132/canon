@@ -151,7 +151,6 @@ The scripts are in `apps/extension/scripts`. Each loads `dist/`, drives the UI w
 | Script | Checks |
 |---|---|
 | `check-eta.ts` | The spendable countdown |
-| `check-poi-resume.ts` | POI jobs: saved, dropped, kept, resumed after unlock, per network, after a re-org |
 | `check-token.ts` | Token symbol and decimals checks |
 | `check-head-lag.ts` | The transport's retry of "beyond current head block" |
 | `check-ens-resolve.ts` | Name lookup errors (needs network) |
@@ -223,7 +222,7 @@ CANON_PROFILE=$PWD/.cache/<new> bun scripts/e2e-fork.mjs
 | `RPC_DIRECT=1` | `dapp` reads direct for this run, then goes back to Nox |
 | `WATCHDOG_MIN` | Stops the run after N minutes (default 25) |
 
-The wallet submits POI proofs only while it is open, so keep the run open (`WAIT_SPENDABLE`, `STAY_MIN`) after a private send.
+The SDK makes a spend's POI proofs only while the wallet is open, so keep the run open (`WAIT_SPENDABLE`, `STAY_MIN`) after a private send. On Sepolia the outputs of a private spend stay pending until RAILGUN fixes the TXID index ([summary.md](summary.md#known-issues)).
 
 ## Knowledge graph
 

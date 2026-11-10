@@ -1,7 +1,7 @@
 // Fund a site's public address from the private balance: one unshield to that
 // address. Private WETH arrives as ETH (what dapps and gas expect); any other
-// token arrives as itself. Gas is paid by the sponsor, and this wallet submits
-// the send's proof-of-innocence proofs itself (see poi-assurance.ts).
+// token arrives as itself. Gas is paid by the sponsor. The SDK makes the send's
+// proof-of-innocence proof after a later scan, as for any of this wallet's spends.
 //
 // What it reveals, by design: that a RAILGUN user sent this amount of this
 // token to this address. Not which private balance or which other address.
@@ -16,7 +16,6 @@ import { NETWORK, WETH, getProvider } from './config';
 import { currentWalletId, sync } from './railgun';
 import { executeSend } from './send';
 import { sponsorRelay } from './ens';
-import { assurePOI } from './poi-assurance';
 import { recordActivity } from './book';
 import { emit, state } from './state';
 import type { Unlocked } from './vault';
@@ -42,9 +41,10 @@ export const fundSite = async (p: { address: string; token: string; amount: bigi
   const recipients = [{ tokenAddress: p.token, amount: p.amount, recipientAddress: to }];
   const gasPrice = (await getProvider().getFeeData()).gasPrice ?? 1_000_000_000n;
   const t1 = (gasEstimate: bigint): TransactionGasDetails => ({ evmGasType: EVMGasType.Type1, gasEstimate, gasPrice });
-  // A 1-wei "fee" note to ourselves goes first, so we can submit the POIs (poi-assurance.ts).
-  const fee = { tokenAddress: WETH, amount: 1n, recipientAddress: state.railgunAddress as string };
-  const { gasEstimate } = await gasEstimateForUnprovenUnshield(V2, NETWORK, id, u.railgunKey, recipients, [], t1(0n), { tokenAddress: WETH, feePerUnitGas: 0n }, false);
+  // Broadcaster mode with no fee note. The estimate runs as a public-wallet one: the SDK's
+  // dummy fee would need private WETH. The sponsor sets the gas itself.
+  const fee = undefined;
+  const { gasEstimate } = await gasEstimateForUnprovenUnshield(V2, NETWORK, id, u.railgunKey, recipients, [], t1(0n), undefined, true);
   const gd = t1(gasEstimate);
   const minGas = calculateGasPrice(gd);
 
@@ -62,7 +62,6 @@ export const fundSite = async (p: { address: string; token: string; amount: bigi
   const populated = await populateProvedUnshield(V2, NETWORK, id, recipients, [], fee, false, minGas, gd);
   const hash = await sponsorRelay(populated.transaction.to as string, populated.transaction.data as string, minGas);
   void recordActivity({ id: hash, kind: 'unshield', label: `Funded ${to.slice(0, 10)}… with ${bal.symbol}`, hash, at: Date.now(), status: 'pending' });
-  void assurePOI({ txHash: hash, transaction: populated.transaction, useRelayAdapt: false, pois: populated.preTransactionPOIsPerTxidLeafPerList });
   void getProvider()
     .waitForTransaction(hash, 1, 10 * 60_000)
     .then(() => sync())

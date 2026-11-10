@@ -12,7 +12,7 @@ A note becomes spendable when the POI list has a valid entry for it. Three parti
 | The wallet (RAILGUN SDK) | Makes a full transact proof for each of its own spends. The engine does this after every wallet scan: `refreshPOIsForTXIDVersion` calls `generatePOIsAllSentCommitmentsAndUnshieldEvents`, which the source marks "Auto-generate POIs" (`engine/dist/wallet/abstract-wallet.js`) |
 | A RAILGUN broadcaster | Submits the wallet's pre-transaction proofs as a single commitment proof for its fee note (`ppoi-safe-broadcaster-example`, `poi-assurance.ts`) |
 
-So in a working setup the user and the app do nothing: the SDK and the list provider do it. Canon's sponsor is not a broadcaster, so `core/poi-assurance.ts` does the broadcaster's step itself, for every output the wallet owns.
+So in a working setup the user and the app do nothing: the SDK and the list provider do it. From 2026-11-06 to 2026-11-10, Canon also did the broadcaster's step itself (`core/poi-assurance.ts`), because its sponsor is not a broadcaster. It was removed after this investigation.
 
 ## Single commitment proof and full transact proof
 

@@ -33,7 +33,6 @@ import { recordActivity, signerFor } from './book';
 import { CHAIN_ID, NETWORK, WETH, getProvider } from './config';
 import { currentWalletId, spendable, sync } from './railgun';
 import { pickBroadcaster, submitViaBroadcaster } from './broadcaster';
-import { assurePOI } from './poi-assurance';
 import { isName, resolveName, sponsorRelay } from './ens';
 import { emit, state } from './state';
 import type { Unlocked } from './vault';
@@ -233,25 +232,30 @@ const prepare = async (intent: SendIntent, u: Unlocked): Promise<Prepared> => {
         const useRelayAdapt = kind === 'unshield' && !token;
         const b = viaBroadcaster ? pickBroadcaster(WETH, useRelayAdapt) : null;
         if (viaBroadcaster && !b) throw new Error('No broadcaster online yet. Retry, or pick another gas route');
-        // The sponsor charges nothing on testnet. Its "fee" is 1 wei to this wallet,
-        // placed first, so this wallet can submit the send's POIs like a broadcaster.
-        const feeToken = { tokenAddress: WETH, feePerUnitGas: b?.feePerUnitGas ?? 0n };
+        // A broadcaster takes a fee note in private WETH. The sponsor charges nothing on
+        // testnet. In broadcaster mode the SDK's Relay Adapt dummy proofs need a fee note,
+        // so WETH made public as ETH carries 1 wei to this wallet; other sponsored sends
+        // carry none and estimate as public-wallet ones, because the SDK's dummy fee would
+        // need private WETH. The sponsor sets the gas itself.
+        const feeToken = b || useRelayAdapt ? { tokenAddress: WETH, feePerUnitGas: b?.feePerUnitGas ?? 0n } : undefined;
         // Broadcasters commit to one minimum gas price, so the SDK requires type-1 gas here.
         const gasPrice = (await getProvider().getFeeData()).gasPrice ?? 1_000_000_000n;
         const t1 = (gasEstimate: bigint): TransactionGasDetails => ({ evmGasType: EVMGasType.Type1, gasEstimate, gasPrice });
         const { gasEstimate } =
           kind === 'transfer'
-            ? await gasEstimateForUnprovenTransfer(V2, NETWORK, id, u.railgunKey, undefined, recipients, [], t1(0n), feeToken, false)
-            : await unshieldEstimate(t1(0n), feeToken, false);
+            ? await gasEstimateForUnprovenTransfer(V2, NETWORK, id, u.railgunKey, undefined, recipients, [], t1(0n), feeToken, !feeToken)
+            : await unshieldEstimate(t1(0n), feeToken, !feeToken);
         const gd = t1(gasEstimate);
-        const { amount: feeAmount } = await calculateBroadcasterFeeERC20Amount(feeToken, gd);
-        const feeNeed = b ? feeAmount : 1n;
+        const feeAmount = b && feeToken ? (await calculateBroadcasterFeeERC20Amount(feeToken, gd)).amount : 0n;
+        const fee = b
+          ? { tokenAddress: WETH, amount: feeAmount, recipientAddress: b.railgunAddress }
+          : useRelayAdapt
+            ? { tokenAddress: WETH, amount: 1n, recipientAddress: state.railgunAddress as string }
+            : undefined;
+        const feeNeed = fee?.amount ?? 0n;
         if (token ? feeNeed > spendable() : amount + feeNeed > spendable()) {
           throw new Error(token ? 'The fee is paid in private ETH, and there is too little' : 'Amount plus broadcaster fee exceeds your private balance');
         }
-        const fee = b
-          ? { tokenAddress: WETH, amount: feeAmount, recipientAddress: b.railgunAddress }
-          : { tokenAddress: WETH, amount: 1n, recipientAddress: state.railgunAddress as string };
         const minGas = calculateGasPrice(gd);
         return {
           ...base,
@@ -286,14 +290,6 @@ const prepare = async (intent: SendIntent, u: Unlocked): Promise<Prepared> => {
                   minGas,
                   (populated.transaction as { authorizationList?: Parameters<typeof sponsorRelay>[3] }).authorizationList,
                 );
-            if (!b) {
-              void assurePOI({
-                txHash: hash,
-                transaction: populated.transaction,
-                useRelayAdapt,
-                pois: populated.preTransactionPOIsPerTxidLeafPerList,
-              });
-            }
             return track(hash, kind === 'transfer' ? `Sent privately to ${to.slice(0, 10)}…` : `Made public to ${to.slice(0, 10)}…`);
           },
         };

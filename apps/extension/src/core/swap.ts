@@ -24,7 +24,6 @@ import { AbiCoder, Contract, Interface, solidityPacked, type ContractTransaction
 import { NETWORK, WETH, getProvider } from './config';
 import { currentWalletId, spendable } from './railgun';
 import { sponsorRelay } from './ens';
-import { assurePOI } from './poi-assurance';
 import { emit, state } from './state';
 import type { Unlocked } from './vault';
 import { recordActivity } from './book';
@@ -93,7 +92,8 @@ export const executeSwap = async (amountIn: bigint, u: Unlocked): Promise<{ hash
   const cc = calls(q);
   const gasPrice = (await getProvider().getFeeData()).gasPrice ?? 1_000_000_000n;
   const t1 = (gasEstimate: bigint): TransactionGasDetails => ({ evmGasType: EVMGasType.Type1, gasEstimate, gasPrice });
-  // Sponsor route: broadcaster mode with a 1-wei note to ourselves first (see poi-assurance.ts).
+  // Sponsor route: broadcaster mode (see the top of this file). Its Relay Adapt dummy proofs
+  // need a fee note there, so 1 wei of WETH goes to this wallet.
   const fee = { tokenAddress: WETH, amount: 1n, recipientAddress: state.railgunAddress as string };
   const { gasEstimate } = await gasEstimateForUnprovenCrossContractCalls(
     V2, NETWORK, id, u.railgunKey, unshields, [], shields, [], cc, t1(0n), { tokenAddress: WETH, feePerUnitGas: 0n }, false, undefined,
@@ -115,7 +115,6 @@ export const executeSwap = async (amountIn: bigint, u: Unlocked): Promise<{ hash
   const populated = await populateProvedCrossContractCalls(V2, NETWORK, id, unshields, [], shields, [], cc, fee, false, minGas, gd);
   const hash = await sponsorRelay(populated.transaction.to as string, populated.transaction.data as string, minGas);
   void recordActivity({ id: hash, kind: 'transfer', label: 'Swapped privately WETH → USDC', amount: undefined, hash, at: Date.now(), status: 'pending' });
-  void assurePOI({ txHash: hash, transaction: populated.transaction, useRelayAdapt: true, pois: populated.preTransactionPOIsPerTxidLeafPerList });
   // A failed inner call does not revert the outer transaction; check the logs.
   void getProvider()
     .waitForTransaction(hash, 1, 10 * 60_000)
