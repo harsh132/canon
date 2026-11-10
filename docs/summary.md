@@ -188,12 +188,12 @@ Open leaks, in order of cost:
 - On Sepolia: Make private, Send privately and Make public, through the sponsor or Main; a private swap WETH to USDC; Fund; names under `canon.eth`; gasless site-address calls and EIP-5792 batches; POI submissions that resume after unlock.
 - The packaged Nox bundle and circuit code; the "no exits" warning; the head-lag retry.
 - Site addresses over the injected provider and WalletConnect; per-tab panel; per-site networks; custom tokens; the transaction preview; the Activity screen.
+- The spendable countdown after a new shield (2026-11-10, a USDC shield).
 
 [operations.md](operations.md#tests) lists the script that proves each one.
 
 ### Built, not yet verified live
 
-- The countdown after its fix (#13).
 - Custom-token sends through the sponsor or a broadcaster on Sepolia.
 - Passkeys on real authenticators (only a virtual one is tested).
 - Typed-data signing over WalletConnect (the script stalled once).

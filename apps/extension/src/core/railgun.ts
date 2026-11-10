@@ -221,17 +221,32 @@ const onBalances = (ev: RailgunBalancesEvent): void => {
   void rebuildBalances();
 };
 
-// The wallet's own notes carry the shield's block time and their POI bucket, so
-// this needs no network call. Runs only when a balance changes.
+// Block times by block number. A failed read is not kept, so the next balance change tries again.
+const blockTimes = new Map<number, Promise<number>>();
+const blockTime = (n: number): Promise<number> => {
+  let p = blockTimes.get(n);
+  if (!p) {
+    p = getProvider().getBlock(n).then((b) => b?.timestamp ?? 0);
+    p.catch(() => blockTimes.delete(n));
+    blockTimes.set(n, p);
+  }
+  return p.catch(() => 0);
+};
+
+// The wallet's own notes carry their POI bucket and, from the squid, their block time.
+// The engine's RPC scan (which finds a new shield first) stores no time, so a shield
+// without one reads it from its block. Runs only when a balance changes.
 const readPendingEta = async () => {
   try {
     const txos = await walletForID(currentWalletId()).TXOs(TXIDVersion.V2_PoseidonMerkle, CHAIN);
-    const notes = txos
-      .filter((t) => PENDING.has(POI.getBalanceBucket(t)))
-      .map((t) => ({
-        shield: t.commitmentType === CommitmentType.ShieldCommitment || t.commitmentType === CommitmentType.LegacyGeneratedCommitment,
-        at: t.timestamp ?? 0,
-      }));
+    const notes = await Promise.all(
+      txos
+        .filter((t) => PENDING.has(POI.getBalanceBucket(t)))
+        .map(async (t) => {
+          const shield = t.commitmentType === CommitmentType.ShieldCommitment || t.commitmentType === CommitmentType.LegacyGeneratedCommitment;
+          return { shield, at: t.timestamp || (shield ? await blockTime(t.blockNumber) : 0) };
+        }),
+    );
     return pendingEta(notes, SHIELD_HOLD_MS[CHAIN.id]);
   } catch {
     return null;
