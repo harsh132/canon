@@ -31,9 +31,6 @@ type BookData = {
   chains?: Record<string, number>;
   /** Tokens the user added, per chain id. Which tokens someone holds is private too. */
   tokens?: Record<number, Token[]>;
-  /** POI submissions not done yet, by tx hash (poi-assurance.ts), so they resume after unlock.
-   *  Each is codec-encoded: the transaction carries bigints, which the sealed JSON cannot. */
-  pendingPOI?: Record<string, string>;
 };
 
 const KEY = 'book';
@@ -194,20 +191,5 @@ export const recordActivity = async (entry: Activity): Promise<void> => {
   if (i >= 0) book.activity[i] = entry;
   else book.activity.unshift(entry);
   book.activity = book.activity.slice(0, 50);
-  await persist();
-};
-
-export const pendingPOIs = (): string[] => Object.values(data?.pendingPOI ?? {});
-
-export const savePendingPOI = async (txHash: string, job: string): Promise<void> => {
-  const book = need();
-  book.pendingPOI = { ...(book.pendingPOI ?? {}), [txHash]: job };
-  await persist();
-};
-
-/** A no-op while locked: the job then stays, and runs again after the next unlock. */
-export const dropPendingPOI = async (txHash: string): Promise<void> => {
-  if (!data?.pendingPOI?.[txHash]) return;
-  delete data.pendingPOI[txHash];
   await persist();
 };

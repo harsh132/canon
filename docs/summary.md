@@ -99,7 +99,6 @@ The book is encrypted because a list of the sites that someone uses is the discl
 | Private | 0x | Unshield (WETH out as ETH) | Make public |
 
 - An ERC-20 moves on the same four paths. Make private approves exactly the amount, and only when the allowance is too small.
-- A sponsored private ERC-20 send, and Fund with any token, need a little spendable private WETH: the sponsor route adds a 1-wei WETH fee note to the wallet itself (see [decisions.md](decisions.md#railgun-behaviour)). A wallet that holds only private USDC cannot use these routes.
 - Send accepts a name. Canon resolves it only at Review. An `org.railgun` record sends to that 0zk; otherwise the ETH address record is used.
 - Private sends go through Canon's sponsor by default. The user can choose a RAILGUN broadcaster or Main instead. Main pays gas publicly and links itself to the send.
 - Private WETH shows as ETH. The shield fee is 0.25%.
@@ -135,8 +134,7 @@ A note becomes spendable only when the POI list has it.
 | Note | How it clears |
 |---|---|
 | Shield from a public address | The list provider checks it. On Sepolia this took 4.5 to 12 minutes |
-| Output of a sponsored send, Fund or swap | The wallet submits one single commitment proof per output it owns (`core/poi-assurance.ts`). Each job is saved in the book first and resumes after the next unlock. About 4 to 7 minutes |
-| Output of any other spend, and a Relay Adapt shield (swap output) | The SDK makes a full transact proof after each scan. This needs the transaction in the local TXID tree. A Relay Adapt shield waits until the swap's unshield has a valid POI |
+| Output of any spend (send, Make public, Fund, swap), and a Relay Adapt shield (swap output) | The SDK makes a full transact proof for each of the wallet's spends after a scan, while the wallet is open. It covers every output and unshield of that spend. This needs the transaction in the local TXID tree. A Relay Adapt shield waits until the swap's unshield has a valid POI. Time on a working network: not yet measured |
 
 Home shows "Spendable in about N min" (the newest shield's 12-minute hold), "Clearing proof of innocence", or "Proof sync paused" when the TXID tree has stopped.
 
@@ -185,7 +183,7 @@ Open leaks, in order of cost:
 
 - Create, back up, restore, passkey wallets, lock, auto-lock, reset.
 - RAILGUN sync on Sepolia with every read through Nox (0 reads in the clear).
-- On Sepolia: Make private, Send privately and Make public, through the sponsor or Main; a private swap WETH to USDC; Fund; names under `canon.eth`; gasless site-address calls and EIP-5792 batches; POI submissions that resume after unlock.
+- On Sepolia: Make private, Send privately and Make public, through the sponsor or Main; a private swap WETH to USDC; Fund; names under `canon.eth`; gasless site-address calls and EIP-5792 batches.
 - The packaged Nox bundle and circuit code; the "no exits" warning; the head-lag retry.
 - Site addresses over the injected provider and WalletConnect; per-tab panel; per-site networks; custom tokens; the transaction preview; the Activity screen.
 - The spendable countdown after a new shield (2026-11-10, a USDC shield).
@@ -194,14 +192,15 @@ Open leaks, in order of cost:
 
 ### Built, not yet verified live
 
-- Custom-token sends through the sponsor or a broadcaster on Sepolia.
+- Custom-token sends: a sponsored USDC send landed on Sepolia (2026-11-10), but its outputs clearing, and a send without the old fee note or through a broadcaster, are not seen yet.
+- The SDK's full transact proofs clearing a spend's outputs: never seen, because Sepolia's TXID index broke before Canon's first private send.
 - Passkeys on real authenticators (only a virtual one is tested).
 - Typed-data signing over WalletConnect (the script stalled once).
 - Transactions on Arbitrum (view-only today).
 
 ### Known issues
 
-- **Sepolia's TXID index is broken.** The RAILGUN squid lost part of transaction `0x4b78372a…` (block 11816741). Every wallet's TXID tree stops at index 4177, so the SDK makes no full transact proofs on Sepolia. Swap output and the change of older self-paid sends stay pending. Reported to a RAILGUN developer on 2026-11-09. Details: [research/railgun-poi.md](research/railgun-poi.md).
+- **Sepolia's TXID index is broken.** The RAILGUN squid lost part of transaction `0x4b78372a…` (block 11816741). Every wallet's TXID tree stops at index 4177, so the SDK makes no full transact proofs on Sepolia. Until RAILGUN fixes it, every output of a private spend on Sepolia stays pending; only shields from a public address clear. Reported to a RAILGUN developer on 2026-11-09. Details: [research/railgun-poi.md](research/railgun-poi.md).
 - **Sepolia broadcasters reject sends** with "Could not validate Proof of Innocence". Unresolved.
 
 ### Open questions

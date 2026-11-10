@@ -173,7 +173,7 @@ if (phase === 'setup') {
   if (process.env.WAIT_SPENDABLE) await waitSpendable(Number(before.spendable ?? 0) + Number(AMOUNT) * 0.99 - 0.0001, Number(before.pending));
 } else if (phase === 'status') {
   // WAIT_SPENDABLE=1: stay open until some private balance is spendable, for example
-  // while the wallet resumes POI submissions a closed session left.
+  // while the SDK makes the POI proofs that a closed session left.
   if (process.env.WAIT_SPENDABLE) await waitSpendable(0.0001);
   log('balances:', await balances());
   // STAY_MIN=N: stay open N minutes, syncing each minute, for state that comes from
@@ -208,7 +208,7 @@ if (phase === 'setup') {
   const to = process.env.TO ?? 'alice.canon.eth';
   if (process.env.WAIT_SPENDABLE && !process.env.TOKEN) await waitSpendable(Number(process.env.AMOUNT ?? '0.001'));
   await send({ from: 'private', to, amount: process.env.AMOUNT ?? '0.001', expect: 'Send privately' });
-  // Stay open: the wallet submits the send's POIs in the background, like a broadcaster.
+  // Stay open: the SDK makes the send's POI proof in the background, after a scan.
   const t1 = Date.now();
   for (let i = 0; i < 25; i += 1) {
     await new Promise((r) => setTimeout(r, 60_000));
@@ -235,7 +235,7 @@ if (phase === 'setup') {
   if (!/submitted/i.test(after)) throw new Error(`swap failed: ${after.slice(0, 300)}`);
   log(`swap submitted in ${Math.round((Date.now() - started) / 1000)}s`, await popup.evaluate(() => document.querySelector('a[href*="etherscan"]')?.href));
   await click('^done$');
-  // Stay open: the wallet submits the swap's POIs in the background.
+  // Stay open: the SDK makes the swap's POI proof in the background.
   for (let i = 0; i < 20; i += 1) {
     await new Promise((r) => setTimeout(r, 60_000));
     await resync();
@@ -269,7 +269,7 @@ if (phase === 'setup') {
   await new Promise((r) => setTimeout(r, 30000));
   await resync();
   log('after make public:', await balances());
-  // WAIT_SPENDABLE=1: stay open while the wallet submits the change note's POI proof;
+  // WAIT_SPENDABLE=1: stay open while the SDK makes the spend's POI proof for the change note;
   // the change is the only note that can turn spendable, since the send used the rest.
   if (process.env.WAIT_SPENDABLE) {
     const t1 = Date.now();

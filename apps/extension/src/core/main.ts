@@ -7,7 +7,6 @@ import { accounts, activity, bindings, closeBook, createAccount, customTokens, l
 import { DEV, PRIVATE_NET_KEY, PRIVATE_TX, getProvider, netOf, providerFor, type Token } from './config';
 import { checkToken, tokensOn } from '../shared/networks';
 import { bootEngine, closeRailgunWallet, openRailgunWallet, sync } from './railgun';
-import { resumePOI } from './poi-assurance';
 import { executeSend, planSend } from './send';
 import { emit, onState, state } from './state';
 import {
@@ -98,7 +97,6 @@ const afterUnlock = async (u: Unlocked, imported: boolean): Promise<void> => {
   if (!FORK) void startBroadcasters();
   void openRailgunWallet(u, imported)
     .then(() => sync())
-    .then(() => resumePOI())
     .catch((e) => {
       console.error('[core] railgun', e);
       state.engine = { status: 'error', error: (e as Error).message };

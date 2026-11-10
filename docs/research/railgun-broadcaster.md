@@ -20,7 +20,7 @@ Step 7's purpose: the PPOI node gets the transaction's proofs at once, instead o
 
 ## What Canon takes from it
 
-- **Sponsored sends use the same assurance** (`apps/extension/src/core/poi-assurance.ts`). The submission is keyed on the first output's note public key, which only its receiver can decrypt, so the sponsored send carries a 1-wei "fee" note to the user's own 0zk as its first output, and the wallet performs step 7 itself.
+- **Sponsored sends used the same assurance from 2026-11-06 to 2026-11-10.** The submission is keyed on the first output's note public key, which only its receiver can decrypt, so the sponsored send carried a 1-wei "fee" note to the user's own 0zk as its first output, and the wallet performed step 7 itself. It was removed: it was added for outputs that stayed pending, but the cause was the broken Sepolia TXID index ([railgun-poi.md](railgun-poi.md)), and the SDK's own full transact proof covers every output once the index works.
 - **The sponsor's relay** mirrors steps 2 and 4: simulate at the real gas price, enforce `minGasPrice`.
 - Running our own Waku broadcaster from this code is possible but heavy for a hackathon (Docker, nwaku, a funded wallet per chain). The sponsored relay over HTTPS through Nox gives the same sender privacy for Canon users.
 
